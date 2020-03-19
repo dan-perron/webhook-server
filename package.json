@@ -2,18 +2,23 @@
   "name": "webhook-server",
   "version": "0.0.0",
   "private": true,
-  "scripts": {
-    "start": "node ./bin/www"
-  },
   "dependencies": {
+    "@slack/webhook": "^5.0.3",
+    "config": "^3.3.0",
     "cookie-parser": "~1.4.4",
+    "cross-env": "^7.0.2",
     "debug": "~2.6.9",
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
+    "object-hash": "^2.0.3",
     "pug": "2.0.0-beta11"
   },
   "devDependencies": {
     "prettier": "1.19.1"
+  },
+  "scripts": {
+    "start-prod": "cross-env NODE_ENV=prod node ./bin/www",
+    "start-test": "cross-env NODE_ENV=test node ./bin/www"
   }
 }
