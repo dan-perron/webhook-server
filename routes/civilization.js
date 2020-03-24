@@ -7,6 +7,20 @@ const { IncomingWebhook } = require("@slack/webhook");
 const SlackWebhook = new IncomingWebhook(config.get("webhookUrl"));
 
 let receivedWebhooks = {};
+let playerMap = {
+  Alchemy: "U6DCHN9K2",
+  AndreTheTirant: "U8K4LBSBZ",
+  Anvil: "U6BHKHAUD",
+  flaherty0077: "U6CACS3GW",
+  RustdNails: "U6AT12XSM"
+};
+
+let getSlackUser = civUser => {
+  if (!playerMap[civUser]) {
+    return null;
+  }
+  return `<@${playerMap[civUser]}>`;
+};
 
 let civWebhookHandler = async ({ value1, value2, value3 }) => {
   let argumentHash = hash({ value1, value2, value3 });
@@ -14,7 +28,8 @@ let civWebhookHandler = async ({ value1, value2, value3 }) => {
     return;
   }
   receivedWebhooks[argumentHash] = { value1, value2, value3 };
-  let message = `Game ${value1} has a new turn for ${value2}. Turn number ${value3}.`;
+  let playerName = getSlackUser(value2) || value2;
+  let message = `Game ${value1} has a new turn for ${playerName}. Turn number ${value3}.`;
   console.log(message);
   await SlackWebhook.send({ text: message });
 };
