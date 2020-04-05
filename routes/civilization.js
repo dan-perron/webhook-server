@@ -18,7 +18,7 @@ let playerMap = {
 
 let getSlackUser = civUser => {
   if (!playerMap[civUser]) {
-    return null;
+    return civUser;
   }
   return `<@${playerMap[civUser]}>`;
 };
