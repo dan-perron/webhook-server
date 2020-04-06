@@ -14,6 +14,7 @@ let playerMap = {
   flaherty0077: "U6CACS3GW",
   RustdNails: "U6AT12XSM",
   "Michael Flaherty": "U011B7Y728P",
+  Troycar: "U011M4KTW7J",
 };
 
 let getSlackUser = civUser => {
