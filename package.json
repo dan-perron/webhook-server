@@ -19,6 +19,7 @@
   },
   "scripts": {
     "start-prod": "cross-env NODE_ENV=prod node ./bin/www",
-    "start-test": "cross-env NODE_ENV=test node ./bin/www"
+    "start-test": "cross-env NODE_ENV=test node ./bin/www",
+    "deploy": "sudo ./deploy.sh"
   }
 }
