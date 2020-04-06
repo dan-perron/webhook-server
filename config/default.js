@@ -1,5 +1,5 @@
 const config = {
-  webhookUrl: null
+  slackWebhookUrls: { civilization: null, test: null },
 };
 
 module.exports = config;

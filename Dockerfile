@@ -12,6 +12,5 @@ RUN yarn
 COPY . .
 
 EXPOSE 3000
-ENV NODE_ENV=prod
 
 CMD ["node", "./bin/www"]

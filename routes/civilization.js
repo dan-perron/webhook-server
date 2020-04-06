@@ -4,7 +4,9 @@ const router = express.Router();
 
 const hash = require("object-hash");
 const { IncomingWebhook } = require("@slack/webhook");
-const SlackWebhook = new IncomingWebhook(config.get("webhookUrl"));
+const SlackWebhook = new IncomingWebhook(
+  config.get("slackWebhookUrls.civilization")
+);
 
 let receivedWebhooks = {};
 let playerMap = {
@@ -43,11 +45,6 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   await civWebhookHandler(req.body);
-  res.send("Ok\n");
-});
-
-router.post("/test", async (req, res) => {
-  await SlackWebhook.send(req.body);
   res.send("Ok\n");
 });
 
