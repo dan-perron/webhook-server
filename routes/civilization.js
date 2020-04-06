@@ -33,7 +33,7 @@ let civWebhookHandler = async ({ value1, value2, value3 }) => {
   }
   receivedWebhooks[argumentHash] = { value1, value2, value3 };
   let playerName = getSlackUser(value2) || value2;
-  let message = `Game ${value1} has a new turn for ${playerName}. Turn number ${value3}.`;
+  let message = `${playerName} new turn! Game ${value1}. Turn number ${value3}.`;
   console.log(message);
   await SlackWebhook.send({ text: message });
 };
