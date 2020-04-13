@@ -26,7 +26,14 @@ let getSlackUser = civUser => {
   return `<@${playerMap[civUser]}>`;
 };
 
+let isOurGame = gameName => {
+  return gameName.includes("burger");
+}
+
 let civWebhookHandler = async ({ value1, value2, value3 }) => {
+  if (!isOurGame(value1)) {
+    return;
+  }
   let argumentHash = hash({ value1, value2, value3 });
   if (receivedWebhooks[argumentHash] != null) {
     return;
