@@ -5,7 +5,7 @@ const router = express.Router();
 const hash = require("object-hash");
 const { IncomingWebhook } = require("@slack/webhook");
 const SlackWebhook = new IncomingWebhook(
-  config.get("slackWebhookUrls.civilization")
+  config.get("slack.webhookUrls.civilization")
 );
 
 let receivedWebhooks = {};
