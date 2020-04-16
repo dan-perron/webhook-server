@@ -2,6 +2,7 @@ const createError = require("http-errors");
 const express = require("express");
 
 const civilizationRouter = require("./routes/civilization");
+const slackRouter = require("./routes/slack");
 const testRouter = require("./routes/test");
 const indexRouter = require("./routes/index");
 
@@ -10,6 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use("/civilization", civilizationRouter);
+app.use("/slack", slackRouter);
 app.use("/test", testRouter);
 app.use("/", indexRouter);
 
