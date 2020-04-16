@@ -6,7 +6,9 @@ const { IncomingWebhook } = require("@slack/webhook");
 const SlackWebhook = new IncomingWebhook(config.get("slack.webhookUrls.test"));
 
 router.post("/", async (req, res) => {
-  console.log(`Sending ${req.body} to slack test channel.`);
+  console.log(
+    `Sending ${JSON.stringify(req.body, null, 2)} to slack test channel.`
+  );
   await SlackWebhook.send(req.body);
   res.send("Ok\n");
 });
