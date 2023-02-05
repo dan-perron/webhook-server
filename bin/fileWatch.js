@@ -21,7 +21,7 @@ for (const file in fileToSlackMap) {
   watchFile(pathToTeamUploads + file, (curr, prev) => {
     checkFiles(curr, prev).then((oldFiles) => {
       let text = `<@${fileToSlackMap[file]}> just submitted their team's upload.`;
-      if (!!oldFiles) {
+      if (!oldFiles) {
         return text;
       }
       if (oldFiles.length === 0) {
