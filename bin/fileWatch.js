@@ -1,19 +1,21 @@
-//import { watch } from 'node:fs';
-const {watch} = require('node:fs');
+const {watchFile} = require('node:fs');
+const { IncomingWebhook } = require("@slack/webhook");
+const config = require("config");
+const SlackWebhook = new IncomingWebhook(
+  config.get("slack.webhookUrls.ootp")
+);
 
-let fileToSlackMap = {
-    'team_7.ootp': "U6BEBDULB",
-    'team_11.ootp': "U6KNBPYLE",
-    'team_13.ootp': "U6CACS3GW",
-    'team_20.ootp': "U6AT12XSM",
+const fileToSlackMap = {
+  'team_7.ootp': "U6BEBDULB",
+  'team_11.ootp': "U6KNBPYLE",
+  'team_13.ootp': "U6CACS3GW",
+  'team_20.ootp': "U6AT12XSM",
 };
-watch('/ootp/game/team_uploads',(eventType, filename) => {
-    console.log(`event type is: ${eventType}`);
-    if (filename) {
-        console.log(`filename provided: ${filename}`);
-    } else {
-        console.log('filename not provided');
-    }
-});
 
-console.log('watching ootp');
+const pathToTeamUploads = '/ootp/game/team_uploads/'
+
+for (const file in fileToSlackMap) {
+  watchFile(pathToTeamUploads + file, () => {
+    SlackWebhook.send({text: `<@${fileToSlackMap[file]}> just submitted their team's upload.`})
+  });
+}
