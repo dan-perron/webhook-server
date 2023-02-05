@@ -33,6 +33,11 @@ for (const file in fileToSlackMap) {
   });
 }
 
+watchFile(pathToLeagueFile, () => {
+  let playersString = Array.from(fileToSlackMap.values()).join(', ');
+  SlackWebhook.send({text: `New league file uploaded ${playersString}`});
+});
+
 async function checkFiles(curr, prev) {
   let fileToStatPromises = {};
   for (const file in fileToSlackMap) {
