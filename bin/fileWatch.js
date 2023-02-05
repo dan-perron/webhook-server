@@ -1,4 +1,5 @@
-import { watch } from 'node:fs';
+//import { watch } from 'node:fs';
+const {watch} = require('node:fs');
 
 let fileToSlackMap = {
     'team_7.ootp': "U6BEBDULB",
