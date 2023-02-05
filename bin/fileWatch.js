@@ -15,3 +15,5 @@ watch('/ootp/game/team_uploads',(eventType, filename) => {
         console.log('filename not provided');
     }
 });
+
+console.log('watching ootp');
