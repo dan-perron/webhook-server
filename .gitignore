@@ -1,4 +1,5 @@
 config/local*
+.idea
 
 # Logs
 logs
