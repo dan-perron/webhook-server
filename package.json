@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
+    "@slack/bolt": "^3.12.2",
     "@slack/webhook": "^5.0.3",
     "config": "^3.3.0",
     "cookie-parser": "~1.4.4",

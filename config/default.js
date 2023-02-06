@@ -1,9 +1,12 @@
 const config = {
-  slack: {
-    webhookUrls: { civilization: null, test: null, ootp: null },
-  },
   mongodb: {
     connectionString: process.env.MONGODB_CONNSTRING,
+  },
+  slack: {
+    appToken: null,
+    signingSecret: null,
+    token: null,
+    webhookUrls: { civilization: null, test: null, ootp: null },
   },
 };
 
