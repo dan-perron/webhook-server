@@ -15,3 +15,10 @@ app.message('hello', async ({ message, say }) => {
   // say() sends a message to the channel where the event was triggered
   await say(`Hey there <@${message.user}>!`);
 });
+
+(async () => {
+  // Start your app
+  await app.start();
+
+  console.log('⚡️ Bolt app is running!');
+})();
