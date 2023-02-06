@@ -64,7 +64,9 @@ function getNextStepMessage(oldFiles) {
       oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
 }
 
-export async function getBotMessage() {
+async function getBotMessage() {
   let oldFiles = await checkFiles({});
   return getNextStepMessage(oldFiles);
 }
+
+module.exports = {getBotMessage};
