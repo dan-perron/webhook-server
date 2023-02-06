@@ -12,10 +12,12 @@ const app = new App({
   // port: process.env.PORT || 3000
 });
 
-app.message(/.*who[']?s turn is it[?]?.*/i, async ({ message, say }) => {
+app.message(/.*who.?s turn is it.*/i, async ({ message, say }) => {
   // say() sends a message to the channel where the event was triggered
   console.log('⚡️ Msg recd! channel ' + message.channel);
-  await say(await getBotMessage());
+  if (message.channel === 'C04J9TWRNJ3') {
+    await say(await getBotMessage());
+  }
 });
 
 (async () => {
@@ -25,5 +27,11 @@ app.message(/.*who[']?s turn is it[?]?.*/i, async ({ message, say }) => {
 
 app.event('app_mention', async ({ event, say }) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
-  await say(await getBotMessage());
+  if (event.channel === 'C04J9TWRNJ3') {
+    await say(await getBotMessage());
+  }
 });
+
+// testChannel - CUYGZ6LLU
+// ootp highlights - C04J9TWRNJ3
+
