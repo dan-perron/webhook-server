@@ -1,5 +1,6 @@
 const { App } = require('@slack/bolt');
 const config = require('config');
+const {getBotMessage} = require('./ootpFileManager');
 
 const app = new App({
   token: config.get('slack.token'),
@@ -11,10 +12,10 @@ const app = new App({
   // port: process.env.PORT || 3000
 });
 
-app.message('The Super Cluster', async ({ message, say }) => {
+app.message(/.*who[']?s turn is it[?]?.*/i, async ({ message, say }) => {
   // say() sends a message to the channel where the event was triggered
-  console.log('⚡️ Bolt recd!');
-  await say(`Hey there <@${message.user}>!`);
+  console.log('⚡️ Msg recd! channel ' + message.channel);
+  await say(await getBotMessage());
 });
 
 (async () => {
@@ -22,29 +23,7 @@ app.message('The Super Cluster', async ({ message, say }) => {
   console.log('⚡️ Bolt app started');
 })();
 
-app.event('app_mention', async ({ event, context, client, say }) => {
-  try {
-    await say({"blocks": [
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": `Thanks for the mention <@${event.user}>! Here's a button`
-          },
-          "accessory": {
-            "type": "button",
-            "text": {
-              "type": "plain_text",
-              "text": "Button",
-              "emoji": true
-            },
-            "value": "click_me_123",
-            "action_id": "first_button"
-          }
-        }
-      ]});
-  }
-  catch (error) {
-    console.error(error);
-  }
+app.event('app_mention', async ({ event, say }) => {
+  console.log('⚡️ Mention recd! channel ' + event.channel);
+  await say(await getBotMessage());
 });

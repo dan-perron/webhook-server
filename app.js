@@ -5,7 +5,7 @@ const civilizationRouter = require("./routes/civilization");
 const slackRouter = require("./routes/slack");
 const testRouter = require("./routes/test");
 const indexRouter = require("./routes/index");
-require("./bin/fileWatch");
+require("./bin/ootpFileManager");
 require("./bin/slackApi");
 
 const app = express();
