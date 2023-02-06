@@ -11,10 +11,38 @@ const app = new App({
   // port: process.env.PORT || 3000
 });
 
-app.message('hello', async ({ message, say }) => {
-  // say() sends a message to the channel where the event was triggered
-  console.log('⚡️ Bolt recd!');
-  await say(`Hey there <@${message.user}>!`);
+// app.message('hello', async ({ message, say }) => {
+//   // say() sends a message to the channel where the event was triggered
+//   console.log('⚡️ Bolt recd!');
+//   await say(`Hey there <@${message.user}>!`);
+// });
+
+app.event('app_mention', async ({ event, context, client, say }) => {
+  console.log('⚡️ Mentioned!');
+  try {
+    await say({"blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": `Thanks for the mention <@${event.user}>! Here's a button`
+          },
+          "accessory": {
+            "type": "button",
+            "text": {
+              "type": "plain_text",
+              "text": "Button",
+              "emoji": true
+            },
+            "value": "click_me_123",
+            "action_id": "first_button"
+          }
+        }
+      ]});
+  }
+  catch (error) {
+    console.error(error);
+  }
 });
 
 (async () => {
