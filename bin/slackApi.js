@@ -17,8 +17,12 @@ const app = new App({
 //   await say(`Hey there <@${message.user}>!`);
 // });
 
+(async () => {
+  await app.start();
+  console.log('⚡️ Bolt app started');
+})();
+
 app.event('app_mention', async ({ event, context, client, say }) => {
-  console.log('⚡️ Mentioned!');
   try {
     await say({"blocks": [
         {
@@ -44,10 +48,3 @@ app.event('app_mention', async ({ event, context, client, say }) => {
     console.error(error);
   }
 });
-
-(async () => {
-  // Start your app
-  await app.start();
-
-  console.log('⚡️ Bolt app is running!');
-})();
