@@ -11,11 +11,11 @@ const app = new App({
   // port: process.env.PORT || 3000
 });
 
-// app.message('hello', async ({ message, say }) => {
-//   // say() sends a message to the channel where the event was triggered
-//   console.log('⚡️ Bolt recd!');
-//   await say(`Hey there <@${message.user}>!`);
-// });
+app.message('The Super Cluster', async ({ message, say }) => {
+  // say() sends a message to the channel where the event was triggered
+  console.log('⚡️ Bolt recd!');
+  await say(`Hey there <@${message.user}>!`);
+});
 
 (async () => {
   await app.start();
