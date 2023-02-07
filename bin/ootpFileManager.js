@@ -30,7 +30,7 @@ for (const file in fileToSlackMap) {
 }
 
 watchFile(pathToLeagueFile, () => {
-  let playersString = Array.from(fileToSlackMap.values()).join(', ');
+  let playersString = Object.values(fileToSlackMap).map((s) => `<@${s}>`).join(', ');
   SlackWebhook.send({text: `New league file uploaded ${playersString}`});
 });
 
