@@ -47,6 +47,7 @@ chokidar.watch(pathToBoxScores, {ignoreInitial: true}).on('add', async (path) =>
     if (title.includes(team)) {
       const heading = cheer('td.boxtitle[style="padding:0px 4px 2px 4px;"]').text().trim();
       const body = cheer('td.databg.datacolor[style="padding:1px 4px 2px 4px;"]').text().trim();
+      const url = path.replace('/ootp/game/reports/html', 'djperron.com/ootp');
       SlackWebhook.send({
         blocks: [
           {
@@ -54,6 +55,13 @@ chokidar.watch(pathToBoxScores, {ignoreInitial: true}).on('add', async (path) =>
             "text": {
               "type": "plain_text",
               "text": heading
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": `<${url}|${title}>`
             }
           },
           {
