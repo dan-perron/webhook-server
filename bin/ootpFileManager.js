@@ -39,7 +39,7 @@ watchFile(pathToLeagueFile, () => {
   SlackWebhook.send({text: `New league file uploaded ${playersString}`});
 });
 
-chokidar.watch(pathToBoxScores).on('add', async (path) => {
+chokidar.watch(pathToBoxScores, {ignoreInitial: true}).on('add', async (path) => {
   const file = await readFile(path);
   const cheer = cheerio.load(file);
   const title = cheer('title').html();
