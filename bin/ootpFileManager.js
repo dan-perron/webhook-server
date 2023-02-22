@@ -43,7 +43,7 @@ chokidar.watch(pathToBoxScores).on('add', async (path) => {
   const file = await readFile(path);
   const cheer = cheerio.load(file);
   const title = cheer('title').html();
-  for (let team in teams) {
+  for (let team of teams) {
     if (title.includes(team)) {
       const heading = cheer('td.boxtitle[style="padding:0px 4px 2px 4px;"]').text().trim();
       const body = cheer('td.databg.datacolor[style="padding:1px 4px 2px 4px;"]').text().trim();
