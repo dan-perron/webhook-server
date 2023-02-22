@@ -1,4 +1,7 @@
+const cheerio = require('cheerio');
+const chokidar = require('chokidar');
 const {watchFile} = require('node:fs');
+const {readFile} = require('node:fs/promises');
 const {stat} = require('node:fs/promises');
 const {IncomingWebhook} = require('@slack/webhook');
 const config = require('config');
@@ -13,9 +16,11 @@ const fileToSlackMap = {
   'team_20.ootp': 'U6AT12XSM',
 };
 const perronSlack = 'U6AT12XSM';
+const teams = ['Cincinnati Reds', 'Kansas City Royals', 'Miami Marlins', 'Oakland Athletics'];
 
 const pathToTeamUploads = '/ootp/game/team_uploads/';
 const pathToLeagueFile = '/ootp/game/league_file/cheeseburger_2023.zip';
+const pathToBoxScores = '/ootp/game/reports/html/box_scores/';
 
 for (const file in fileToSlackMap) {
   watchFile(pathToTeamUploads + file, async (curr, prev) => {
@@ -32,6 +37,37 @@ for (const file in fileToSlackMap) {
 watchFile(pathToLeagueFile, () => {
   let playersString = Object.values(fileToSlackMap).map((s) => `<@${s}>`).join(', ');
   SlackWebhook.send({text: `New league file uploaded ${playersString}`});
+});
+
+chokidar.watch(pathToBoxScores).on('add', async (path) => {
+  const file = await readFile(path);
+  const cheer = cheerio.load(file);
+  const title = cheer('title').html();
+  for (let team in teams) {
+    if (title.includes(team)) {
+      const heading = cheer('td.boxtitle[style="padding:0px 4px 2px 4px;"]').text().trim();
+      const body = cheer('td.databg.datacolor[style="padding:1px 4px 2px 4px;"]').text().trim();
+      SlackWebhook.send({
+        blocks: [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": heading
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "plain_text",
+              "text": body
+            }
+          }
+        ]
+      });
+      return;
+    }
+  }
 });
 
 async function checkFiles({prev}) {

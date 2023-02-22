@@ -5,6 +5,8 @@
   "dependencies": {
     "@slack/bolt": "^3.12.2",
     "@slack/webhook": "^5.0.3",
+    "cheerio": "^1.0.0-rc.12",
+    "chokidar": "^3.5.3",
     "config": "^3.3.0",
     "cookie-parser": "~1.4.4",
     "cross-env": "^7.0.2",
