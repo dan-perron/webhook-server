@@ -95,6 +95,7 @@ async function getHighlightIfMatched(path, teamFilter, dateFilter) {
   const body = cheer('td.databg.datacolor[style="padding:1px 4px 2px 4px;"]').text().trim();
   const url = path.replace('/ootp/game/reports/html', 'djperron.com/ootp');
   return {
+    text: title,
     blocks: [
       {
         'type': 'header',
