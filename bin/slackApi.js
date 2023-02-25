@@ -34,9 +34,9 @@ app.message(/highlights please/i, async ({message, say}) => {
   let dateFiler;
   if (message.channel === highlightsChannel) {
     teamFilter = teams;
-    dateFiler = getCurrentDate().subtract(1, 'days');
+    dateFiler = await getCurrentDate().subtract(1, 'days');
   }
-  getHighlightsIfMatched(teamFilter, dateFiler).map((highlight) => say(highlight));
+  await getHighlightsIfMatched(teamFilter, dateFiler).map((highlight) => say(highlight));
 });
 
 (async () => {
