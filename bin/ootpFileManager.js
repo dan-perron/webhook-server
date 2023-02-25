@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const chokidar = require('chokidar');
+const dayjs = require('dayjs');
 const {watchFile} = require('node:fs');
 const {readFile} = require('node:fs/promises');
 const {stat} = require('node:fs/promises');
@@ -9,14 +10,21 @@ const SlackWebhook = new IncomingWebhook(
     config.get('slack.webhookUrls.ootp'),
 );
 
-const fileToSlackMap = {
-  'team_7.ootp': 'U6BEBDULB',
-  'team_11.ootp': 'U6KNBPYLE',
-  'team_13.ootp': 'U6CACS3GW',
-  'team_20.ootp': 'U6AT12XSM',
-};
+const teamToSlackMap = {
+  'team_7': 'U6BEBDULB',
+  'team_11': 'U6KNBPYLE',
+  'team_13': 'U6CACS3GW',
+  'team_20': 'U6AT12XSM',
+}
+
+const fileToSlackMap = Object.fromEntries(
+    Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v])
+);
 const perronSlack = 'U6AT12XSM';
 const teams = ['Cincinnati Reds', 'Kansas City Royals', 'Miami Marlins', 'Oakland Athletics'];
+const injuryFileToSlackMap = Object.fromEntries(
+    Object.entries(teamToSlackMap).map(([k, v]) => [`/ootp/game/reports/html/teams/${k}_injuries.html`, v])
+);
 
 const pathToTeamUploads = '/ootp/game/team_uploads/';
 const pathToLeagueFile = '/ootp/game/league_file/cheeseburger_2023.zip';
@@ -39,7 +47,7 @@ watchFile(pathToLeagueFile, () => {
   SlackWebhook.send({text: `New league file uploaded ${playersString}`});
 });
 
-chokidar.watch(pathToBoxScores, {ignoreInitial: true}).on('add', async (path) => {
+async function boxScoreUpdate(path) {
   const file = await readFile(path);
   const cheer = cheerio.load(file);
   const title = cheer('title').html();
@@ -76,7 +84,20 @@ chokidar.watch(pathToBoxScores, {ignoreInitial: true}).on('add', async (path) =>
       return;
     }
   }
-});
+}
+
+chokidar.watch(pathToBoxScores, {ignoreInitial: true})
+.on('add', boxScoreUpdate)
+.on('change', boxScoreUpdate);
+
+// for (const file in injuryFileToSlackMap) {
+//   chokidar.watch(file, {ignoreInitial: true}).on('change', async (path) => {
+//     const file = await readFile(path);
+//     const cheer = cheerio.load(file);
+//     const date = dayjs(cheer('div[style="text-align:center; color:#FFFFFF; padding-top:4px;"]').text());
+//     const
+//   });
+// }
 
 async function checkFiles({prev}) {
   let fileToStatPromises = {};
