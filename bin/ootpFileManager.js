@@ -129,9 +129,9 @@ async function sendHighlights(path) {
 
 async function getHighlightsIfMatched(teamFilter, dateFilter) {
   let files = await readdir(pathToBoxScores);
-  let highlights = files.map((f) => getHighlightIfMatched(pathToBoxScores + f, teamFilter, dateFilter)).
-      filter((h) => !!h);
-  return highlights;
+  let highlightPromises = files.map(
+      async (f) => await getHighlightIfMatched(pathToBoxScores + f, teamFilter, dateFilter));
+  return (await Promise.all(highlightPromises)).filter((h) => h);
 }
 
 chokidar.watch(pathToBoxScores, {ignoreInitial: true}).
