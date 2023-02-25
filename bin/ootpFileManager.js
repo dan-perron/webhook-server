@@ -80,6 +80,7 @@ function matchDateFilter(date, dateFilter) {
 }
 
 async function getHighlightIfMatched(path, teamFilter, dateFilter) {
+  console.log(`paths - ${path} + teams -${teamFilter.join(', ')} + date - ${dateFilter}`);
   const file = await readFile(path);
   const cheer = cheerio.load(file);
   const title = cheer('title').html();
