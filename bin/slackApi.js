@@ -30,6 +30,7 @@ const channelToTeam = {
 };
 
 app.message(/highlights please/i, async ({message, say}) => {
+  console.log('⚡️ Highlight msg! channel ' + message.channel);
   let teamFilter;
   let dateFiler;
   let currentDate = await getCurrentDate();
@@ -38,7 +39,7 @@ app.message(/highlights please/i, async ({message, say}) => {
     dateFiler = currentDate.subtract(1, 'days');
   }
   if (Object.keys(channelToTeam).includes(message.channel)) {
-    teamFilter = channelToTeam.get(message.channel);
+    teamFilter = channelToTeam[message.channel];
     dateFiler = currentDate.subtract(7, 'days');
   }
   let highlights = await getHighlightsIfMatched(teamFilter, dateFiler);
