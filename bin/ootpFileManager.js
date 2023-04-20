@@ -122,6 +122,7 @@ async function getHighlightIfMatched(path, teamFilter, dateFilter) {
 }
 
 async function sendHighlights(path) {
+  console.error('triggered on ' + path);
   const highlight = await getHighlightIfMatched(path, teams);
   if (highlight) {
     SlackWebhook.send(highlight);
