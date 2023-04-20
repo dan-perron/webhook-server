@@ -46,17 +46,25 @@ app.message(/highlights please/i, async ({message, say}) => {
   highlights.map((highlight) => say(highlight));
 });
 
+app.event('app_mention', async (obj) => {
+  console.error('⚡️ Mention recd!');
+  for (let prop in obj) {
+    console.error(prop + ': ' + obj[prop]);
+  }
+  const event = obj.event;
+  for (let prop in event) {
+    console.error(prop + ': ' + event[prop]);
+  }
+  console.log('⚡️ Mention recd! channel ' + event.channel);
+  if (event.channel === 'C04J9TWRNJ3') {
+    await obj.say(await getBotMessage());
+  }
+});
+
 (async () => {
   await app.start();
   console.log('⚡️ Bolt app started');
 })();
-
-app.event('app_mention', async ({event, say}) => {
-  console.log('⚡️ Mention recd! channel ' + event.channel);
-  if (event.channel === 'C04J9TWRNJ3') {
-    await say(await getBotMessage());
-  }
-});
 
 // testChannel - CUYGZ6LLU
 // ootp highlights - C04J9TWRNJ3
