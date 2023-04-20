@@ -1,23 +1,5 @@
-const {App} = require('@slack/bolt');
-const config = require('config');
 const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched} = require('./ootpFileManager');
-
-const app = new App({
-  token: config.get('slack.token'),
-  signingSecret: config.get('slack.signingSecret'),
-  socketMode: true,
-  appToken: config.get('slack.appToken'),
-  // Socket Mode doesn't listen on a port, but in case you want your app to respond to OAuth,
-  // you still need to listen on some port!
-  // port: process.env.PORT || 3000
-});
-
-const highlightsChannel = 'C04J9TWRNJ3';
-
-function messageHighlights(object) {
-  object.channel = highlightsChannel;
-  return app.client.chat.postMessage(object);
-}
+const {app, channelToTeam, highlightsChannel} = require('../clients/slack');
 
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
@@ -26,13 +8,6 @@ app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
     await say(await getBotMessage());
   }
 });
-
-const channelToTeam = {
-  'C04NS45UKEX': 'Cincinnati Reds',
-  'C04NS44S6QK': 'Kansas City Royals',
-  'C04P4SB6LSD': 'Miami Marlins',
-  'C04NKK6CAKY': 'Oakland Athletics',
-};
 
 app.message(/highlights please/i, async ({message, say}) => {
   console.log('⚡️ Highlight msg! channel ' + message.channel);
@@ -53,7 +28,7 @@ app.message(/highlights please/i, async ({message, say}) => {
 
 app.event('app_mention', async ({event, say}) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
-  if (event.channel === 'C04J9TWRNJ3') {
+  if (event.channel === highlightsChannel) {
     await say(await getBotMessage());
   }
 });
@@ -62,8 +37,3 @@ app.event('app_mention', async ({event, say}) => {
   await app.start();
   console.log('⚡️ Bolt app started');
 })();
-
-// testChannel - CUYGZ6LLU
-// ootp highlights - C04J9TWRNJ3
-
-module.exports = {messageHighlights};

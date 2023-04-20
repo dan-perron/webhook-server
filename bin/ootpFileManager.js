@@ -11,8 +11,7 @@ const SlackWebhook = new IncomingWebhook(
     config.get('slack.webhookUrls.ootp'),
 );
 
-// Super ugly, this is a circular dependency, but I think require will take care of it.
-const {messageHighlights} = require('./slackApi');
+const {messageHighlights} = require('../clients/slack');
 
 const teamToSlackMap = {
   'team_7': 'U6BEBDULB',
