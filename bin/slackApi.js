@@ -14,6 +14,11 @@ const app = new App({
 
 const highlightsChannel = 'C04J9TWRNJ3';
 
+function messageHighlights(object) {
+  object.channel = highlightsChannel;
+  return app.client.chat.postMessage(object);
+}
+
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
   console.log('⚡️ Msg recd! channel ' + message.channel);
