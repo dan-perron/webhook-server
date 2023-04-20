@@ -65,3 +65,5 @@ app.event('app_mention', async ({event, say}) => {
 
 // testChannel - CUYGZ6LLU
 // ootp highlights - C04J9TWRNJ3
+
+module.exports = {messageHighlights};
