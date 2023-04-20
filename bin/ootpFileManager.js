@@ -94,33 +94,34 @@ async function getHighlightIfMatched(path, teamFilter, dateFilter) {
   }
   const heading = cheer('td.boxtitle[style="padding:0px 4px 2px 4px;"]').text().trim();
   const body = cheer('td.databg.datacolor[style="padding:1px 4px 2px 4px;"]').text().trim();
-  const url = path.replace('/ootp/game/reports/html', 'djperron.com/ootp');
-  return {
-    text: title,
-    blocks: [
-      {
-        'type': 'header',
-        'text': {
-          'type': 'plain_text',
-          'text': heading,
-        },
+  const url = path.replace('/ootp/game/reports/html', 'https://djperron.com/ootp');
+  let message = {text: title, blocks: []};
+  if (heading) {
+    message.blocks.push({
+      'type': 'header',
+      'text': {
+        'type': 'plain_text',
+        'text': heading,
       },
-      {
-        'type': 'section',
-        'text': {
-          'type': 'mrkdwn',
-          'text': `<${url}|${title}>`,
-        },
+    });
+  }
+  message.blocks.push({
+    'type': 'section',
+    'text': {
+      'type': 'mrkdwn',
+      'text': `<${url}|${title}>`,
+    },
+  });
+  if (body) {
+    message.blocks.push({
+      'type': 'section',
+      'text': {
+        'type': 'plain_text',
+        'text': body,
       },
-      {
-        'type': 'section',
-        'text': {
-          'type': 'plain_text',
-          'text': body,
-        },
-      },
-    ],
-  };
+    });
+  }
+  return message;
 }
 
 async function sendHighlights(path) {
