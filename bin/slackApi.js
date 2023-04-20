@@ -14,7 +14,7 @@ const app = new App({
 
 const highlightsChannel = 'C04J9TWRNJ3';
 
-app.message(/.*who.?s turn is it.*/i, async ({message, say}) => {
+app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
   console.log('⚡️ Msg recd! channel ' + message.channel);
   if (message.channel === highlightsChannel) {
