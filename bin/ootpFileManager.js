@@ -136,7 +136,7 @@ async function getHighlightsIfMatched(teamFilter, dateFilter) {
   return (await Promise.all(highlightPromises)).filter((h) => h);
 }
 
-chokidar.watch(pathToBoxScores, {ignoreInitial: true}).
+chokidar.watch(pathToBoxScores, {ignoreInitial: true, usePolling: true}).
     on('add', sendHighlights).
     on('change', sendHighlights);
 
