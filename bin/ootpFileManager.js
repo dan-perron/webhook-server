@@ -7,28 +7,18 @@ const {readFile, readdir} = require('node:fs/promises');
 const {stat} = require('node:fs/promises');
 const {IncomingWebhook} = require('@slack/webhook');
 const config = require('config');
-const SlackWebhook = new IncomingWebhook(
-    config.get('slack.webhookUrls.ootp'),
-);
+const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
 const {messageHighlights} = require('../clients/slack');
 
 const teamToSlackMap = {
-  'team_7': 'U6BEBDULB',
-  'team_11': 'U6KNBPYLE',
-  'team_13': 'U6CACS3GW',
-  'team_20': 'U6AT12XSM',
+  'team_7': 'U6BEBDULB', 'team_11': 'U6KNBPYLE', 'team_13': 'U6CACS3GW', 'team_20': 'U6AT12XSM',
 };
 
-const fileToSlackMap = Object.fromEntries(
-    Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v]),
-);
+const fileToSlackMap = Object.fromEntries(Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v]));
 const perronSlack = 'U6AT12XSM';
 const teams = [
-  'Cincinnati Reds',
-  'Kansas City Royals',
-  'Miami Marlins',
-  'Oakland Athletics'];
+  'Cincinnati Reds', 'Kansas City Royals', 'Miami Marlins', 'Oakland Athletics'];
 const injuryFileToSlackMap = Object.fromEntries(
     Object.entries(teamToSlackMap).map(([k, v]) => [`/ootp/game/reports/html/teams/${k}_injuries.html`, v]));
 
@@ -98,26 +88,20 @@ async function getHighlightIfMatched(path, teamFilter, dateFilter) {
   let message = {text: title, blocks: []};
   if (heading) {
     message.blocks.push({
-      'type': 'header',
-      'text': {
-        'type': 'plain_text',
-        'text': heading,
+      'type': 'header', 'text': {
+        'type': 'plain_text', 'text': heading,
       },
     });
   }
   message.blocks.push({
-    'type': 'section',
-    'text': {
-      'type': 'mrkdwn',
-      'text': `<${url}|${title}>`,
+    'type': 'section', 'text': {
+      'type': 'mrkdwn', 'text': `<${url}|${title}>`,
     },
   });
   if (body) {
     message.blocks.push({
-      'type': 'section',
-      'text': {
-        'type': 'plain_text',
-        'text': body,
+      'type': 'section', 'text': {
+        'type': 'plain_text', 'text': body,
       },
     });
   }
@@ -140,7 +124,13 @@ async function getHighlightsIfMatched(teamFilter, dateFilter) {
   return (await Promise.all(highlightPromises)).filter((h) => h);
 }
 
-chokidar.watch(pathToBoxScores, {ignoreInitial: true, usePolling: true}).
+chokidar.watch(
+    pathToBoxScores,
+    {
+      ignoreInitial: true,
+      usePolling: true,
+      interval: 1000, // Poll every second rather than 100 ms.
+    }).
     on('add', sendHighlights).
     on('change', sendHighlights);
 
@@ -179,8 +169,7 @@ function getNextStepMessage(oldFiles) {
   if (oldFiles.length === 0) {
     return `<@${perronSlack}> time to sim.`;
   }
-  return 'Waiting on ' +
-      oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
+  return 'Waiting on ' + oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
 }
 
 async function getBotMessage() {
