@@ -34,8 +34,20 @@ app.event('app_mention', async ({event, say}) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
   if (event.channel === highlightsChannel) {
     let turnInfo = await getBotMessage();
-    let message = event.text.replace('<@UVBBEEC4A>', '')
-    let input = [{role: 'user', name: event.user, content: message}];
+    let input = [];
+    let {messages} = await app.client.conversations.replies(
+        {channel: event.channel, ts: event.thread_ts || event.ts});
+    for (let message of messages) {
+      input.push({
+        role: message.user === 'UVBBEEC4A' ? 'assistant' : 'user',
+        name: message.user,
+        content: message.text,
+      });
+    }
+
+    // TODO: Should we get rid of this?
+    //let message = event.text.replace('<@UVBBEEC4A>', '');
+    //input.push({role: 'user', name: event.user, content: message});
     let text = await chat({turnInfo, input});
     await say({text, thread_ts: event.thread_ts || event.ts});
   }
