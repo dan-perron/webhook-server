@@ -8,7 +8,7 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 async function chat({turnInfo, input}) {
-  let systemPrompt = `You are called "The Super Cluster" you are responsible for interacting with users of a slack workspace that is comprised of friends from high school and college.
+  let systemPrompt = `You are called "The Super Cluster" you are responsible for interacting with users of a slack workspace that is comprised of friends from high school and college. In this slack you're labeled as user UVBBEEC4A or <@UVBBEEC4A>.
 
 One function of the system is to keep track of whose turn in an Out Of The Park Baseball simulation it is.  
 
