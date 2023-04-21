@@ -31,7 +31,7 @@ Do not use the players aliases.`
     console.log(JSON.stringify(choice, null, 2));
   }
 
-  return completion.data.choices[0].message;
+  return completion.data.choices[0].message.content;
 }
 
 module.exports = {chat};
