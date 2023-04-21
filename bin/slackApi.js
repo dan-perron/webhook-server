@@ -1,4 +1,4 @@
-const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched} = require('./ootpFileManager');
+const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched, getPowerRankings} = require('./ootpFileManager');
 const {app, channelToTeam, highlightsChannel} = require('../clients/slack');
 const {chat} = require('../clients/openai');
 
@@ -33,7 +33,7 @@ app.message(/highlights please/i, async ({message, say}) => {
 app.event('app_mention', async ({event, say}) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
   if (event.channel === highlightsChannel) {
-    let turnInfo = await getBotMessage();
+    let [turnInfo, powerRankings] = await Promise.all(getBotMessage(), getPowerRankings());
     let input = [];
     let {messages} = await app.client.conversations.replies(
         {channel: event.channel, ts: event.thread_ts || event.ts});
@@ -48,7 +48,7 @@ app.event('app_mention', async ({event, say}) => {
     // TODO: Should we get rid of this?
     //let message = event.text.replace('<@UVBBEEC4A>', '');
     //input.push({role: 'user', name: event.user, content: message});
-    let text = await chat({turnInfo, input});
+    let text = await chat({turnInfo, input, powerRankings});
     await say({text, thread_ts: event.thread_ts || event.ts});
   }
 });

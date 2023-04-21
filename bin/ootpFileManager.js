@@ -26,6 +26,7 @@ const pathToTeamUploads = '/ootp/game/team_uploads/';
 const pathToLeagueFile = '/ootp/game/league_file/cheeseburger_2023.zip';
 const pathToBoxScores = '/ootp/game/reports/html/box_scores/';
 const pathToHomePage = '/ootp/game/reports/html/leagues/league_202_home.html';
+const pathToPowerRankings = '/ootp/game/reports/html/leagues/league_202_team_power_rankings_page.html';
 
 async function getCurrentDate() {
   const file = await readFile(pathToHomePage);
@@ -167,7 +168,7 @@ function getNextStepMessage(oldFiles) {
     return;
   }
   if (oldFiles.length === 0) {
-    return `<@${perronSlack}> time to sim.`;
+    return `<@${perronSlack}> needs to sim.`;
   }
   return 'Waiting on ' + oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
 }
@@ -177,4 +178,11 @@ async function getBotMessage() {
   return getNextStepMessage(oldFiles);
 }
 
-module.exports = {getBotMessage, getCurrentDate, getHighlightsIfMatched, teams};
+async function getPowerRankings() {
+  const file = await readFile(pathToPowerRankings);
+  const cheer = cheerio.load(file);
+  // This is ugly -- replaces the </th>\n with </td> but it seems to work.
+  return cheer(cheer('table[class="data sortable"]').html().replace(/<[/]t[dh]>\n/g, '</td>')).text();
+}
+
+module.exports = {getBotMessage, getCurrentDate, getHighlightsIfMatched, getPowerRankings, teams};
