@@ -132,8 +132,8 @@ chokidar.watch(
       usePolling: true,
       interval: 1000, // Poll every second rather than 100 ms.
     }).
-    on('add', sendHighlights).
-    on('change', sendHighlights);
+    on('add', sendHighlights);
+    //on('change', sendHighlights);
 
 // for (const file in injuryFileToSlackMap) {
 //   chokidar.watch(file, {ignoreInitial: true}).on('change', async (path) => {
