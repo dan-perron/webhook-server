@@ -33,7 +33,7 @@ app.message(/highlights please/i, async ({message, say}) => {
 app.event('app_mention', async ({event, say}) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
   if (event.channel === highlightsChannel) {
-    let [turnInfo, powerRankings] = await Promise.all(getBotMessage(), getPowerRankings());
+    let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
     let input = [];
     let {messages} = await app.client.conversations.replies(
         {channel: event.channel, ts: event.thread_ts || event.ts});
