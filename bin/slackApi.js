@@ -5,6 +5,9 @@ const {chat} = require('../clients/openai');
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
   console.log('⚡️ Msg recd! channel ' + message.channel);
+  if (message.text.includes('<@UVBBEEC4A>')) {
+    return;
+  }
   if (message.channel === highlightsChannel) {
     await say(await getBotMessage());
   }

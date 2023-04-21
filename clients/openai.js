@@ -27,6 +27,10 @@ Do not use the players aliases.`
     model: "gpt-3.5-turbo",
     messages,
   });
+  for (let choice of completion.data.choices) {
+    console.log(JSON.stringify(choice, null, 2));
+  }
+
   return completion.data.choices[0].message;
 }
 
