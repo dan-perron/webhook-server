@@ -37,7 +37,7 @@ app.event('app_mention', async ({event, say}) => {
     let message = event.text.replace('<@UVBBEEC4A>', '')
     let input = [{role: 'user', name: event.user, content: message}];
     let text = await chat({turnInfo, input});
-    await say({text, thread_ts: message.ts});
+    await say({text, thread_ts: event.thread_ts || event.ts});
   }
 });
 
