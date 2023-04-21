@@ -8,6 +8,9 @@ const config = {
     token: null,
     webhookUrls: { civilization: null, test: null, ootp: null },
   },
+  openai: {
+    key: null,
+  },
 };
 
 module.exports = config;

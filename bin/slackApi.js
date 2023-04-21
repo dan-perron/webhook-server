@@ -1,5 +1,6 @@
 const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched} = require('./ootpFileManager');
 const {app, channelToTeam, highlightsChannel} = require('../clients/slack');
+const {chat} = require('../clients/openai');
 
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
@@ -29,7 +30,10 @@ app.message(/highlights please/i, async ({message, say}) => {
 app.event('app_mention', async ({event, say}) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
   if (event.channel === highlightsChannel) {
-    await say(await getBotMessage());
+    let turnInfo = await getBotMessage();
+    let text = event.text.replace('<@UVBBEEC4A>', '')
+    let input = [{role: 'user', name: event.user, content: text}];
+    await say(await chat({turnInfo, input}));
   }
 });
 
