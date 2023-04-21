@@ -34,9 +34,10 @@ app.event('app_mention', async ({event, say}) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
   if (event.channel === highlightsChannel) {
     let turnInfo = await getBotMessage();
-    let text = event.text.replace('<@UVBBEEC4A>', '')
-    let input = [{role: 'user', name: event.user, content: text}];
-    await say(await chat({turnInfo, input}));
+    let message = event.text.replace('<@UVBBEEC4A>', '')
+    let input = [{role: 'user', name: event.user, content: message}];
+    let text = await chat({turnInfo, input});
+    await say({text, thread_ts: message.ts});
   }
 });
 
