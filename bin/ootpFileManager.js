@@ -109,8 +109,12 @@ async function getHighlightIfMatched(path, teamFilter, dateFilter) {
   return message;
 }
 
-async function sendHighlights(path) {
+async function sendHighlights(path, stats) {
   console.error('triggered on ' + path);
+  if (Date.now() - stats.ctimeMs > 5 * 60 * 1000) {
+    console.error(`${path} is older than 5 min ctime ${stats.ctime} now ${Date.now()}`);
+    return;
+  }
   const highlight = await getHighlightIfMatched(path, teams);
   console.error(JSON.stringify(highlight, null, 2));
   if (highlight) {
@@ -132,8 +136,8 @@ chokidar.watch(
       usePolling: true,
       interval: 1000, // Poll every second rather than 100 ms.
     }).
-    on('add', sendHighlights);
-    //on('change', sendHighlights);
+    on('add', sendHighlights).
+    on('change', sendHighlights);
 
 // for (const file in injuryFileToSlackMap) {
 //   chokidar.watch(file, {ignoreInitial: true}).on('change', async (path) => {
