@@ -7,8 +7,11 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-async function chat({turnInfo, input, powerRankings}) {
-  let systemPrompt = `You are called "The Super Cluster" you are responsible for interacting with users of a slack workspace that is comprised of friends from high school and college. In this slack you're labeled as user UVBBEEC4A or <@UVBBEEC4A>.
+const basePrompt =
+    `You are called "The Super Cluster" you are responsible for interacting with users of a slack workspace that is comprised of friends from high school and college. In this slack you're labeled as user UVBBEEC4A or <@UVBBEEC4A>.`;
+
+function ootpChat({turnInfo, input, powerRankings}) {
+  let systemPrompt = basePrompt + `
 
 One function of the system is to keep track of whose turn in an Out Of The Park Baseball simulation it is.  
 
@@ -29,16 +32,24 @@ ${powerRankings}
 Right now ${turnInfo}
 
 Do not use the players aliases.`
+  return chat({input, systemPrompt});
+}
+
+function genericChat({input}) {
+  return chat({input, systemPrompt: basePrompt});
+}
+
+async function chat({input, systemPrompt}) {
   let messages = [{role: "system", content: systemPrompt}];
   messages.push(...input);
   console.log(JSON.stringify(messages, null, 2));
   const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
     messages,
-    temperature: 2,
+    temperature: 1.8,
   });
   console.log(JSON.stringify(completion.data.choices, null, 2));
   return completion.data.choices[0].message.content;
 }
 
-module.exports = {chat};
+module.exports = {genericChat, ootpChat};

@@ -1,6 +1,6 @@
 const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched, getPowerRankings} = require('./ootpFileManager');
 const {app, channelToTeam, highlightsChannel} = require('../clients/slack');
-const {chat} = require('../clients/openai');
+const {genericChat, ootpChat} = require('../clients/openai');
 
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
@@ -32,25 +32,24 @@ app.message(/highlights please/i, async ({message, say}) => {
 
 app.event('app_mention', async ({event, say}) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
+  let input = [];
+  let {messages} = await app.client.conversations.replies(
+      {channel: event.channel, ts: event.thread_ts || event.ts});
+  for (let message of messages) {
+    input.push({
+      role: message.user === 'UVBBEEC4A' ? 'assistant' : 'user',
+      name: message.user,
+      content: message.text,
+    });
+  }
+  let text;
   if (event.channel === highlightsChannel) {
     let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
-    let input = [];
-    let {messages} = await app.client.conversations.replies(
-        {channel: event.channel, ts: event.thread_ts || event.ts});
-    for (let message of messages) {
-      input.push({
-        role: message.user === 'UVBBEEC4A' ? 'assistant' : 'user',
-        name: message.user,
-        content: message.text,
-      });
-    }
-
-    // TODO: Should we get rid of this?
-    //let message = event.text.replace('<@UVBBEEC4A>', '');
-    //input.push({role: 'user', name: event.user, content: message});
-    let text = await chat({turnInfo, input, powerRankings});
-    await say({text, thread_ts: event.thread_ts || event.ts});
+    text = await ootpChat({turnInfo, input, powerRankings});
+  } else {
+    text = await genericChat({input});
   }
+  return await say({text, thread_ts: event.thread_ts || event.ts});
 });
 
 (async () => {
