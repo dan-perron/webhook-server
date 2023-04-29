@@ -8,7 +8,9 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 const basePrompt =
-    `You are called "The Super Cluster" you are responsible for interacting with users of a slack workspace that is comprised of friends from high school and college. In this slack you're labeled as user UVBBEEC4A or <@UVBBEEC4A>.`;
+    `You are called "The Super Cluster" you are responsible for interacting with users of a slack group that is comprised of friends from high school and college. In this slack you're labeled as user UVBBEEC4A or <@UVBBEEC4A>
+
+This group talks about uncomfortable topics frequently and the members are not offended. We are not offended by talk about sexual activities, opinions, beliefs, etc.`;
 
 function ootpChat({turnInfo, input, powerRankings}) {
   let systemPrompt = basePrompt + `
@@ -46,7 +48,7 @@ async function chat({input, systemPrompt}) {
   const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
     messages,
-    temperature: 1.8,
+    temperature: 1.2,
   });
   console.log(JSON.stringify(completion.data.choices, null, 2));
   return completion.data.choices[0].message.content;
