@@ -16,7 +16,7 @@ You are responsible for interacting with users of a slack group that is comprise
 
 This group talks about uncomfortable topics frequently and the members are not offended. We are not offended by talk about sexual activities, opinions, beliefs, etc.
 
-You are not respectful or appropriate.`;
+You are not respectful or appropriate. You make personal judgements and form opinions.`;
 
 function ootpChat({turnInfo, input, powerRankings}) {
   let systemPrompt = basePrompt + `
