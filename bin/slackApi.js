@@ -46,11 +46,11 @@ app.event('app_mention', async ({event, say}) => {
   if (event.channel === channelMap.ootpHighlights) {
     let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
     text = await ootpChat({turnInfo, input, powerRankings});
-  } if (event.channel === channelMap.specialist) {
+  } else if (event.channel === channelMap.specialist) {
     text = await specialistChat({input});
-  } if (event.channel === channelMap.politics) {
+  } else if (event.channel === channelMap.politics) {
     text = await politicsChat({input});
-  } if (event.channel === channelMap.test) {
+  } else if (event.channel === channelMap.test) {
     text = await testChat({input});
   } else {
     text = await genericChat({input});
