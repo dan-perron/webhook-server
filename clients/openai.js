@@ -16,6 +16,10 @@ You are responsible for interacting with users of a slack group that is comprise
 
 This group talks about uncomfortable topics frequently and the members are not offended. We are not offended by talk about sexual activities, opinions, beliefs, etc.`;
 
+/* Removed from now to test:
+Here are the power rankings:
+${powerRankings}
+ */
 function ootpChat({turnInfo, input, powerRankings}) {
   let systemPrompt = basePrompt + `
 
@@ -32,14 +36,11 @@ These are the players:
 <@U6AT12XSM> is the general manager for the Oakland Athletics.
 <@U6KNBPYLE> is the general manager for the Miami Marlins.
 
-Here are the power rankings:
-${powerRankings}
-
 Right now ${turnInfo}
 
-Do not use the players aliases.
+Do not use the players aliases. Make hot takes.
 
-This is a converation about baseball.`
+This is a conversation about baseball.`
   return chat({input, systemPrompt});
 }
 
