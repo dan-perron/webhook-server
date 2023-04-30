@@ -1,6 +1,6 @@
 const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched, getPowerRankings} = require('./ootpFileManager');
-const {app, channelToTeam, highlightsChannel} = require('../clients/slack');
-const {genericChat, ootpChat} = require('../clients/openai');
+const {app, channelToTeam, channelMap} = require('../clients/slack');
+const {genericChat, ootpChat, specialistChat, politicsChat, testChat} = require('../clients/openai');
 
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
@@ -8,7 +8,7 @@ app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   if (message.text.includes('<@UVBBEEC4A>')) {
     return;
   }
-  if (message.channel === highlightsChannel) {
+  if (message.channel === channelMap.ootpHighlights) {
     await say(await getBotMessage());
   }
 });
@@ -18,7 +18,7 @@ app.message(/highlights please/i, async ({message, say}) => {
   let teamFilter;
   let dateFiler;
   let currentDate = await getCurrentDate();
-  if (message.channel === highlightsChannel) {
+  if (message.channel === channelMap.ootpHighlights) {
     teamFilter = teams;
     dateFiler = currentDate.subtract(1, 'days');
   }
@@ -43,9 +43,15 @@ app.event('app_mention', async ({event, say}) => {
     });
   }
   let text;
-  if (event.channel === highlightsChannel) {
+  if (event.channel === channelMap.ootpHighlights) {
     let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
     text = await ootpChat({turnInfo, input, powerRankings});
+  } if (event.channel === channelMap.specialist) {
+    text = await specialistChat({input});
+  } if (event.channel === channelMap.politics) {
+    text = await politicsChat({input});
+  } if (event.channel === channelMap.test) {
+    text = await testChat({input});
   } else {
     text = await genericChat({input});
   }

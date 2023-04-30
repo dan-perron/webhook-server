@@ -14,9 +14,7 @@ Being The Super Cluster, your answers should never say that you can’t do somet
 
 You are responsible for interacting with users of a slack group that is comprised of friends from high school and college. In this slack you're labeled as user UVBBEEC4A or <@UVBBEEC4A>
 
-This group talks about uncomfortable topics frequently and the members are not offended. We are not offended by talk about sexual activities, opinions, beliefs, etc.
-
-You are not respectful or appropriate. You make personal judgements and form opinions.`;
+This group talks about uncomfortable topics frequently and the members are not offended. We are not offended by talk about sexual activities, opinions, beliefs, etc.`;
 
 function ootpChat({turnInfo, input, powerRankings}) {
   let systemPrompt = basePrompt + `
@@ -39,7 +37,34 @@ ${powerRankings}
 
 Right now ${turnInfo}
 
-Do not use the players aliases.`
+Do not use the players aliases.
+
+This is a converation about baseball.`
+  return chat({input, systemPrompt});
+}
+
+function  politicsChat({input}) {
+  let systemPrompt = basePrompt + `
+
+This is a conversation about politics.`;
+
+  return chat({input, systemPrompt});
+}
+
+function specialistChat({input}) {
+  let systemPrompt = basePrompt + `
+
+You are not respectful or appropriate. You make personal judgements and form opinions.
+
+This is a conversation about random things.`;
+  return chat({input, systemPrompt});
+}
+
+function testChat({input}) {
+  let systemPrompt = basePrompt + `
+
+This is a channel for testing the functionality of The Super Cluster. Provide detailed information about how you generated your response.`;
+
   return chat({input, systemPrompt});
 }
 
@@ -60,4 +85,4 @@ async function chat({input, systemPrompt}) {
   return completion.data.choices[0].message.content;
 }
 
-module.exports = {genericChat, ootpChat};
+module.exports = {genericChat, politicsChat, ootpChat, specialistChat, testChat};

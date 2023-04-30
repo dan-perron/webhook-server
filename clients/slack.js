@@ -11,7 +11,12 @@ const app = new App({
   // port: process.env.PORT || 3000
 });
 
-const highlightsChannel = 'C04J9TWRNJ3';
+const channelMap = {
+  ootpHighlights: 'C04J9TWRNJ3',
+  politics: 'CPXA5CBHP',
+  specialist: 'C6APJ5KG8',
+  test: 'CUYGZ6LLU',
+}
 
 const channelToTeam = {
   'C04NS45UKEX': 'Cincinnati Reds',
@@ -20,12 +25,9 @@ const channelToTeam = {
   'C04NKK6CAKY': 'Oakland Athletics',
 };
 
-// testChannel - CUYGZ6LLU
-// ootp highlights - C04J9TWRNJ3
-
 function messageHighlights(object) {
-  object.channel = highlightsChannel;
+  object.channel = channelMap.ootpHighlights;
   return app.client.chat.postMessage(object);
 }
 
-module.exports = {app, channelToTeam, messageHighlights, highlightsChannel};
+module.exports = {app, channelToTeam, messageHighlights, channelMap};
