@@ -80,7 +80,7 @@ async function chat({input, systemPrompt}) {
   const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
     messages,
-    temperature: 1,
+    temperature: 1.2,
   });
   console.log(JSON.stringify(completion.data.choices, null, 2));
   return completion.data.choices[0].message.content;
