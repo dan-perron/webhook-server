@@ -25,9 +25,33 @@ const channelToTeam = {
   'C04NKK6CAKY': 'Oakland Athletics',
 };
 
-function messageHighlights(object) {
-  object.channel = channelMap.ootpHighlights;
-  return app.client.chat.postMessage(object);
+function messageHighlights({title, url,heading, body}) {
+  let message = {channel: channelMap.ootpHighlights, text: title, blocks: []};
+  if (heading) {
+    message.blocks.push({
+      'type': 'header', 'text': {
+        'type': 'plain_text', 'text': heading,
+      },
+    });
+  }
+  message.blocks.push({
+    'type': 'section', 'text': {
+      'type': 'mrkdwn', 'text': `<${url}|${title}>`,
+    },
+  });
+  if (body) {
+    message.blocks.push({
+      'type': 'section', 'text': {
+        'type': 'plain_text', 'text': body,
+      },
+    });
+  }
+  return app.client.chat.postMessage(message);
 }
 
-module.exports = {app, channelToTeam, messageHighlights, channelMap};
+function messageSummary({content}) {
+  let message = {channel: channelMap.ootpHighlights, text: content};
+  return app.client.chat.postMessage(message);
+}
+
+module.exports = {app, channelToTeam, messageHighlights, messageSummary, channelMap};

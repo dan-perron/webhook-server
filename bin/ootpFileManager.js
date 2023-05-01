@@ -9,7 +9,8 @@ const {IncomingWebhook} = require('@slack/webhook');
 const config = require('config');
 const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
-const {messageHighlights} = require('../clients/slack');
+const {messageHighlights, messageSummary} = require('../clients/slack');
+const {ootpChat} = require('../clients/openai');
 
 const teamToSlackMap = {
   'team_7': 'U6BEBDULB', 'team_11': 'U6KNBPYLE', 'team_13': 'U6CACS3GW', 'team_20': 'U6AT12XSM',
@@ -52,17 +53,22 @@ watchFile(pathToLeagueFile, () => {
 });
 
 function matchTeamFilter(title, teamFilter) {
+  let matchedTeams = [];
   if (!teamFilter) {
-    return true;
+    return matchedTeams;
   }
   if (Array.isArray(teamFilter)) {
     for (let team of teams) {
       if (title.includes(team)) {
-        return true;
+        matchedTeams.push(team);
       }
     }
+  } else {
+    if (title.includes(teamFilter)) {
+      matchedTeams.push(teamFilter);
+    }
   }
-  return title.includes(teamFilter);
+  return matchedTeams;
 }
 
 function matchDateFilter(date, dateFilter) {
@@ -76,7 +82,8 @@ async function getHighlightIfMatched(path, teamFilter, dateFilter) {
   const file = await readFile(path);
   const cheer = cheerio.load(file);
   const title = cheer('title').html();
-  if (!matchTeamFilter(title, teamFilter)) {
+  const matchedTeams = matchTeamFilter(title, teamFilter);
+  if (!teamFilter || matchedTeams.length === 0) {
     return null;
   }
   const date = dayjs(cheer('div[style="text-align:center; color:#FFFFFF; padding-top:4px;"]').text());
@@ -86,27 +93,42 @@ async function getHighlightIfMatched(path, teamFilter, dateFilter) {
   const heading = cheer('td.boxtitle[style="padding:0px 4px 2px 4px;"]').text().trim();
   const body = cheer('td.databg.datacolor[style="padding:1px 4px 2px 4px;"]').text().trim();
   const url = path.replace('/ootp/game/reports/html', 'https://djperron.com/ootp');
-  let message = {text: title, blocks: []};
-  if (heading) {
-    message.blocks.push({
-      'type': 'header', 'text': {
-        'type': 'plain_text', 'text': heading,
-      },
+  return {title, url,heading, body, matchedTeams};
+}
+
+let storedMessages = {};
+
+async function summarizeTeam(team) {
+  let input = [];
+  /*for (let highlight of storedMessages.team) {
+    input.push({
+      role: 'user',
+      name: 'ootp system',
+      content: [highlight.heading, highlight.title, highlight.body].join('\n\n'),
     });
   }
-  message.blocks.push({
-    'type': 'section', 'text': {
-      'type': 'mrkdwn', 'text': `<${url}|${title}>`,
-    },
+  input.push({
+    role: 'user'
+    name: '',
+    content: 'Summarize how this period of games went given these game reports.'
+  })*/
+  let content = ''
+  for (let highlight of storedMessages.team) {
+    content += highlight.heading + '\n';
+    content += highlight.title + '\n';
+    content += highlight.body + '\n\n';
+  }
+  storedMessages.team = null;
+  content += 'Summarize these game reports to tell how this series of games went.';
+  input.push({
+    role: 'user',
+    name: 'ootp_system',
+    content,
   });
-  if (body) {
-    message.blocks.push({
-      'type': 'section', 'text': {
-        'type': 'plain_text', 'text': body,
-      },
-    });
-  }
-  return message;
+  let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
+  let summary = ootpChat({input, turnInfo, powerRankings});
+
+  return messageSummary({content: summary});
 }
 
 async function sendHighlights(path, stats) {
@@ -118,7 +140,15 @@ async function sendHighlights(path, stats) {
   const highlight = await getHighlightIfMatched(path, teams);
   console.error(JSON.stringify(highlight, null, 2));
   if (highlight) {
-    await messageHighlights(highlight);
+    // await messageHighlights(highlight);
+    for (let team of highlight.matchedTeams) {
+      if (storedMessages.team) {
+        storedMessages.team.push(highlight);
+      } else {
+        storedMessages.team = [highlight];
+        setTimeout(() => summarizeTeam(team), 60*1000);
+      }
+    }
   }
 }
 
