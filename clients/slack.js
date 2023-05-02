@@ -50,7 +50,12 @@ function messageHighlights({title, url,heading, body}) {
 }
 
 function messageSummary({content}) {
-  let message = {channel: channelMap.ootpHighlights, text: content};
+  let message = {channel: channelMap.ootpHighlights, text: content, blocks: []};
+  message.blocks.push({
+    'type': 'section', 'text': {
+      'type': 'plain_text', 'text': content,
+    },
+  });
   return app.client.chat.postMessage(message);
 }
 
