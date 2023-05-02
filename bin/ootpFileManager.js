@@ -113,12 +113,12 @@ async function summarizeTeam(team) {
     content: 'Summarize how this period of games went given these game reports.'
   })*/
   let content = ''
-  for (let highlight of storedMessages.team) {
+  for (let highlight of storedMessages[team]) {
     content += highlight.heading + '\n';
     content += highlight.title + '\n';
     content += highlight.body + '\n\n';
   }
-  storedMessages.team = null;
+  storedMessages[team] = null;
   content += 'Summarize these game reports to tell how this series of games went.';
   input.push({
     role: 'user',
@@ -142,10 +142,10 @@ async function sendHighlights(path, stats) {
   if (highlight) {
     // await messageHighlights(highlight);
     for (let team of highlight.matchedTeams) {
-      if (storedMessages.team) {
-        storedMessages.team.push(highlight);
+      if (storedMessages[team]) {
+        storedMessages[team].push(highlight);
       } else {
-        storedMessages.team = [highlight];
+        storedMessages[team] = [highlight];
         setTimeout(() => summarizeTeam(team), 60*1000);
       }
     }
