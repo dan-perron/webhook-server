@@ -57,7 +57,6 @@ app.event('app_mention', async ({event, say}) => {
   } else {
     text = await genericChat({input});
   }
-  console.log(text);
   return await say({text, thread_ts: event.thread_ts || event.ts});
 });
 

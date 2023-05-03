@@ -101,8 +101,10 @@ async function complete({input, systemPrompt}) {
   let prompt = systemPrompt;
   for (let message of input) {
     prompt += `
-${input.name} says "${input.content}"`;
+
+${input.name}: ${input.content}`;
   }
+  console.log(JSON.stringify(prompt, null, 2));
   const response = await openai.createCompletion({
     model: "text-davinci-003",
     prompt,
