@@ -102,7 +102,7 @@ async function complete({input, systemPrompt}) {
   for (let message of input) {
     prompt += `
 
-${message.name}: ${message.content}`;
+${message.name} says "${message.content}"`;
   }
   console.log(JSON.stringify(prompt, null, 2));
   const response = await openai.createCompletion({
