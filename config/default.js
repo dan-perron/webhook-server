@@ -10,6 +10,7 @@ const config = {
   },
   openai: {
     key: null,
+    useComplete: true,
   },
 };
 

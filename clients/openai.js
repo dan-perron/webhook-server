@@ -82,6 +82,9 @@ function genericChat({input}) {
 }
 
 async function chat({input, systemPrompt}) {
+  if (config.get("openai.useComplete")) {
+    return complete({input, systemPrompt});
+  }
   let messages = [{role: "system", content: systemPrompt}];
   messages.push(...input);
   console.log(JSON.stringify(messages, null, 2));
@@ -92,6 +95,22 @@ async function chat({input, systemPrompt}) {
   });
   console.log(JSON.stringify(completion.data.choices, null, 2));
   return completion.data.choices[0].message.content;
+}
+
+async function complete({input, systemPrompt}) {
+  let prompt = systemPrompt;
+  for (let message of input) {
+    prompt += `
+${input.name} says "${input.content}"`;
+  }
+  const response = await openai.createCompletion({
+    model: "text-davinci-003",
+    prompt,
+    max_tokens: 250,
+    temperature: 1.2,
+  });
+  console.log(JSON.stringify(response, null, 2));
+  return response.choices[0].text;
 }
 
 module.exports = {genericChat, cabinChat, politicsChat, ootpChat, specialistChat, testChat};
