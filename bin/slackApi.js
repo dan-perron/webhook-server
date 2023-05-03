@@ -1,6 +1,6 @@
 const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched, getPowerRankings} = require('./ootpFileManager');
 const {app, channelToTeam, channelMap} = require('../clients/slack');
-const {genericChat, ootpChat, specialistChat, politicsChat, testChat} = require('../clients/openai');
+const {genericChat, ootpChat, specialistChat, politicsChat, testChat, cabinChat} = require('../clients/openai');
 
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
@@ -43,7 +43,9 @@ app.event('app_mention', async ({event, say}) => {
     });
   }
   let text;
-  if (event.channel === channelMap.ootpHighlights) {
+  if (event.channel === channelMap.cabin) {
+    text = await cabinChat({input});
+  } else if (event.channel === channelMap.ootpHighlights) {
     let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
     text = await ootpChat({turnInfo, input, powerRankings});
   } else if (event.channel === channelMap.specialist) {

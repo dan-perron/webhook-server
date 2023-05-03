@@ -12,6 +12,7 @@ const app = new App({
 });
 
 const channelMap = {
+  cabin: 'C6BB7U95Z',
   ootpHighlights: 'C04J9TWRNJ3',
   politics: 'CPXA5CBHP',
   specialist: 'C6APJ5KG8',
@@ -50,7 +51,7 @@ function messageHighlights({title, url,heading, body}) {
 }
 
 function messageSummary({content}) {
-  let message = {channel: channelMap.ootpHighlights, text: content, blocks: []};
+  let message = {channel: channelMap.ootpHighlights, blocks: []};
   message.blocks.push({
     'type': 'section', 'text': {
       'type': 'plain_text', 'text': content,
