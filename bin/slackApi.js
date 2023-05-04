@@ -30,6 +30,31 @@ app.message(/highlights please/i, async ({message, say}) => {
   highlights.map((highlight) => say(highlight));
 });
 
+async function getText(channel, input) {
+  switch (channel) {
+    case channelMap.cabin:
+      return cabinChat({input});
+    case channelMap.ootpHighlights:
+      let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
+      return ootpChat({turnInfo, input, powerRankings});
+    case channelMap.specialist:
+      return specialistChat({input});
+    case channelMap.politics:
+      return politicsChat({input});
+    case channelMap.test:
+      // Allow a user in the text channel to specify a different channel to interpret this as.
+      let start = input[0].content.split('\n');
+      if (Object.values(channel).includes(start)) {
+        // Remove the channel line.
+        input[0].content = input[0].content.split('\n').shift().join('\n');
+        return getText(start, input);
+      }
+      return testChat({input});
+    default:
+      return genericChat({input});
+  }
+}
+
 app.event('app_mention', async ({event, say}) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
   let input = [];
@@ -42,21 +67,8 @@ app.event('app_mention', async ({event, say}) => {
       content: message.text,
     });
   }
-  let text;
-  if (event.channel === channelMap.cabin) {
-    text = await cabinChat({input});
-  } else if (event.channel === channelMap.ootpHighlights) {
-    let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
-    text = await ootpChat({turnInfo, input, powerRankings});
-  } else if (event.channel === channelMap.specialist) {
-    text = await specialistChat({input});
-  } else if (event.channel === channelMap.politics) {
-    text = await politicsChat({input});
-  } else if (event.channel === channelMap.test) {
-    text = await testChat({input});
-  } else {
-    text = await genericChat({input});
-  }
+  let text = getText(event.channel, input);
+
   return await say({text, thread_ts: event.thread_ts || event.ts});
 });
 

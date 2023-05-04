@@ -82,8 +82,15 @@ function genericChat({input}) {
 }
 
 async function chat({input, systemPrompt}) {
-  if (config.get("openai.useComplete")) {
-    return complete({input, systemPrompt});
+  let conf;
+  if (input[0].content.startsWith("{")) {
+    let split = let remainder = input[0].content.split('\n');
+    conf = JSON.parse(input[0].content.split('\n').shift());
+    conf.openai = conf.openai || {};
+    input[0].content = split.join('\n');
+  }
+  if (conf ? conf.useComplete : config.get("openai.useComplete")) {
+    return complete({input, systemPrompt, conf});
   }
   let messages = [{role: "system", content: systemPrompt}];
   messages.push(...input);
@@ -92,12 +99,13 @@ async function chat({input, systemPrompt}) {
     model: "gpt-3.5-turbo",
     messages,
     temperature: 1.2,
+    ...conf.openai,
   });
   console.log(JSON.stringify(completion.data.choices, null, 2));
   return completion.data.choices[0].message.content;
 }
 
-async function complete({input, systemPrompt}) {
+async function complete({input, systemPrompt, conf}) {
   let prompt = systemPrompt;
   for (let message of input) {
     prompt += `
@@ -110,6 +118,7 @@ async function complete({input, systemPrompt}) {
     prompt,
     max_tokens: 250,
     temperature: 1.2,
+    ...conf,
   });
   console.log(JSON.stringify(response.data, null, 2));
   return response.data.choices[0].text;
