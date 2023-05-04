@@ -43,11 +43,12 @@ async function getText(channel, input) {
       return politicsChat({input});
     case channelMap.test:
       // Allow a user in the text channel to specify a different channel to interpret this as.
-      let start = input[0].content.split('\n');
-      if (Object.values(channel).includes(start)) {
-        // Remove the channel line.
-        input[0].content = input[0].content.split('\n').shift().join('\n');
-        return getText(start, input);
+      let lines = input[0].content.split('\n');
+      let channel = lines.shift();
+      if (Object.values(channel).includes(channel)) {
+        // Put the content back without the channel for consistent processing.
+        input[0].content = lines.join('\n');
+        return getText(channel, input);
       }
       return testChat({input});
     default:
