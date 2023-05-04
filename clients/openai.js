@@ -84,7 +84,7 @@ function genericChat({input}) {
 async function chat({input, systemPrompt}) {
   let conf;
   if (input[0].content.startsWith("{")) {
-    let split = let remainder = input[0].content.split('\n');
+    let split = input[0].content.split('\n');
     conf = JSON.parse(input[0].content.split('\n').shift());
     conf.openai = conf.openai || {};
     input[0].content = split.join('\n');
