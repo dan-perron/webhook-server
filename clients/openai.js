@@ -81,7 +81,7 @@ function genericChat({input}) {
   return chat({input, systemPrompt: basePrompt});
 }
 
-async function chat({input, systemPrompt}) {
+function extractConf(input) {
   let conf;
   if (input[0].content.startsWith("{") || input[0].content.startsWith("`{")) {
     let split = input[0].content.split('\n');
@@ -89,7 +89,26 @@ async function chat({input, systemPrompt}) {
     conf.openai = conf.openai || {};
     input[0].content = split.join('\n');
   }
-  if (conf ? conf.useComplete : config.get("openai.useComplete")) {
+  return conf;
+}
+
+function confHasValue(conf, prop) {
+  if (!conf) {
+    return false;
+  }
+  return conf.hasOwnProperty(prop);
+}
+
+function getConfigWithConf(configKey, confKey, conf) {
+  if (confHasValue(conf, confKey)) {
+    return conf[confKey];
+  }
+  return config.get(configKey);
+}
+
+async function chat({input, systemPrompt}) {
+  let conf = extractConf(input);
+  if (getConfigWithConf("openai.useComplete", 'useComplete', conf)) {
     return complete({input, systemPrompt, conf});
   }
   let messages = [{role: "system", content: systemPrompt}];
@@ -99,7 +118,7 @@ async function chat({input, systemPrompt}) {
     model: "gpt-3.5-turbo",
     messages,
     temperature: 1.2,
-    ...conf.openai,
+    ...(confHasValue(conf, 'openai') ? conf.openai : {}),
   });
   console.log(JSON.stringify(completion.data.choices, null, 2));
   return completion.data.choices[0].message.content;
@@ -118,7 +137,7 @@ async function complete({input, systemPrompt, conf}) {
     prompt,
     max_tokens: 250,
     temperature: 1.2,
-    ...conf.openai,
+    ...(confHasValue(conf, 'openai') ? conf.openai : {}),
   });
   console.log(JSON.stringify(response.data, null, 2));
   return response.data.choices[0].text;
