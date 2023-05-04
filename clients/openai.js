@@ -118,7 +118,7 @@ async function complete({input, systemPrompt, conf}) {
     prompt,
     max_tokens: 250,
     temperature: 1.2,
-    ...conf,
+    ...conf.openai,
   });
   console.log(JSON.stringify(response.data, null, 2));
   return response.data.choices[0].text;
