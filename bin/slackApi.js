@@ -67,8 +67,7 @@ app.event('app_mention', async ({event, say}) => {
       content: message.text,
     });
   }
-  let text = getText(event.channel, input);
-
+  let text = await getText(event.channel, input);
   return await say({text, thread_ts: event.thread_ts || event.ts});
 });
 
