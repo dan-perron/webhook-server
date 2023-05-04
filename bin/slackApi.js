@@ -45,7 +45,7 @@ async function getText(channel, input) {
       // Allow a user in the text channel to specify a different channel to interpret this as.
       let lines = input[0].content.split('\n');
       let channel = lines.shift();
-      if (Object.values(channel).includes(channel)) {
+      if (Object.values(channelMap).includes(channel)) {
         // Put the content back without the channel for consistent processing.
         input[0].content = lines.join('\n');
         return getText(channel, input);
