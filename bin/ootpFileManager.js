@@ -126,7 +126,7 @@ async function summarizeTeam(team) {
     content,
   });
   let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
-  let summary = ootpChat({input, turnInfo, powerRankings});
+  let summary = await ootpChat({input, turnInfo, powerRankings});
 
   return messageSummary({content: summary});
 }
