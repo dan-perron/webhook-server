@@ -159,15 +159,15 @@ async function getHighlightsIfMatched(teamFilter, dateFilter) {
   return (await Promise.all(highlightPromises)).filter((h) => h);
 }
 
-chokidar.watch(
-    pathToBoxScores,
-    {
-      ignoreInitial: true,
-      usePolling: true,
-      interval: 1000, // Poll every second rather than 100 ms.
-    }).
-    on('add', sendHighlights).
-    on('change', sendHighlights);
+// chokidar.watch(
+//     pathToBoxScores,
+//     {
+//       ignoreInitial: true,
+//       usePolling: true,
+//       interval: 1000, // Poll every second rather than 100 ms.
+//     }).
+//     on('add', sendHighlights).
+//     on('change', sendHighlights);
 
 // for (const file in injuryFileToSlackMap) {
 //   chokidar.watch(file, {ignoreInitial: true}).on('change', async (path) => {
