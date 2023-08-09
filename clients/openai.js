@@ -99,23 +99,24 @@ function confHasValue(conf, prop) {
   return conf.hasOwnProperty(prop);
 }
 
-function getConfigWithConf(configKey, confKey, conf) {
+function getConfigWithConf(confKey, conf) {
   if (confHasValue(conf, confKey)) {
     return conf[confKey];
   }
-  return config.get(configKey);
+  return config.get("openai." + confKey);
 }
 
 async function chat({input, systemPrompt}) {
   let conf = extractConf(input);
-  if (getConfigWithConf("openai.useComplete", 'useComplete', conf)) {
+  if (getConfigWithConf("useComplete", conf)) {
     return complete({input, systemPrompt, conf});
   }
   let messages = [{role: "system", content: systemPrompt}];
   messages.push(...input);
   console.log(JSON.stringify(messages, null, 2));
+  const useGPT4 = getConfigWithConf("useGPT4", conf);
   const completion = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo",
+    model: useGPT4 ? "gpt-4" : "gpt-3.5-turbo",
     messages,
     temperature: 1.2,
     ...(confHasValue(conf, 'openai') ? conf.openai : {}),

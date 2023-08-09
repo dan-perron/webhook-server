@@ -10,7 +10,8 @@ const config = {
   },
   openai: {
     key: null,
-    useComplete: true,
+    useComplete: false,
+    useGPT4: true,
   },
 };
 
