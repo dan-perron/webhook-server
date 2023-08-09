@@ -85,7 +85,7 @@ function extractConf(input) {
   let conf;
   if (input[0].content.startsWith("{") || input[0].content.startsWith("`{")) {
     let split = input[0].content.split('\n');
-    conf = JSON.parse(input[0].content.split('\n').shift().replaceAll('`',''));
+    conf = JSON.parse(split.shift().replaceAll('`',''));
     conf.openai = conf.openai || {};
     input[0].content = split.join('\n');
   }
