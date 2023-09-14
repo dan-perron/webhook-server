@@ -1,12 +1,12 @@
+const config = require('config');
 const {transform} = require('node-json-transform');
 const YahooFantasy = require('yahoo-fantasy');
 
-const config = require('config');
+const mongo = require('./mongo');
 
-const tokenCallback = ({access_token, refresh_token}) => {
-  console.log('access_token: ' + access_token);
-  console.log('refresh_token: ' + refresh_token);
-  return Promise.resolve();
+const tokenCallback = (tokens) => {
+  console.log(JSON.stringify(tokens));
+  return mongo.insertTokens(tokens);
 };
 
 const yf = new YahooFantasy(
@@ -15,6 +15,13 @@ const yf = new YahooFantasy(
     tokenCallback, // optional
     'https://djperron.com/webhooks/yahoo/callback/', // optional
 );
+
+mongo.getLatestTokens().then((tokens) => {
+  if (tokens) {
+    yf.setUserToken(tokens.access_token);
+    yf.setRefreshToken(tokens.refresh_token);
+  }
+});
 
 const auth = (res) => {
   yf.auth(res);
@@ -55,14 +62,14 @@ const leagueDataMap = {
           week_end: 'week_end',
           teams: [
             {
-              team_id: "team_id",
-              points: "points",
-              projected_points: "projected_points",
-            }
-          ]
+              team_id: 'team_id',
+              points: 'points',
+              projected_points: 'projected_points',
+            },
+          ],
         },
-      ]
-    }
+      ],
+    },
   },
 };
 
