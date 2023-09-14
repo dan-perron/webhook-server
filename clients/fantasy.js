@@ -23,10 +23,12 @@ const authCallback = (req, cb) => {
   yf.authCallback(req, cb);
 }
 
-const getLeagueData = () => {
-  return yf.leagues.fetch(
+const getLeagueData = async () => {
+  let data = await yf.leagues.fetch(
       [config.get('yahoo.leagueKey')],
       ['standings', 'teams', 'scoreboard']);
+  console.log(JSON.stringify(data, null, 2));
+  return data;
 }
 
 module.exports = {auth, authCallback, getLeagueData};
