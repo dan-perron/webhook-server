@@ -14,7 +14,7 @@ async function insertTokens(tokens) {
 
 async function getLatestTokens() {
   const tokenCollection = database.collection('yahooFantasyTokens');
-  const documents = await tokenCollection.find().sort({date: -1}).limit(1);
+  const documents = await tokenCollection.find({}).sort({date: -1}).limit(1).toArray();
   console.log(JSON.stringify(documents));
   return documents.pop();
 }
