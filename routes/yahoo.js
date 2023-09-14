@@ -9,7 +9,7 @@ router.get("/redirect", (req, res) => {
 });
 
 router.get("/callback", (req, res) => {
-  app.yf.authCallback(req, (err) => {
+  fantasy.authCallback(req, (err) => {
     if (err) {
       return res.redirect("/error");
     }

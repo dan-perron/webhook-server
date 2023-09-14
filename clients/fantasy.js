@@ -13,6 +13,10 @@ const auth = (res) => {
   yf.auth(res);
 }
 
+const authCallback = (req, cb) => {
+  yf.authCallback(req, cb);
+}
+
 const tokenCallback = ({ access_token, refresh_token }) => {
   console.log('access_token: ' + access_token);
   console.log('refresh_token: ' + refresh_token);
@@ -25,4 +29,4 @@ const getLeagueData = () => {
       ['standings', 'teams', 'scoreboard']);
 }
 
-module.exports = {auth, getLeagueData};
+module.exports = {auth, authCallback, getLeagueData};
