@@ -9,7 +9,7 @@ const database = client.db('webhook-server');
 
 async function insertTokens(tokens) {
   const tokenCollection = database.collection('yahooFantasyTokens');
-  return tokenCollection.insertOne({date: '$currentDate', ...tokens });
+  return tokenCollection.insertOne({date: new Date(), ...tokens });
 }
 
 async function getLatestTokens() {
