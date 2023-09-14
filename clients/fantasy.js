@@ -72,7 +72,7 @@ const getLeagueData = async () => {
       ['standings', 'teams', 'scoreboard']);
   console.log(JSON.stringify(rawData, null, 2));
   let leagueData = transform(rawData.pop(), leagueDataMap);
-  console.log(JSON.stringify(rawData, null, 2));
+  console.log(JSON.stringify(leagueData, null, 2));
   return leagueData;
 };
 
