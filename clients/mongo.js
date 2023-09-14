@@ -1,6 +1,5 @@
 const config = require('config');
 const { MongoClient } = require("mongodb");
-const {now} = require('mongodb/src/utils');
 
 // Replace the uri string with your connection string.
 const uri = config.get('mongodb.connectionString');
