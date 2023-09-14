@@ -12,7 +12,7 @@ const yf = new YahooFantasy(
     config.get('yahoo.clientId'),
     config.get('yahoo.clientSecret'),
     tokenCallback, // optional
-    'https://djperron.com/webhooks/yahoo/redirect/' // optional
+    'https://djperron.com/webhooks/yahoo/callback/' // optional
 );
 
 const auth = (res) => {
