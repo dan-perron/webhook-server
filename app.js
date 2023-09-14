@@ -5,6 +5,7 @@ const civilizationRouter = require("./routes/civilization");
 const slackRouter = require("./routes/slack");
 const testRouter = require("./routes/test");
 const indexRouter = require("./routes/index");
+const yahooRouter = require("./routes/yahoo");
 require("./bin/ootpFileManager");
 require("./bin/slackApi");
 
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use("/civilization", civilizationRouter);
 app.use("/slack", slackRouter);
 app.use("/test", testRouter);
+app.use("/yahoo", yahooRouter);
 app.use("/", indexRouter);
 
 // catch 404 and forward to error handler

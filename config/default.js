@@ -13,6 +13,12 @@ const config = {
     useComplete: false,
     useGPT4: true,
   },
+  yahoo: {
+    appId: null,
+    clientId: null,
+    clientSecret: null,
+    leagueKey: null,
+  }
 };
 
 module.exports = config;

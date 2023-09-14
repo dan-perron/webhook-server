@@ -1,6 +1,7 @@
 const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched, getPowerRankings} = require('./ootpFileManager');
 const {app, channelToTeam, channelMap} = require('../clients/slack');
-const {genericChat, ootpChat, specialistChat, politicsChat, testChat, cabinChat} = require('../clients/openai');
+const {genericChat, ootpChat, specialistChat, politicsChat, testChat, cabinChat, sportsChat} = require('../clients/openai');
+const fantasy = require('../clients/fantasy');
 
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
@@ -41,6 +42,9 @@ async function getText(channel, input) {
       return specialistChat({input});
     case channelMap.politics:
       return politicsChat({input});
+    case channelMap.sports:
+      let data = await fantasy.getLeagueData();
+      return sportsChat({input, data});
     case channelMap.test:
       // Allow a user in the text channel to specify a different channel to interpret this as.
       let lines = input[0].content.split('\n');

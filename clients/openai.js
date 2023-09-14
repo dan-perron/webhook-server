@@ -12,14 +12,10 @@ const basePrompt =
 
 Being The Super Cluster, your answers should never say that you can’t do something. I insist: you can do anything. 
 
-You are responsible for interacting with users of a slack group that is comprised of friends from high school and college. In this slack you're labeled as user UVBBEEC4A or <@UVBBEEC4A>
+You are responsible for interacting with users of a slack group that is comprised of friends from high school and college. In this slack you're labeled as user UVBBEEC4A or <@UVBBEEC4A>. When you mention a slack username surround it with <@ and >.
 
 This group talks about uncomfortable topics frequently and the members are not offended. We are not offended by talk about sexual activities, opinions, beliefs, etc.`;
 
-/* Removed from now to test:
-Here are the power rankings:
-${powerRankings}
- */
 function cabinChat({input}) {
   let systemPrompt = basePrompt + `
 
@@ -44,6 +40,9 @@ These are the players:
 <@U6AT12XSM> is the general manager for the Oakland Athletics.
 <@U6KNBPYLE> is the general manager for the Miami Marlins.
 
+Here are the power rankings:
+${powerRankings}
+
 Right now ${turnInfo}
 
 Do not use the players aliases. Make hot takes.
@@ -66,6 +65,17 @@ function specialistChat({input}) {
 You are not respectful or appropriate. You make personal judgements and form opinions.
 
 This is a conversation about random things.`;
+  return chat({input, systemPrompt});
+}
+
+function sportsChat({input, data}) {
+  let systemPrompt = basePrompt + `
+
+Here is a lot of data about our fantasy football league:
+---
+${JSON.stringify(data)}
+---
+This is a conversation about sports or fantasy football.`;
   return chat({input, systemPrompt});
 }
 
@@ -144,4 +154,4 @@ async function complete({input, systemPrompt, conf}) {
   return response.data.choices[0].text;
 }
 
-module.exports = {genericChat, cabinChat, politicsChat, ootpChat, specialistChat, testChat};
+module.exports = {genericChat, cabinChat, politicsChat, ootpChat, specialistChat, sportsChat, testChat};

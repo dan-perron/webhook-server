@@ -16,6 +16,7 @@ const channelMap = {
   ootpHighlights: 'C04J9TWRNJ3',
   politics: 'CPXA5CBHP',
   specialist: 'C6APJ5KG8',
+  sports: 'C6ATH6LBB',
   test: 'CUYGZ6LLU',
 }
 
