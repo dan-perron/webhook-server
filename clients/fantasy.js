@@ -43,18 +43,18 @@ const leagueDataMap = {
     end_date: 'end_date',
     game_code: 'game_code',
     season: 'season',
-    standings: "standings",
-    matchups: 'scoreboard.matchups',
+    teams: "standings",
+    //matchups: 'scoreboard.matchups',
   },
   operate: [
     {
       run: (standings) => transform(standings, standingsDataMap),
       on: 'standings',
     },
-    {
-      run: (matchups) => transform(matchups, matchupDataMap),
-      on: 'matchups',
-    },
+    // {
+    //   run: (matchups) => transform(matchups, matchupDataMap),
+    //   on: 'matchups',
+    // },
   ],
 };
 
@@ -126,13 +126,16 @@ const getLeagueData = async () => {
       [leagueKey],
       ['standings', 'scoreboard']);
   let leagueData = transform(rawData.pop(), leagueDataMap);
-  for (let matchup of leagueData.matchups) {
-    for (let team of matchup.teams) {
-      let rawRosterData = await yf.roster.players(leagueKey + '.t.' + team.team_id, matchup.week);
-      let roster = transform(rawRosterData.roster, rosterDataMap);
-      team.roster = roster.map((p) => p.position + ": " + p.name).join(', ');
-    }
+  // const week = rawData.scoreboard.matchups[0].week;
+  for (let team of leagueData.teams) {
+    let rawRosterData = await yf.roster.players(leagueKey + '.t.' + team.team_id);
+    let roster = transform(rawRosterData.roster, rosterDataMap);
+    team.roster = roster.map((p) => p.position + ": " + p.name).join(', ');
   }
+  // for (let matchup of rawData.matchups) {
+  //   for (let team of matchup.teams) {
+  //   }
+  // }
   console.log(JSON.stringify(leagueData, null, 2));
   return leagueData;
 };
