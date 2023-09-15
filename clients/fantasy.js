@@ -41,42 +41,62 @@ const leagueDataMap = {
     end_date: 'end_date',
     game_code: 'game_code',
     season: 'season',
-    standings: [
-      {
-        team_id: 'team_id',
-        name: 'name',
-        division_id: 'division_id',
-        waiver_priority: 'waiver_priority',
-        number_of_moves: 'number_of_moves',
-        number_of_trades: 'number_of_trades',
-        manager_name: 'managers.nickname',
-        manager_tier: 'managers.felo_tier',
-        standings: 'standings',
-      },
-    ],
-    scoreboard: {
-      matchups: [
-        {
-          week: 'week',
-          week_start: 'week_start',
-          week_end: 'week_end',
-          teams: [
-            {
-              team_id: 'team_id',
-              points: 'points',
-              projected_points: 'projected_points',
-            },
-          ],
-        },
-      ],
+    standings: "standings",
+    matchups: 'scoreboard.matchups',
+  },
+  operate: [
+    {
+      run: (standings) => transform(standings, standingsDataMap),
+      on: 'standings',
     },
+    {
+      run: (matchups) => transform(matchups, matchupDataMap),
+      on: 'matchups',
+    },
+  ],
+};
+
+const standingsDataMap = {
+  item: {
+    team_id: 'team_id',
+    name: 'name',
+    division_id: 'division_id',
+    waiver_priority: 'waiver_priority',
+    number_of_moves: 'number_of_moves',
+    number_of_trades: 'number_of_trades',
+    manager_name: 'managers.nickname',
+    manager_tier: 'managers.felo_tier',
+    standings: 'standings',
+  },
+};
+
+const matchupDataMap = {
+  item: {
+    week: 'week',
+    week_start: 'week_start',
+    week_end: 'week_end',
+    teams: 'teams',
+  },
+  operate: [
+    {
+      run: (teams) => transform(teams, teamsDataMap),
+      on: 'teams',
+    },
+  ],
+};
+
+const teamsDataMap = {
+  item: {
+    team_id: 'team_id',
+    points: 'points',
+    projected_points: 'projected_points',
   },
 };
 
 const getLeagueData = async () => {
   let rawData = await yf.leagues.fetch(
       [config.get('yahoo.leagueKey')],
-      ['standings', 'teams', 'scoreboard']);
+      ['standings', 'scoreboard']);
   console.log(JSON.stringify(rawData, null, 2));
   let leagueData = transform(rawData.pop(), leagueDataMap);
   console.log(JSON.stringify(leagueData, null, 2));
