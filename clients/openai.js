@@ -129,7 +129,6 @@ async function chat({input, systemPrompt}) {
   const completion = await openai.createChatCompletion({
     model,
     messages,
-    temperature: 1.2,
     ...(confHasValue(conf, 'openai') ? conf.openai : {}),
   });
   console.log(JSON.stringify(completion.data.choices, null, 2));
