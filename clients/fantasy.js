@@ -108,17 +108,14 @@ const teamsDataMap = {
     projected_points: 'projected_points',
   },
   each: async (item, index, collection, context) => {
-    let rawData = await yf.roster.players(leagueKey + '.t.' + item.team_id, context.week);
-    console.log(JSON.stringify(rawData, null, 2));
-    item.roster = transform(rawData.roster, rosterDataMap);
-    console.log(JSON.stringify(item.roster));
-    return item;
+
   }
 };
 
 const rosterDataMap = {
   item: {
     name: "name.full",
+    position: "primary_position",
   }
 };
 
@@ -126,8 +123,13 @@ const getLeagueData = async () => {
   let rawData = await yf.leagues.fetch(
       [leagueKey],
       ['standings', 'scoreboard']);
-  console.log(JSON.stringify(rawData, null, 2));
   let leagueData = transform(rawData.pop(), leagueDataMap);
+  for (let matchup of leagueData.matchups) {
+    for (let team of matchup.teams) {
+      let rawRosterData = await yf.roster.players(leagueKey + '.t.' + team.team_id, matchup.week);
+      team.roster = transform(rawRosterData.roster, rosterDataMap);
+    }
+  }
   console.log(JSON.stringify(leagueData, null, 2));
   return leagueData;
 };

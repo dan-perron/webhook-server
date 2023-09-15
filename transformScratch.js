@@ -2115,4 +2115,9 @@ const teamsDataMap = {
 };
 
 let leagueData = transform(data, leagueDataMap);
-console.log(JSON.stringify(leagueData, null, 2));
+//console.log(JSON.stringify(leagueData, null, 2));
+for (let matchup of leagueData.matchups) {
+  for (let team of matchup.teams) {
+    console.log(team.team_id);
+  }
+}
