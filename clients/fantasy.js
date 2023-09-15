@@ -4,6 +4,8 @@ const YahooFantasy = require('yahoo-fantasy');
 
 const mongo = require('./mongo');
 
+const leagueKey = config.get('yahoo.leagueKey');
+
 const tokenCallback = (tokens) => {
   console.log(JSON.stringify(tokens));
   return mongo.insertTokens(tokens);
@@ -96,12 +98,7 @@ const matchupDataMap = {
     week_end: 'week_end',
     teams: 'teams',
   },
-  operate: [
-    {
-      run: (teams) => transform(teams, teamsDataMap),
-      on: 'teams',
-    },
-  ],
+  each: (item) => transform(item.teams, teamsDataMap, {week: item.week}),
 };
 
 const teamsDataMap = {
@@ -110,11 +107,24 @@ const teamsDataMap = {
     points: 'points',
     projected_points: 'projected_points',
   },
+  each: async (item, index, collection, context) => {
+    let rawData = await yf.roster.players(leagueKey + '.t.' + item.team_id, context.week);
+    console.log(JSON.stringify(rawData, null, 2));
+    item.roster = transform(rawData.roster, rosterDataMap);
+    console.log(JSON.stringify(item.roster));
+    return item;
+  }
+};
+
+const rosterDataMap = {
+  item: {
+    name: "name.full",
+  }
 };
 
 const getLeagueData = async () => {
   let rawData = await yf.leagues.fetch(
-      [config.get('yahoo.leagueKey')],
+      [leagueKey],
       ['standings', 'scoreboard']);
   console.log(JSON.stringify(rawData, null, 2));
   let leagueData = transform(rawData.pop(), leagueDataMap);
