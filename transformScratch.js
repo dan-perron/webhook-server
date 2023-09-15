@@ -2056,6 +2056,23 @@ const leagueDataMap = {
   ],
 };
 
+
+
+const teamIdToSlackMap = {
+  5: 'UC7GDQ4DU',
+  7: 'U6CACS3GW',
+  4: 'U6BHKHAUD',
+  12: 'U6B0178NM',
+  9: 'U6BEBDULB',
+  10: 'U8K4LBSBZ',
+  11: 'U6APYUG9E',
+  1: 'U6AT12XSM',
+  6: 'U6DCHN9K2',
+  2: 'U6KNBPYLE',
+  14: 'U6BDMEER0',
+  3: 'U6BBM6R5Z',
+}
+
 const standingsDataMap = {
   item: {
     team_id: 'team_id',
@@ -2064,10 +2081,14 @@ const standingsDataMap = {
     waiver_priority: 'waiver_priority',
     number_of_moves: 'number_of_moves',
     number_of_trades: 'number_of_trades',
-    manager_name: 'managers.nickname',
-    manager_tier: 'managers.felo_tier',
+    manager_name: 'managers.0.nickname',
+    manager_tier: 'managers.0.felo_tier',
     standings: 'standings',
   },
+  each: (item) => {
+    item.slack_id = teamIdToSlackMap[item.team_id];
+    return item;
+  }
 };
 
 const matchupDataMap = {
