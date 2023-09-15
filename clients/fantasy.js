@@ -109,8 +109,8 @@ const matchupDataMap = {
 const teamsDataMap = {
   item: {
     team_id: 'team_id',
-    points: 'points',
-    projected_points: 'projected_points',
+    points: 'points.total',
+    projected_points: 'projected_points.total',
   },
 };
 
