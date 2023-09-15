@@ -48,8 +48,8 @@ const leagueDataMap = {
   },
   operate: [
     {
-      run: (standings) => transform(standings, standingsDataMap),
-      on: 'standings',
+      run: (teams) => transform(teams, teamDataMap),
+      on: 'teams',
     },
     // {
     //   run: (matchups) => transform(matchups, matchupDataMap),
@@ -73,7 +73,7 @@ const teamIdToSlackMap = {
   14: 'U6BDMEER0',
 };
 
-const standingsDataMap = {
+const teamDataMap = {
   item: {
     team_id: 'team_id',
     name: 'name',
@@ -126,7 +126,7 @@ const getLeagueData = async () => {
       [leagueKey],
       ['standings', 'scoreboard']);
   let leagueData = transform(rawData.pop(), leagueDataMap);
-  // const week = rawData.scoreboard.matchups[0].week;
+  // const week = rawData.current_week;
   for (let team of leagueData.teams) {
     let rawRosterData = await yf.roster.players(leagueKey + '.t.' + team.team_id);
     let roster = transform(rawRosterData.roster, rosterDataMap);
