@@ -127,7 +127,8 @@ const getLeagueData = async () => {
   for (let matchup of leagueData.matchups) {
     for (let team of matchup.teams) {
       let rawRosterData = await yf.roster.players(leagueKey + '.t.' + team.team_id, matchup.week);
-      team.roster = transform(rawRosterData.roster, rosterDataMap);
+      let roster = transform(rawRosterData.roster, rosterDataMap);
+      team.roster = roster.map((p) => p.position + ": " + p.name).join(', ');
     }
   }
   console.log(JSON.stringify(leagueData, null, 2));
