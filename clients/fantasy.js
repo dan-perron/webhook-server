@@ -98,7 +98,12 @@ const matchupDataMap = {
     week_end: 'week_end',
     teams: 'teams',
   },
-  each: (item) => transform(item.teams, teamsDataMap, {week: item.week}),
+  operate: [
+    {
+      run: (teams) => transform(teams, teamsDataMap),
+      on: 'teams',
+    },
+  ],
 };
 
 const teamsDataMap = {
@@ -107,9 +112,6 @@ const teamsDataMap = {
     points: 'points',
     projected_points: 'projected_points',
   },
-  each: async (item, index, collection, context) => {
-
-  }
 };
 
 const rosterDataMap = {
