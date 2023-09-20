@@ -37,24 +37,14 @@ const leagueDataMap = {
   item: {
     name: 'name',
     num_teams: 'num_teams',
-    scoring_type: 'head',
     current_week: 'current_week',
-    start_date: 'start_date',
-    end_date: 'end_date',
-    game_code: 'game_code',
-    season: 'season',
-    teams: "standings",
-    //matchups: 'scoreboard.matchups',
+    teams: 'standings',
   },
   operate: [
     {
       run: (teams) => transform(teams, teamDataMap),
       on: 'teams',
     },
-    // {
-    //   run: (matchups) => transform(matchups, matchupDataMap),
-    //   on: 'matchups',
-    // },
   ],
 };
 
@@ -77,18 +67,22 @@ const teamDataMap = {
   item: {
     team_id: 'team_id',
     name: 'name',
-    division_id: 'division_id',
-    waiver_priority: 'waiver_priority',
-    number_of_moves: 'number_of_moves',
-    number_of_trades: 'number_of_trades',
+    moves: 'number_of_moves',
+    trades: 'number_of_trades',
     manager_name: 'managers.0.nickname',
-    manager_tier: 'managers.0.felo_tier',
-    standings: 'standings',
+    standings: {
+      rank: 'standings.rank',
+      outcome: {wins: 'standings.outcome_totals.wins', losses: 'standings.outcome_totals.losses'},
+      streak: 'standings.streak',
+      points_for: 'standings.points_for',
+      points_against: 'standings.points_against',
+    },
   },
   each: (item) => {
     item.slack_id = teamIdToSlackMap[item.team_id];
+    item.standings.streak = `${item.standings.streak.value} ${item.standings.streak.type}`;
     return item;
-  }
+  },
 };
 
 const matchupDataMap = {
@@ -116,9 +110,9 @@ const teamsDataMap = {
 
 const rosterDataMap = {
   item: {
-    name: "name.full",
-    position: "primary_position",
-  }
+    name: 'name.full',
+    position: 'primary_position',
+  },
 };
 
 const getLeagueData = async () => {
@@ -129,23 +123,32 @@ const getLeagueData = async () => {
   // const week = rawData.current_week;
   for (let team of leagueData.teams) {
     let teamKey = leagueKey + '.t.' + team.team_id;
-    let [rawRosterData, rawMatchupData] = await Promise.all([yf.roster.players(teamKey), yf.team.matchups(teamKey)])
+    let [rawRosterData, rawMatchupData] = await Promise.all([yf.roster.players(teamKey), yf.team.matchups(teamKey)]);
     let roster = transform(rawRosterData.roster, rosterDataMap);
-    let matchups = transform(rawMatchupData.matchups, matchupDataMap);
-    let matchupString = '';
-    for (let matchup of matchups) {
-      let primaryTeam = matchup.teams.find((t) => t.team_id === team.team_id);
-      let otherTeam = matchup.teams.find((t) => t.team_id !== team.team_id);
-      if (Date.parse(matchup.week_end) < Date.now()) {
-        matchupString += `On week ${matchup.week} ${team.team_id} played ${otherTeam.team_id}: ${primaryTeam.points > otherTeam.points ? 'won' : 'lost'} ${primaryTeam.points} to ${otherTeam.points}, they were expected to ${primaryTeam.projected_points > otherTeam.projected_points ? 'win' : 'lose'} ${primaryTeam.projected_points} to ${otherTeam.projected_points}. `
-      } else if (Date.parse(matchup.week_start) < Date.now()) {
-        matchupString += `In the current week (${matchup.week}) ${team.team_id} is playing ${otherTeam.team_id}: So far is ${primaryTeam.points > otherTeam.points ? 'winning' : 'losing'} ${primaryTeam.points} to ${otherTeam.points}, they were expected to ${primaryTeam.projected_points > otherTeam.projected_points ? 'win' : 'lose'} ${primaryTeam.projected_points} to ${otherTeam.projected_points}.`
-      } else {
-        matchupString += `In week ${matchup.week} ${team.team_id} will play ${otherTeam.team_id}: They are expected to ${primaryTeam.projected_points > otherTeam.projected_points ? 'win' : 'lose'} ${primaryTeam.projected_points} to ${otherTeam.projected_points}.`
-      }
-    }
-    team.roster = roster.map((p) => p.position + ": " + p.name).join(', ');
-    team.matchups = matchupString;
+    // let matchups = transform(rawMatchupData.matchups, matchupDataMap);
+    // let matchupString = '';
+    // for (let matchup of matchups) {
+    //   let primaryTeam = matchup.teams.find((t) => t.team_id === team.team_id);
+    //   let otherTeam = matchup.teams.find((t) => t.team_id !== team.team_id);
+    //   if (Date.parse(matchup.week_end) < Date.now()) {
+    //     matchupString += `On week ${matchup.week} ${team.team_id} played ${otherTeam.team_id}: ${primaryTeam.points >
+    //     otherTeam.points ?
+    //         'won' :
+    //         'lost'} ${primaryTeam.points} to ${otherTeam.points}, they were expected to ${primaryTeam.projected_points >
+    //     otherTeam.projected_points ? 'win' : 'lose'} ${primaryTeam.projected_points} to ${otherTeam.projected_points}. `;
+    //   } else if (Date.parse(matchup.week_start) < Date.now()) {
+    //     matchupString += `In the current week (${matchup.week}) ${team.team_id} is playing ${otherTeam.team_id}: So far is ${primaryTeam.points >
+    //     otherTeam.points ?
+    //         'winning' :
+    //         'losing'} ${primaryTeam.points} to ${otherTeam.points}, they were expected to ${primaryTeam.projected_points >
+    //     otherTeam.projected_points ? 'win' : 'lose'} ${primaryTeam.projected_points} to ${otherTeam.projected_points}.`;
+    //   } else {
+    //     matchupString += `In week ${matchup.week} ${team.team_id} will play ${otherTeam.team_id}: They are expected to ${primaryTeam.projected_points >
+    //     otherTeam.projected_points ? 'win' : 'lose'} ${primaryTeam.projected_points} to ${otherTeam.projected_points}.`;
+    //   }
+    // }
+    // team.matchups = matchupString;
+    team.roster = roster.map((p) => p.position + ': ' + p.name).join(', ');
   }
   // for (let matchup of rawData.matchups) {
   //   for (let team of matchup.teams) {
