@@ -171,6 +171,7 @@ async function complete({prompt, conf}) {
   const response = await openai.createCompletion({
     model: 'gpt-3.5-turbo-instruct',
     prompt,
+    max_tokens: 1500,
     ...(confHasValue(conf, 'openai') ? conf.openai : {}),
   });
   console.log(JSON.stringify(response.data, null, 2));
