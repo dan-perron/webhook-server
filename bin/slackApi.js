@@ -1,6 +1,6 @@
 const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched, getPowerRankings} = require('./ootpFileManager');
 const {app, channelToTeam, channelMap} = require('../clients/slack');
-const {genericChat, ootpChat, specialistChat, politicsChat, testChat, cabinChat, sportsChat} = require('../clients/openai');
+const openai = require('../clients/openai');
 const fantasy = require('../clients/fantasy');
 
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
@@ -34,17 +34,20 @@ app.message(/highlights please/i, async ({message, say}) => {
 async function getText(channel, input) {
   switch (channel) {
     case channelMap.cabin:
-      return cabinChat({input});
+      return openai.cabinChat({input});
     case channelMap.ootpHighlights:
       let [turnInfo, powerRankings] = await Promise.all([getBotMessage(), getPowerRankings()]);
-      return ootpChat({turnInfo, input, powerRankings});
+      return openai.ootpChat({turnInfo, input, powerRankings});
     case channelMap.specialist:
-      return specialistChat({input});
+      return openai.specialistChat({input});
     case channelMap.politics:
-      return politicsChat({input});
+      return openai.politicsChat({input});
     case channelMap.sports:
       let data = await fantasy.getLeagueData();
-      return sportsChat({input, data});
+      if (input[0].content.includes('generate power rankings')) {
+        return openai.generatePowerRankings({input, data});
+      }
+      return openai.sportsChat({input, data});
     case channelMap.test:
       // Allow a user in the text channel to specify a different channel to interpret this as.
       let lines = input[0].content.split('\n');
@@ -54,9 +57,9 @@ async function getText(channel, input) {
         input[0].content = lines.join('\n');
         return getText(channel, input);
       }
-      return testChat({input});
+      return openai.testChat({input});
     default:
-      return genericChat({input});
+      return openai.genericChat({input});
   }
 }
 

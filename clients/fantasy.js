@@ -128,9 +128,12 @@ const getLeagueData = async () => {
   let leagueData = transform(rawData.pop(), leagueDataMap);
   // const week = rawData.current_week;
   for (let team of leagueData.teams) {
-    let rawRosterData = await yf.roster.players(leagueKey + '.t.' + team.team_id);
+    let teamKey = leagueKey + '.t.' + team.team_id;
+    let [rawRosterData, rawMatchupData] = await Promise.all([yf.roster.players(teamKey), yf.team.matchups(teamKey)])
     let roster = transform(rawRosterData.roster, rosterDataMap);
+    let matchups = transform(rawMatchupData.matchups, matchupDataMap)
     team.roster = roster.map((p) => p.position + ": " + p.name).join(', ');
+    team.matchups = matchups;
   }
   // for (let matchup of rawData.matchups) {
   //   for (let team of matchup.teams) {

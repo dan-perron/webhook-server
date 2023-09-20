@@ -47,11 +47,11 @@ Right now ${turnInfo}
 
 Do not use the players aliases. Make hot takes.
 
-This is a conversation about baseball.`
+This is a conversation about baseball.`;
   return chat({input, systemPrompt});
 }
 
-function  politicsChat({input}) {
+function politicsChat({input}) {
   let systemPrompt = basePrompt + `
 
 This is a conversation about politics.`;
@@ -79,6 +79,27 @@ This is a conversation about sports or fantasy football.`;
   return chat({input, systemPrompt});
 }
 
+function generatePowerRankings({data}) {
+  let conf = extractConf(input);
+  let prompt = `Here is a lot of data about our fantasy football league:
+---
+${JSON.stringify(data)}
+---
+
+Create a list of power rankings for our fantasy league. 
+
+It will start with a short commentary on the state of the league, football, and life. 
+Then teams are ordered from worst to best in terms of their likelihood to win over the next few weeks and ranked into categories: 
+* THE ADAM LAROCHE DIVISION (the absolutely terrible)
+* THE GAGGLE OF MEH - LOWER DIVISION
+* THE GAGGLE OF MEH - UPPER DIVISION
+* THE SCOTT HANSON DIVISION (the best of the best). 
+
+Each team should have a paragraph about why they’ve been ranked where they are.
+`
+  return complete({prompt, conf});
+}
+
 function testChat({input}) {
   let systemPrompt = basePrompt + `
 
@@ -93,9 +114,9 @@ function genericChat({input}) {
 
 function extractConf(input) {
   let conf;
-  if (input[0].content.startsWith("{") || input[0].content.startsWith("`{")) {
+  if (input[0].content.startsWith('{') || input[0].content.startsWith('`{')) {
     let split = input[0].content.split('\n');
-    conf = JSON.parse(split.shift().replaceAll('`',''));
+    conf = JSON.parse(split.shift().replaceAll('`', ''));
     conf.openai = conf.openai || {};
     input[0].content = split.join('\n');
   }
@@ -113,19 +134,19 @@ function getConfigWithConf(confKey, conf) {
   if (confHasValue(conf, confKey)) {
     return conf[confKey];
   }
-  return config.get("openai." + confKey);
+  return config.get('openai.' + confKey);
 }
 
 async function chat({input, systemPrompt}) {
   let conf = extractConf(input);
-  if (getConfigWithConf("useComplete", conf)) {
-    return complete({input, systemPrompt, conf});
+  if (getConfigWithConf('useComplete', conf)) {
+    return completeFromChat({input, systemPrompt, conf});
   }
-  let messages = [{role: "system", content: systemPrompt}];
+  let messages = [{role: 'system', content: systemPrompt}];
   messages.push(...input);
   console.log(JSON.stringify(messages, null, 2));
-  const useGPT4 = getConfigWithConf("useGPT4", conf);
-  let model = useGPT4 ? "gpt-4" : "gpt-3.5-turbo";
+  const useGPT4 = getConfigWithConf('useGPT4', conf);
+  let model = useGPT4 ? 'gpt-4' : 'gpt-3.5-turbo';
   const completion = await openai.createChatCompletion({
     model,
     messages,
@@ -135,23 +156,34 @@ async function chat({input, systemPrompt}) {
   return completion.data.choices[0].message.content;
 }
 
-async function complete({input, systemPrompt, conf}) {
+async function completeFromChat({input, systemPrompt, conf}) {
   let prompt = systemPrompt;
   for (let message of input) {
     prompt += `
 
 <@${message.name}> says "${message.content}"`;
   }
+  return complete({input, prompt, conf});
+}
+
+async function complete({prompt, conf}) {
   console.log(JSON.stringify(prompt, null, 2));
   const response = await openai.createCompletion({
-    model: "text-davinci-003",
+    model: 'gpt-3.5-turbo-instruct',
     prompt,
-    max_tokens: 250,
-    temperature: 1.2,
     ...(confHasValue(conf, 'openai') ? conf.openai : {}),
   });
   console.log(JSON.stringify(response.data, null, 2));
   return response.data.choices[0].text;
 }
 
-module.exports = {genericChat, cabinChat, politicsChat, ootpChat, specialistChat, sportsChat, testChat};
+module.exports = {
+  genericChat,
+  cabinChat,
+  politicsChat,
+  ootpChat,
+  specialistChat,
+  sportsChat,
+  generatePowerRankings,
+  testChat,
+};
