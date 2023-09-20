@@ -131,9 +131,21 @@ const getLeagueData = async () => {
     let teamKey = leagueKey + '.t.' + team.team_id;
     let [rawRosterData, rawMatchupData] = await Promise.all([yf.roster.players(teamKey), yf.team.matchups(teamKey)])
     let roster = transform(rawRosterData.roster, rosterDataMap);
-    let matchups = transform(rawMatchupData.matchups, matchupDataMap)
+    let matchups = transform(rawMatchupData.matchups, matchupDataMap);
+    let matchupString = '';
+    for (let matchup of matchups) {
+      let primaryTeam = matchup.teams.find((t) => t.team_id === team.team_id);
+      let otherTeam = matchup.teams.find((t) => t.team_id !== team.team_id);
+      if (Date.parse(matchup.week_end) < Date.now()) {
+        matchupString += `On week ${matchup.week} ${team.team_id} played ${otherTeam.team_id}: ${primaryTeam.points > otherTeam.points ? 'won' : 'lost'} ${primaryTeam.points} to ${otherTeam.points}, they were expected to ${primaryTeam.projected_points > otherTeam.projected_points ? 'win' : 'lose'} ${primaryTeam.projected_points} to ${otherTeam.projected_points}. `
+      } else if (Date.parse(matchup.week_start) < Date.now()) {
+        matchupString += `In the current week (${matchup.week}) ${team.team_id} is playing ${otherTeam.team_id}: So far is ${primaryTeam.points > otherTeam.points ? 'winning' : 'losing'} ${primaryTeam.points} to ${otherTeam.points}, they were expected to ${primaryTeam.projected_points > otherTeam.projected_points ? 'win' : 'lose'} ${primaryTeam.projected_points} to ${otherTeam.projected_points}.`
+      } else {
+        matchupString += `In week ${matchup.week} ${team.team_id} will play ${otherTeam.team_id}: They are expected to ${primaryTeam.projected_points > otherTeam.projected_points ? 'win' : 'lose'} ${primaryTeam.projected_points} to ${otherTeam.projected_points}.`
+      }
+    }
     team.roster = roster.map((p) => p.position + ": " + p.name).join(', ');
-    team.matchups = matchups;
+    team.matchups = matchupString;
   }
   // for (let matchup of rawData.matchups) {
   //   for (let team of matchup.teams) {

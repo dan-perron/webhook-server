@@ -79,7 +79,7 @@ This is a conversation about sports or fantasy football.`;
   return chat({input, systemPrompt});
 }
 
-function generatePowerRankings({data}) {
+function generatePowerRankings({input, data}) {
   let conf = extractConf(input);
   let prompt = `Here is a lot of data about our fantasy football league:
 ---
