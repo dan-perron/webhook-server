@@ -155,7 +155,7 @@ async function determineOutputType({input, systemPrompt}) {
       content: 'Is the user looking for a text response or image response? Please respond just with IMAGE or TEXT',
     });
   let outputType = await chat({input: localInput, systemPrompt});
-  if (['IMAGE', 'TEXT'].contains(outputType)) {
+  if (['IMAGE', 'TEXT'].includes(outputType)) {
     return outputType;
   }
   console.log(`output type determination failed, got: '${outputType}'`);
