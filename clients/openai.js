@@ -149,11 +149,11 @@ async function getResponse({input, systemPrompt}) {
 
 async function determineOutputType({input, systemPrompt}) {
   let localInput = [...input];
-  localInput.push([
+  localInput.push(
     {
       role: 'user',
       content: 'Is the user looking for a text response or image response? Please respond just with IMAGE or TEXT',
-    }]);
+    });
   let outputType = await chat({input: localInput, systemPrompt});
   if (['IMAGE', 'TEXT'].contains(outputType)) {
     return outputType;
