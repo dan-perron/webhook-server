@@ -154,7 +154,7 @@ async function determineOutputType({input, systemPrompt}) {
       role: 'user',
       content: 'Is previous user message requesting a text response or image response? Please respond just with IMAGE or TEXT',
     });
-  let outputType = await chat({input: localInput, systemPrompt});
+  let outputType = await chat({input: localInput, systemPrompt, model: 'gpt-3.5-turbo'});
   if (['IMAGE', 'TEXT'].includes(outputType)) {
     return outputType;
   }
@@ -162,7 +162,7 @@ async function determineOutputType({input, systemPrompt}) {
   return 'TEXT';
 }
 
-async function chat({input, systemPrompt}) {
+async function chat({input, systemPrompt, model}) {
   let conf = extractConf(input);
   if (getConfigWithConf('useComplete', conf)) {
     return completeFromChat({input, systemPrompt, conf});
@@ -170,8 +170,10 @@ async function chat({input, systemPrompt}) {
   let messages = [{role: 'system', content: systemPrompt}];
   messages.push(...input);
   console.log(JSON.stringify(messages, null, 2));
-  const useGPT4 = getConfigWithConf('useGPT4', conf);
-  let model = useGPT4 ? 'gpt-4' : 'gpt-3.5-turbo';
+  if (!model) {
+    const useGPT4 = getConfigWithConf('useGPT4', conf);
+    model = useGPT4 ? 'gpt-4' : 'gpt-3.5-turbo';
+  }
   const completion = await openai.createChatCompletion({
     model,
     messages,
