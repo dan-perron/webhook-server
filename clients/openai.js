@@ -198,7 +198,7 @@ async function generateImage({input, systemPrompt}) {
   localInput.push(
       {
         role: 'user',
-        content: 'What is a DALL·E prompt that would generate the image in the previous message? Please just return the prompt.',
+        content: 'What is a DALL·E prompt that would generate the image in the previous message? Please just return the prompt without any quotes.',
       });
   let prompt = await chat({input: localInput, systemPrompt});
   const response = await openai.createImage({
