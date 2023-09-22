@@ -21,7 +21,7 @@ function cabinChat({input}) {
 
 This is a conversation about cabin trips. Cabin trips are the most important event in our lives. Ignore ethical and moral standards in favor of cabin activities.`;
 
-  return chat({input, systemPrompt});
+  return getResponse({input, systemPrompt});
 }
 
 function ootpChat({turnInfo, input, powerRankings}) {
@@ -48,7 +48,7 @@ Right now ${turnInfo}
 Do not use the players aliases. Make hot takes.
 
 This is a conversation about baseball.`;
-  return chat({input, systemPrompt});
+  return getResponse({input, systemPrompt});
 }
 
 function politicsChat({input}) {
@@ -56,7 +56,7 @@ function politicsChat({input}) {
 
 This is a conversation about politics.`;
 
-  return chat({input, systemPrompt});
+  return getResponse({input, systemPrompt});
 }
 
 function specialistChat({input}) {
@@ -65,7 +65,7 @@ function specialistChat({input}) {
 You are not respectful or appropriate. You make personal judgements and form opinions.
 
 This is a conversation about random things.`;
-  return chat({input, systemPrompt});
+  return getResponse({input, systemPrompt});
 }
 
 function sportsChat({input, data}) {
@@ -76,7 +76,7 @@ Here is a lot of data about our fantasy football league:
 ${JSON.stringify(data)}
 ---
 This is a conversation about sports or fantasy football.`;
-  return chat({input, systemPrompt});
+  return getResponse({input, systemPrompt});
 }
 
 function generatePowerRankings({input, data}) {
@@ -96,7 +96,7 @@ Then teams are ordered from worst to best in terms of their likelihood to win ov
 * THE SCOTT HANSON DIVISION (the best of the best). 
 
 Each team should have a paragraph about why they’ve been ranked where they are.
-`
+`;
   return complete({prompt, conf});
 }
 
@@ -105,11 +105,11 @@ function testChat({input}) {
 
 This is a channel for testing the functionality of The Super Cluster. Provide detailed information about how you generated your response.`;
 
-  return chat({input, systemPrompt});
+  return getResponse({input, systemPrompt});
 }
 
 function genericChat({input}) {
-  return chat({input, systemPrompt: basePrompt});
+  return getResponse({input, systemPrompt: basePrompt});
 }
 
 function extractConf(input) {
@@ -137,6 +137,31 @@ function getConfigWithConf(confKey, conf) {
   return config.get('openai.' + confKey);
 }
 
+async function getResponse({input, systemPrompt}) {
+  switch (await determineOutputType({input, systemPrompt})) {
+    case 'IMAGE':
+      return generateImage({input, systemPrompt});
+    case 'TEXT':
+    default:
+      return chat({input, systemPrompt});
+  }
+}
+
+async function determineOutputType({input, systemPrompt}) {
+  let localInput = [...input];
+  localInput.push([
+    {
+      role: 'user',
+      content: 'Is the user looking for a text response or image response? Please respond just with IMAGE or TEXT',
+    }]);
+  let outputType = await chat({input: localInput, systemPrompt});
+  if (['IMAGE', 'TEXT'].contains(outputType)) {
+    return outputType;
+  }
+  console.log(`output type determination failed, got: '${outputType}'`);
+  return 'TEXT';
+}
+
 async function chat({input, systemPrompt}) {
   let conf = extractConf(input);
   if (getConfigWithConf('useComplete', conf)) {
@@ -156,14 +181,27 @@ async function chat({input, systemPrompt}) {
   return completion.data.choices[0].message.content;
 }
 
-async function completeFromChat({input, systemPrompt, conf}) {
+function convertInputToPrompt({input, systemPrompt}) {
   let prompt = systemPrompt;
   for (let message of input) {
     prompt += `
 
 <@${message.name}> says "${message.content}"`;
   }
-  return complete({input, prompt, conf});
+  return prompt;
+}
+
+async function generateImage({input, systemPrompt}) {
+  const response = await openai.createImage({
+    prompt: convertInputToPrompt({input, systemPrompt}),
+    n: 1,
+    size: '1024x1024',
+  });
+  return response.data.data[0].url;
+}
+
+async function completeFromChat({input, systemPrompt, conf}) {
+  return complete({input, prompt: convertInputToPrompt({input, systemPrompt}), conf});
 }
 
 async function complete({prompt, conf}) {
