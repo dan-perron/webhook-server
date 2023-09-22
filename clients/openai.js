@@ -192,8 +192,9 @@ function convertInputToPrompt({input, systemPrompt}) {
 }
 
 async function generateImage({input, systemPrompt}) {
+  let prompt = input.pop().content;
   const response = await openai.createImage({
-    prompt: convertInputToPrompt({input, systemPrompt}),
+    prompt,
     n: 1,
     size: '1024x1024',
   });
