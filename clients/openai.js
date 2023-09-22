@@ -192,8 +192,13 @@ function convertInputToPrompt({input, systemPrompt}) {
 }
 
 async function generateImage({input, systemPrompt}) {
-  let prompt = input.pop().content;
-  prompt.replace('<@UVBBEEC4A>', 'DALL·E');
+  let localInput = [...input];
+  localInput.push(
+      {
+        role: 'user',
+        content: 'What is a DALL·E prompt that would generate the image in the previous message?',
+      });
+  let prompt = await chat({input: localInput, systemPrompt});
   const response = await openai.createImage({
     prompt,
     n: 1,
