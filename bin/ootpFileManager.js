@@ -26,7 +26,7 @@ const injuryFileToSlackMap = Object.fromEntries(
 
 const pathToTeamUploads = '/ootp/game/team_uploads/';
 const pathToLeagueFile = '/ootp/game/league_file/cheeseburger_2023.zip';
-const pathToReportsArchive = '/mnt/ootp/game/reports/reports.tar.gz';
+const pathToReportsArchive = '/ootp/game/reports/reports.tar.gz';
 const pathToBoxScores = '/ootp/game/reports/html/box_scores/';
 const pathToHomePage = '/ootp/game/reports/html/leagues/league_202_home.html';
 const pathToPowerRankings = '/ootp/game/reports/html/leagues/league_202_team_power_rankings_page.html';
