@@ -11,6 +11,7 @@ const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
 const {messageHighlights, messageSummary} = require('../clients/slack');
 const {ootpChat} = require('../clients/openai');
+const child_process = require('child_process');
 
 const teamToSlackMap = {
   'team_7': 'U6BEBDULB', 'team_11': 'U6KNBPYLE', 'team_13': 'U6CACS3GW', 'team_20': 'U6AT12XSM',
@@ -25,6 +26,7 @@ const injuryFileToSlackMap = Object.fromEntries(
 
 const pathToTeamUploads = '/ootp/game/team_uploads/';
 const pathToLeagueFile = '/ootp/game/league_file/cheeseburger_2023.zip';
+const pathToReportsArchive = '/mnt/ootp/game/reports/reports.tar.gz';
 const pathToBoxScores = '/ootp/game/reports/html/box_scores/';
 const pathToHomePage = '/ootp/game/reports/html/leagues/league_202_home.html';
 const pathToPowerRankings = '/ootp/game/reports/html/leagues/league_202_team_power_rankings_page.html';
@@ -47,10 +49,52 @@ for (const file in fileToSlackMap) {
   });
 }
 
+let lastMessage = 0;
+
 watchFile(pathToLeagueFile, () => {
+  const now = new Date();
+  if (now - lastMessage < 60 * 1000) {
+    // Don't message if we've had a new file in the last 60 seconds.
+    return;
+  }
+  lastMessage = now;
   let playersString = Object.values(fileToSlackMap).map((s) => `<@${s}>`).join(', ');
   SlackWebhook.send({text: `New league file uploaded ${playersString}`});
 });
+
+let archiveFileTimer;
+let executing = false;
+watchFile(pathToReportsArchive, (curr) => {
+  if (archiveFileTimer) {
+    console.log('watch fired, cancelling timer');
+    clearTimeout(archiveFileTimer);
+  }
+  if (executing) {
+    // Ignore file updates while executing.
+    return;
+  }
+  archiveFileTimer = setTimeout(async () => {
+    let newStat;
+    try {
+      newStat = await stat(pathToReportsArchive);
+    } catch (e) {
+      // File probably got deleted.
+      return;
+    }
+    if (newStat.mtime !== curr.mtime) {
+      console.log('file changed, not executing');
+      return;
+    }
+    executing = true;
+    try {
+      child_process.exec(
+          'tar -xf /mnt/ootp/game/reports/reports.tar.gz -C /mnt/ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /mnt/ootp/game/reports/reports.tar.gz')
+    } catch (e) {
+      console.log('error while executing ' + e.toString());
+    }
+    executing = false;
+  }, 60 * 1000);
+})
 
 function matchTeamFilter(title, teamFilter) {
   let matchedTeams = [];
