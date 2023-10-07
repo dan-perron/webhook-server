@@ -65,7 +65,7 @@ watchFile(pathToLeagueFile, () => {
 let archiveFileTimer;
 let executing = false;
 
-async function expandArchive(prevStat) {    
+async function expandArchive(prevStat) {
   let newStat;
   try {
     newStat = await stat(pathToReportsArchive);
@@ -76,10 +76,7 @@ async function expandArchive(prevStat) {
   }
   if (newStat.mtime !== prevStat.mtime) {
     console.log('file changed, not executing');
-    if (!archiveFileTimer) {
-      console.log('setting new timer');
-      archiveFileTimer = setTimeout(() => expandArchive(newStat), 60*1000);
-    }
+    archiveFileTimer = setTimeout(() => expandArchive(newStat), 60*1000);
     return;
   }
   executing = true;
@@ -94,13 +91,13 @@ async function expandArchive(prevStat) {
 }
 
 watchFile(pathToReportsArchive, (curr) => {
-  if (archiveFileTimer) {
-    console.log('watch fired, cancelling timer');
-    clearTimeout(archiveFileTimer);
-  }
   if (executing) {
     // Ignore file updates while executing.
     return;
+  }
+  if (archiveFileTimer) {
+    console.log('watch fired, cancelling timer');
+    clearTimeout(archiveFileTimer);
   }
   archiveFileTimer = setTimeout(() => expandArchive(curr), 60 * 1000);
 })
