@@ -64,6 +64,35 @@ watchFile(pathToLeagueFile, () => {
 
 let archiveFileTimer;
 let executing = false;
+
+function expandArchive(prevStat) {    
+  let newStat;
+  try {
+    newStat = await stat(pathToReportsArchive);
+  } catch (e) {
+    // File probably got deleted.
+    console.log('no file');
+    return;
+  }
+  if (newStat.mtime !== prevStat.mtime) {
+    console.log('file changed, not executing');
+    if (!archiveFileTimer) {
+      console.log('setting new timer');
+      archiveFileTimer = setTimeout(() => expandArchive(newStat), 60*1000);
+    }
+    return;
+  }
+  executing = true;
+  try {
+    console.log('expanding archive');
+    child_process.exec(
+        'tar -xf /mnt/ootp/game/reports/reports.tar.gz -C /mnt/ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /mnt/ootp/game/reports/reports.tar.gz')
+  } catch (e) {
+    console.log('error while executing ' + e.toString());
+  }
+  executing = false;
+}
+
 watchFile(pathToReportsArchive, (curr) => {
   if (archiveFileTimer) {
     console.log('watch fired, cancelling timer');
@@ -73,27 +102,7 @@ watchFile(pathToReportsArchive, (curr) => {
     // Ignore file updates while executing.
     return;
   }
-  archiveFileTimer = setTimeout(async () => {
-    let newStat;
-    try {
-      newStat = await stat(pathToReportsArchive);
-    } catch (e) {
-      // File probably got deleted.
-      return;
-    }
-    if (newStat.mtime !== curr.mtime) {
-      console.log('file changed, not executing');
-      return;
-    }
-    executing = true;
-    try {
-      child_process.exec(
-          'tar -xf /mnt/ootp/game/reports/reports.tar.gz -C /mnt/ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /mnt/ootp/game/reports/reports.tar.gz')
-    } catch (e) {
-      console.log('error while executing ' + e.toString());
-    }
-    executing = false;
-  }, 60 * 1000);
+  archiveFileTimer = setTimeout(() => expandArchive(curr), 60 * 1000);
 })
 
 function matchTeamFilter(title, teamFilter) {
