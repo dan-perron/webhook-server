@@ -74,7 +74,7 @@ async function expandArchive(prevStat) {
     console.log('no file');
     return;
   }
-  if (newStat.mtime !== prevStat.mtime) {
+  if (newStat.mtimeMs !== prevStat.mtimeMs) {
     console.log('file changed, not executing');
     archiveFileTimer = setTimeout(() => expandArchive(newStat), 60*1000);
     return;
