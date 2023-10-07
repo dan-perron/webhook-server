@@ -65,7 +65,7 @@ watchFile(pathToLeagueFile, () => {
 let archiveFileTimer;
 let executing = false;
 
-function expandArchive(prevStat) {    
+async function expandArchive(prevStat) {    
   let newStat;
   try {
     newStat = await stat(pathToReportsArchive);
