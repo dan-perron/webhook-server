@@ -11,7 +11,8 @@ const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
 const {messageHighlights, messageSummary} = require('../clients/slack');
 const {ootpChat} = require('../clients/openai');
-const child_process = require('child_process');
+const util = require('node:util');
+const exec = util.promisify(require('node:child_process').exec);
 
 const teamToSlackMap = {
   'team_7': 'U6BEBDULB', 'team_11': 'U6KNBPYLE', 'team_13': 'U6CACS3GW', 'team_20': 'U6AT12XSM',
@@ -82,7 +83,7 @@ async function expandArchive(prevStat) {
   executing = true;
   try {
     console.log('expanding archive');
-    child_process.exec(
+    await exec(
         'tar -xf /mnt/ootp/game/reports/reports.tar.gz -C /mnt/ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /mnt/ootp/game/reports/reports.tar.gz')
   } catch (e) {
     console.log('error while executing ' + e.toString());
