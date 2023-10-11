@@ -15,7 +15,7 @@ const util = require('node:util');
 const exec = util.promisify(require('node:child_process').exec);
 
 const teamToSlackMap = {
-  'team_7': 'U6BEBDULB', 'team_11': 'U6KNBPYLE', 'team_13': 'U6CACS3GW', 'team_20': 'U6AT12XSM',
+  'team_7': 'U6BEBDULB', 'team_11': 'U6KNBPYLE', 'team_13': 'U6CACS3GW', 'team_20': 'U6AT12XSM', 'team_27': 'U060JASDCMC',
 };
 
 const fileToSlackMap = Object.fromEntries(Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v]));
