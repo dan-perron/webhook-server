@@ -154,7 +154,7 @@ async function determineOutputType({input, systemPrompt}) {
   localInput.push(
     {
       role: 'user',
-      content: 'Is previous user message requesting a text response or image response? Please respond just with IMAGE or TEXT',
+      content: 'Is previous message requesting a text response or image response? Please respond just with IMAGE or TEXT',
     });
   let outputType = await chat({input: localInput, systemPrompt, model: 'gpt-3.5-turbo'});
   if (['IMAGE', 'TEXT'].includes(outputType)) {

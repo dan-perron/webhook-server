@@ -84,7 +84,7 @@ async function expandArchive(prevStat) {
   try {
     console.log('expanding archive');
     await exec(
-        'tar -xf /mnt/ootp/game/reports/reports.tar.gz -C /mnt/ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /mnt/ootp/game/reports/reports.tar.gz')
+        'tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz')
   } catch (e) {
     console.log('error while executing ' + e.toString());
   }
