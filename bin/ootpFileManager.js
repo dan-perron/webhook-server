@@ -15,7 +15,12 @@ const util = require('node:util');
 const exec = util.promisify(require('node:child_process').exec);
 
 const teamToSlackMap = {
-  'team_7': 'U6BEBDULB', 'team_11': 'U6KNBPYLE', 'team_13': 'U6CACS3GW', 'team_20': 'U6AT12XSM', 'team_27': 'U060JASDCMC',
+  'team_7': 'U6BEBDULB',
+  'team_9': 'U6DCHN9K2',
+  'team_11': 'U6KNBPYLE',
+  'team_13': 'U6CACS3GW',
+  'team_20': 'U6AT12XSM',
+  'team_27': 'U060JASDCMC',
 };
 
 const fileToSlackMap = Object.fromEntries(Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v]));
@@ -77,14 +82,14 @@ async function expandArchive(prevStat) {
   }
   if (newStat.mtimeMs !== prevStat.mtimeMs) {
     console.log('file changed, not executing');
-    archiveFileTimer = setTimeout(() => expandArchive(newStat), 60*1000);
+    archiveFileTimer = setTimeout(() => expandArchive(newStat), 60 * 1000);
     return;
   }
   executing = true;
   try {
     console.log('expanding archive');
     await exec(
-        'tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz')
+        'tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz');
   } catch (e) {
     console.log('error while executing ' + e.toString());
   }
@@ -101,7 +106,7 @@ watchFile(pathToReportsArchive, (curr) => {
     clearTimeout(archiveFileTimer);
   }
   archiveFileTimer = setTimeout(() => expandArchive(curr), 60 * 1000);
-})
+});
 
 function matchTeamFilter(title, teamFilter) {
   let matchedTeams = [];
@@ -144,7 +149,7 @@ async function getHighlightIfMatched(path, teamFilter, dateFilter) {
   const heading = cheer('td.boxtitle[style="padding:0px 4px 2px 4px;"]').text().trim();
   const body = cheer('td.databg.datacolor[style="padding:1px 4px 2px 4px;"]').text().trim();
   const url = path.replace('/ootp/game/reports/html', 'https://djperron.com/ootp');
-  return {title, url,heading, body, matchedTeams};
+  return {title, url, heading, body, matchedTeams};
 }
 
 let storedMessages = {};
@@ -163,7 +168,7 @@ async function summarizeTeam(team) {
     name: '',
     content: 'Summarize how this period of games went given these game reports.'
   })*/
-  let content = ''
+  let content = '';
   for (let highlight of storedMessages[team]) {
     content += highlight.heading + '\n';
     content += highlight.title + '\n';
@@ -197,7 +202,7 @@ async function sendHighlights(path, stats) {
         storedMessages[team].push(highlight);
       } else {
         storedMessages[team] = [highlight];
-        setTimeout(() => summarizeTeam(team), 60*1000);
+        setTimeout(() => summarizeTeam(team), 60 * 1000);
       }
     }
   }

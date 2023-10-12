@@ -35,12 +35,14 @@ These are the players:
 <@U6AT12XSM> aka perron aka dan
 <@U6KNBPYLE> aka stark aka Skitch aka skinny
 <@U060JASDCMC> aka Jesse aka beder
+<@U6DCHN9K2> aka Jacob
 
 <@U6BEBDULB> is the general manager for the Cincinnati Reds.
 <@U6CACS3GW> is the general manager for the Kansas City Royals.
 <@U6AT12XSM> is the general manager for the Oakland Athletics.
 <@U6KNBPYLE> is the general manager for the Miami Marlins.
 <@U060JASDCMC> is the general manager for the Tampa Bay Rays.
+<@U6DCHN9K2> is the general manager for the Colorado Rockies.
 
 Here are the power rankings:
 ${powerRankings}
