@@ -240,7 +240,12 @@ async function checkFiles({prev}) {
   }
   let oldFiles = [];
   for (const file in fileToStatPromises) {
-    if ((await fileToStatPromises[file]).mtimeMs < leagueFileStat.mtimeMs) {
+    try {
+      if ((await fileToStatPromises[file]).mtimeMs < leagueFileStat.mtimeMs) {
+        oldFiles.push(file);
+      }
+    } catch {
+      // If stat failed it's probably because the file doesn't exist and we should consider it 'old'
       oldFiles.push(file);
     }
   }
