@@ -142,6 +142,9 @@ function getConfigWithConf(confKey, conf) {
 }
 
 async function getResponse({input, systemPrompt}) {
+  if (!config.get('openai.returnImages')) {
+    return chat({input, systemPrompt});
+  }
   switch (await determineOutputType({input, systemPrompt})) {
     case 'IMAGE':
       return generateImage({input, systemPrompt});

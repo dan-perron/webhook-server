@@ -11,6 +11,7 @@ const config = {
   openai: {
     key: null,
     useComplete: false,
+    returnImages: false,
     useGPT4: true,
   },
   yahoo: {
