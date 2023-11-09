@@ -12,7 +12,7 @@ const config = {
     key: null,
     useComplete: false,
     returnImages: false,
-    useGPT4: true,
+    model: 'gpt-4-1106-preview'
   },
   yahoo: {
     appId: null,

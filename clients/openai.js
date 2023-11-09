@@ -178,8 +178,7 @@ async function chat({input, systemPrompt, model}) {
   messages.push(...input);
   console.log(JSON.stringify(messages, null, 2));
   if (!model) {
-    const useGPT4 = getConfigWithConf('useGPT4', conf);
-    model = useGPT4 ? 'gpt-4' : 'gpt-3.5-turbo';
+    model = getConfigWithConf('model', conf);
   }
   const completion = await openai.createChatCompletion({
     model,
