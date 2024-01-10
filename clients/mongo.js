@@ -18,5 +18,19 @@ async function getLatestTokens() {
   return documents.pop();
 }
 
+async function insertReminder(type, reminder) {
+  const reminderCollection = database.collection('reminders');
+  return reminderCollection.insertOne({date: new Date(), active: true, type, reminder});
+}
 
-module.exports = {insertTokens, getLatestTokens};
+async function getReminders(filter) {
+  const reminderCollection = database.collection('reminders');
+  return reminderCollection.find(filter).sort({date: 1}).toArray();
+}
+
+async function markRemindersDone(filter) {
+  const reminderCollection = database.collection('reminders');
+  return await reminderCollection.updateMany({active: true, ...filter}, {active: false});
+}
+
+module.exports = {insertTokens, getLatestTokens, insertReminder, getReminders, markRemindersDone};

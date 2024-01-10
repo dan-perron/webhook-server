@@ -9,7 +9,9 @@ const {IncomingWebhook} = require('@slack/webhook');
 const config = require('config');
 const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
-const {messageHighlights, messageSummary} = require('../clients/slack');
+const {messageSummary, channelMap} = require('../clients/slack');
+const slackApi = require('./slackApi');
+const mongo = require('../clients/mongo');
 const {ootpChat} = require('../clients/openai');
 const util = require('node:util');
 const exec = util.promisify(require('node:child_process').exec);
@@ -65,6 +67,7 @@ watchFile(pathToLeagueFile, () => {
   }
   lastMessage = now;
   let playersString = Object.values(fileToSlackMap).map((s) => `<@${s}>`).join(', ');
+  mongo.markRemindersDone({type: channelMap.ootpHighlights})
   SlackWebhook.send({text: `New league file uploaded ${playersString}`});
 });
 
@@ -259,19 +262,31 @@ async function checkFiles({prev}) {
   return oldFiles;
 }
 
-function getNextStepMessage(oldFiles) {
+async function getNextStepMessage(oldFiles) {
   if (!oldFiles) {
     return;
   }
   if (oldFiles.length === 0) {
-    return `<@${perronSlack}> needs to sim.`;
+    let reminders = await mongo.getReminders({type: channelMap.ootpHighlights});
+    let input = [{
+      role: 'assistant',
+      content: 'What are my reminders?',
+    }];
+    let text = await slackApi.getText(channelMap.ootpHighlights, input, reminders);
+    return `<@${perronSlack}> needs to sim. 
+
+Raw reminders: 
+${JSON.stringify(reminders, null, 2)}
+
+GPT'd reminders: 
+${text}`;
   }
   return 'Waiting on ' + oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
 }
 
 async function getBotMessage() {
   let oldFiles = await checkFiles({});
-  return getNextStepMessage(oldFiles);
+  return await getNextStepMessage(oldFiles);
 }
 
 async function getPowerRankings() {

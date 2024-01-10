@@ -24,7 +24,7 @@ This is a conversation about cabin trips. Cabin trips are the most important eve
   return getResponse({input, systemPrompt});
 }
 
-function ootpChat({turnInfo, input, powerRankings}) {
+function ootpChat({turnInfo, input, powerRankings, reminders}) {
   let systemPrompt = basePrompt + `
 
 One function of the system is to keep track of whose turn in an Out Of The Park Baseball simulation it is.  
@@ -46,6 +46,9 @@ These are the players:
 
 Here are the power rankings:
 ${powerRankings}
+
+Here are a list of reminders:
+${reminders}
 
 Right now ${turnInfo}
 
@@ -104,16 +107,23 @@ Each team should have a paragraph about why they’ve been ranked where they are
   return complete({prompt, conf});
 }
 
-function testChat({input}) {
+function testChat({input, reminders}) {
   let systemPrompt = basePrompt + `
 
-This is a channel for testing the functionality of The Super Cluster. Provide detailed information about how you generated your response.`;
+This is a channel for testing the functionality of The Super Cluster. Provide detailed information about how you generated your response.
+
+Here are a list of reminders:
+${reminders}`;
 
   return getResponse({input, systemPrompt});
 }
 
-function genericChat({input}) {
-  return getResponse({input, systemPrompt: basePrompt});
+function genericChat({input, reminders}) {
+  const systemPrompt = basePrompt + `
+
+Here are a list of reminders:
+${reminders}`;
+  return getResponse({input, systemPrompt});
 }
 
 function extractConf(input) {
