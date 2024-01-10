@@ -26,7 +26,7 @@
     "prettier": "1.19.1"
   },
   "scripts": {
-    "start": "node ./bin/www",
+    "start": "node ./bin/www.js",
     "deploy": "./deploy.sh"
   }
 }
