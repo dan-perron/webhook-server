@@ -267,7 +267,7 @@ async function getNextStepMessage(oldFiles) {
     return;
   }
   if (oldFiles.length === 0) {
-    let reminders = await mongo.getReminders({type: channelMap.ootpHighlights});
+    let reminders = await mongo.getRemindersAsText({type: channelMap.ootpHighlights});
     let input = [{
       role: 'assistant',
       content: 'What are my reminders?',

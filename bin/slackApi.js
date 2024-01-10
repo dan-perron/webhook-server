@@ -77,10 +77,11 @@ app.event('app_mention', async ({event, say}) => {
       content: message.text,
     });
   }
-  let reminders = await mongo.getReminders({type: event.channel});
+  let reminders = await mongo.getRemindersAsText({type: event.channel});
   let text = await getText(event.channel, input, reminders);
   console.log(JSON.stringify(event, null, 2));
-  if (event.text.includes('remind')) {
+  // TODO: Can we clean up this logic?
+  if (event.text.includes('remind') && !event.text.includes('what are my reminders')) {
     // TODO: How can we drop the await here / move it to the end of the function without
     // making the code ugly?
     await mongo.insertReminder(event.channel, event);

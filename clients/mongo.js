@@ -23,9 +23,10 @@ async function insertReminder(type, reminder) {
   return reminderCollection.insertOne({date: new Date(), active: true, type, reminder});
 }
 
-async function getReminders(filter) {
+async function getRemindersAsText(filter) {
   const reminderCollection = database.collection('reminders');
-  return reminderCollection.find(filter).sort({date: 1}).toArray();
+  let reminders = await reminderCollection.find(filter).sort({date: 1}).toArray();
+  return reminders.map((r) => r.reminder.text).join('\n');
 }
 
 async function markRemindersDone(filter) {
@@ -33,4 +34,4 @@ async function markRemindersDone(filter) {
   return await reminderCollection.updateMany({active: true, ...filter}, {active: false});
 }
 
-module.exports = {insertTokens, getLatestTokens, insertReminder, getReminders, markRemindersDone};
+module.exports = {insertTokens, getLatestTokens, insertReminder, getRemindersAsText, markRemindersDone};
