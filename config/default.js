@@ -1,3 +1,4 @@
+export default config
 const config = {
   mongodb: {
     connectionString: process.env.MONGODB_CONNSTRING,
@@ -21,5 +22,3 @@ const config = {
     leagueKey: null,
   }
 };
-
-module.exports = config;
