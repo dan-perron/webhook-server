@@ -93,3 +93,5 @@ app.event('app_mention', async ({event, say}) => {
   await app.start();
   console.log('⚡️ Bolt app started');
 })();
+
+module.exports = { getText };
