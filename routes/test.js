@@ -1,8 +1,8 @@
-const express = require("express");
-const config = require("config");
-const router = express.Router();
+import express from 'express';
+import config from 'config';
+export const router = express.Router();
 
-const { IncomingWebhook } = require("@slack/webhook");
+import { IncomingWebhook } from '@slack/webhook';
 const SlackWebhook = new IncomingWebhook(config.get("slack.webhookUrls.test"));
 
 router.post("/", async (req, res) => {
@@ -12,5 +12,3 @@ router.post("/", async (req, res) => {
   await SlackWebhook.send(req.body);
   res.send("Ok\n");
 });
-
-module.exports = router;

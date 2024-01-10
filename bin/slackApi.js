@@ -1,8 +1,8 @@
-const {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched, getPowerRankings} = require('./ootpFileManager');
-const {app, channelToTeam, channelMap} = require('../clients/slack');
-const openai = require('../clients/openai');
-const fantasy = require('../clients/fantasy');
-const mongo = require('../clients/mongo');
+import {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched, getPowerRankings} from './ootpFileManager.js';
+import {app, channelToTeam, channelMap} from '../clients/slack.js';
+import * as openai from '../clients/openai.js';
+import * as fantasy from '../clients/fantasy.js';
+import * as mongo from '../clients/mongo.js';
 
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
@@ -32,7 +32,7 @@ app.message(/highlights please/i, async ({message, say}) => {
   highlights.map((highlight) => say(highlight));
 });
 
-async function getText(channel, input, reminders) {
+export async function getText(channel, input, reminders) {
   switch (channel) {
     case channelMap.cabin:
       return openai.cabinChat({input});
@@ -93,5 +93,3 @@ app.event('app_mention', async ({event, say}) => {
   await app.start();
   console.log('⚡️ Bolt app started');
 })();
-
-module.exports = { getText };

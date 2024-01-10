@@ -1,8 +1,8 @@
-const config = require('config');
-const {transform} = require('node-json-transform');
-const YahooFantasy = require('yahoo-fantasy');
+import config from 'config';
+import {transform} from 'node-json-transform';
+import YahooFantasy from 'yahoo-fantasy';
 
-const mongo = require('./mongo');
+import * as mongo from './mongo.js';
 
 const leagueKey = config.get('yahoo.leagueKey');
 
@@ -25,13 +25,13 @@ mongo.getLatestTokens().then((tokens) => {
   }
 });
 
-const auth = (res) => {
+export function auth(res) {
   yf.auth(res);
-};
+}
 
-const authCallback = (req, cb) => {
+export function authCallback(req, cb) {
   yf.authCallback(req, cb);
-};
+}
 
 const leagueDataMap = {
   item: {
@@ -115,7 +115,7 @@ const rosterDataMap = {
   },
 };
 
-const getLeagueData = async () => {
+export async function getLeagueData() {
   let rawData = await yf.leagues.fetch(
       [leagueKey],
       ['standings', 'scoreboard']);
@@ -156,6 +156,4 @@ const getLeagueData = async () => {
   // }
   console.log(JSON.stringify(leagueData, null, 2));
   return leagueData;
-};
-
-module.exports = {auth, authCallback, getLeagueData};
+}

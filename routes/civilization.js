@@ -1,9 +1,9 @@
-const express = require("express");
-const config = require("config");
-const router = express.Router();
+import express from 'express';
+import config from 'config';
+export const router = express.Router();
 
-const hash = require("object-hash");
-const { IncomingWebhook } = require("@slack/webhook");
+import hash from 'object-hash';
+import { IncomingWebhook } from '@slack/webhook';
 const SlackWebhook = new IncomingWebhook(
   config.get("slack.webhookUrls.civilization")
 );
@@ -54,5 +54,3 @@ router.post("/", async (req, res) => {
   await civWebhookHandler(req.body);
   res.send("Ok\n");
 });
-
-module.exports = router;

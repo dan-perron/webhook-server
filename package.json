@@ -1,6 +1,7 @@
 {
   "name": "webhook-server",
   "version": "0.0.0",
+  "type": "module",
   "private": true,
   "dependencies": {
     "@slack/bolt": "^3.12.2",

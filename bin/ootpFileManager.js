@@ -1,20 +1,19 @@
-const cheerio = require('cheerio');
-const chokidar = require('chokidar');
-const dayjs = require('dayjs');
+import cheerio from 'cheerio';
+import dayjs from 'dayjs';
 dayjs.extend(require('dayjs/plugin/isSameOrAfter'));
-const {watchFile} = require('node:fs');
-const {readFile, readdir} = require('node:fs/promises');
-const {stat} = require('node:fs/promises');
-const {IncomingWebhook} = require('@slack/webhook');
-const config = require('config');
+import {watchFile} from 'node:fs';
+import {readFile, readdir, stat} from 'node:fs/promises';
+import {IncomingWebhook} from '@slack/webhook';
+import config from 'config';
 const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
-const {messageSummary, channelMap} = require('../clients/slack');
-const slackApi = require('./slackApi');
-const mongo = require('../clients/mongo');
-const {ootpChat} = require('../clients/openai');
-const util = require('node:util');
-const exec = util.promisify(require('node:child_process').exec);
+import {messageSummary, channelMap} from '../clients/slack.js';
+import * as slackApi from './slackApi.js';
+import * as mongo from '../clients/mongo.js';
+import {ootpChat} from '../clients/openai.js';
+import util from 'node:util';
+import child_process from "child_process";
+const exec = util.promisify(child_process.exec);
 
 const teamToSlackMap = {
   'team_7': 'U6BEBDULB',
@@ -27,10 +26,8 @@ const teamToSlackMap = {
 
 const fileToSlackMap = Object.fromEntries(Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v]));
 const perronSlack = 'U6AT12XSM';
-const teams = [
+export const teams = [
   'Cincinnati Reds', 'Kansas City Royals', 'Miami Marlins', 'Oakland Athletics'];
-const injuryFileToSlackMap = Object.fromEntries(
-    Object.entries(teamToSlackMap).map(([k, v]) => [`/ootp/game/reports/html/teams/${k}_injuries.html`, v]));
 
 const pathToTeamUploads = '/ootp/game/team_uploads/';
 const pathToLeagueFile = '/ootp/game/league_file/cheeseburger_2023.zip';
@@ -39,7 +36,7 @@ const pathToBoxScores = '/ootp/game/reports/html/box_scores/';
 const pathToHomePage = '/ootp/game/reports/html/leagues/league_202_home.html';
 const pathToPowerRankings = '/ootp/game/reports/html/leagues/league_202_team_power_rankings_page.html';
 
-async function getCurrentDate() {
+export async function getCurrentDate() {
   const file = await readFile(pathToHomePage);
   const cheer = cheerio.load(file);
   return dayjs(cheer('div[style="text-align:center; color:#FFFFFF; padding-top:4px;"]').text());
@@ -93,7 +90,7 @@ async function expandArchive(prevStat) {
     console.log('expanding archive');
     await exec(
         'tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz');
-    SlackWebhook.send({text: `Reports are updated.`});
+    await SlackWebhook.send({text: `Reports are updated.`});
   } catch (e) {
     console.log('error while executing ' + e.toString());
   }
@@ -191,28 +188,7 @@ async function summarizeTeam(team) {
   return messageSummary({content: summary});
 }
 
-async function sendHighlights(path, stats) {
-  console.error('triggered on ' + path);
-  if (Date.now() - stats.ctimeMs > 5 * 60 * 1000) {
-    console.error(`${path} is older than 5 min ctime ${stats.ctime} now ${Date.now()}`);
-    return;
-  }
-  const highlight = await getHighlightIfMatched(path, teams);
-  console.error(JSON.stringify(highlight, null, 2));
-  if (highlight) {
-    // await messageHighlights(highlight);
-    for (let team of highlight.matchedTeams) {
-      if (storedMessages[team]) {
-        storedMessages[team].push(highlight);
-      } else {
-        storedMessages[team] = [highlight];
-        setTimeout(() => summarizeTeam(team), 60 * 1000);
-      }
-    }
-  }
-}
-
-async function getHighlightsIfMatched(teamFilter, dateFilter) {
+export async function getHighlightsIfMatched(teamFilter, dateFilter) {
   let files = await readdir(pathToBoxScores);
   let highlightPromises = files.map(
       async (f) => await getHighlightIfMatched(pathToBoxScores + f, teamFilter, dateFilter));
@@ -254,7 +230,7 @@ async function checkFiles({prev}) {
         oldFiles.push(file);
       }
     } catch {
-      // If stat failed it's probably because the file doesn't exist and we should consider it 'old'
+      // If stat failed it's probably because the file doesn't exist, and we should consider it 'old'
       oldFiles.push(file);
     }
   }
@@ -284,16 +260,14 @@ ${text}`;
   return 'Waiting on ' + oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
 }
 
-async function getBotMessage() {
+export async function getBotMessage() {
   let oldFiles = await checkFiles({});
   return await getNextStepMessage(oldFiles);
 }
 
-async function getPowerRankings() {
+export async function getPowerRankings() {
   const file = await readFile(pathToPowerRankings);
   const cheer = cheerio.load(file);
   // This is ugly -- replaces the </th>\n with </td> but it seems to work.
   return cheer(cheer('table[class="data sortable"]').html().replace(/<[/]t[dh]>\n/g, '</td>')).text();
 }
-
-module.exports = {getBotMessage, getCurrentDate, getHighlightsIfMatched, getPowerRankings, teams};

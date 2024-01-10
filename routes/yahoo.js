@@ -1,7 +1,7 @@
-const express = require("express");
-const router = express.Router();
+import express from 'express';
+export const router = express.Router();
 
-const fantasy = require("../clients/fantasy")
+import * as fantasy from '../clients/fantasy.js';
 
 router.get("/redirect", (req, res) => {
   console.log("Redirect request.");

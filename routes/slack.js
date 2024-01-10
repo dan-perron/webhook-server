@@ -1,5 +1,5 @@
-const express = require("express");
-const router = express.Router();
+import express from 'express';
+export const router = express.Router();
 
 router.post("/", async (req, res) => {
   console.log(`Received ${JSON.stringify(req.body, null, 2)} from slack.`);
@@ -9,5 +9,3 @@ router.post("/", async (req, res) => {
   }
   res.send("Ok\n");
 });
-
-module.exports = router;

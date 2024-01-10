@@ -1,7 +1,7 @@
-const {App} = require('@slack/bolt');
-const config = require('config');
+import {App} from '@slack/bolt';
+import config from 'config';
 
-const app = new App({
+export const app = new App({
   token: config.get('slack.token'),
   signingSecret: config.get('slack.signingSecret'),
   socketMode: true,
@@ -11,7 +11,7 @@ const app = new App({
   // port: process.env.PORT || 3000
 });
 
-const channelMap = {
+export const channelMap = {
   cabin: 'C6BB7U95Z',
   ootpHighlights: 'C04J9TWRNJ3',
   politics: 'CPXA5CBHP',
@@ -20,7 +20,7 @@ const channelMap = {
   test: 'CUYGZ6LLU',
 }
 
-const channelToTeam = {
+export const channelToTeam = {
   'C04NS45UKEX': 'Cincinnati Reds',
   'C04NS44S6QK': 'Kansas City Royals',
   'C04P4SB6LSD': 'Miami Marlins',
@@ -51,7 +51,7 @@ function messageHighlights({title, url,heading, body}) {
   return app.client.chat.postMessage(message);
 }
 
-function messageSummary({content}) {
+export function messageSummary({content}) {
   let message = {channel: channelMap.ootpHighlights, blocks: []};
   message.blocks.push({
     'type': 'section', 'text': {
@@ -60,5 +60,3 @@ function messageSummary({content}) {
   });
   return app.client.chat.postMessage(message);
 }
-
-module.exports = {app, channelToTeam, messageHighlights, messageSummary, channelMap};
