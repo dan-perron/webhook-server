@@ -1,4 +1,5 @@
-import {App} from '@slack/bolt';
+import bolt from '@slack/bolt';
+const App = bolt.App;
 import config from 'config';
 
 export const app = new App({
