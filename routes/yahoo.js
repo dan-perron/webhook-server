@@ -17,5 +17,3 @@ router.get("/callback", (req, res) => {
     return res.redirect("/");
   });
 });
-
-module.exports = router;
