@@ -78,7 +78,6 @@ async function expandArchive(prevStat) {
     newStat = await stat(pathToReportsArchive);
   } catch (e) {
     // File probably got deleted.
-    console.log('no file');
     return;
   }
   if (newStat.mtimeMs !== prevStat.mtimeMs) {
