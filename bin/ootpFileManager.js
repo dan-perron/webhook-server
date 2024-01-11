@@ -47,7 +47,7 @@ for (const file in fileToSlackMap) {
   watchFile(pathToTeamUploads + file, async (curr, prev) => {
     let oldFiles = await checkFiles({prev});
     let text = `<@${fileToSlackMap[file]}> just submitted their team's upload.`;
-    let nextStepText = getNextStepMessage(oldFiles);
+    let nextStepText = await getNextStepMessage(oldFiles);
     if (nextStepText) {
       text += ' ' + nextStepText;
     }
