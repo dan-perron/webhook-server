@@ -1,6 +1,7 @@
 import cheerio from 'cheerio';
 import dayjs from 'dayjs';
-dayjs.extend(require('dayjs/plugin/isSameOrAfter'));
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+dayjs.extend(isSameOrAfter);
 import {watchFile} from 'node:fs';
 import {readFile, readdir, stat} from 'node:fs/promises';
 import {IncomingWebhook} from '@slack/webhook';
