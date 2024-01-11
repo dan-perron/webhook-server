@@ -248,7 +248,7 @@ async function getNextStepMessage(oldFiles) {
       role: 'assistant',
       content: 'What are my reminders?',
     }];
-    let text = openai.ootpChat({input, reminders});
+    let text = await openai.ootpChat({input, reminders});
     return `<@${perronSlack}> needs to sim. 
 
 Raw reminders: 
