@@ -1,6 +1,6 @@
 import cheerio from 'cheerio';
 import dayjs from 'dayjs';
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
 dayjs.extend(isSameOrAfter);
 import {watchFile} from 'node:fs';
 import {readFile, readdir, stat} from 'node:fs/promises';
