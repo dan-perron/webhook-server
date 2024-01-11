@@ -42,15 +42,25 @@ These are the players:
 <@U6AT12XSM> is the general manager for the Oakland Athletics.
 <@U6KNBPYLE> is the general manager for the Miami Marlins.
 <@U060JASDCMC> is the general manager for the Tampa Bay Rays.
-<@U6DCHN9K2> is the general manager for the Colorado Rockies.
+<@U6DCHN9K2> is the general manager for the Colorado Rockies.`;
+  if (powerRankings) {
+    systemPrompt += `
 
 Here are the power rankings:
-${powerRankings}
+${powerRankings}`;
+  }
+  if (reminders) {
+    systemPrompt += `
 
 Here are a list of reminders:
-${reminders}
+${reminders}`;
+  }
+  if (turnInfo) {
+    systemPrompt += `
 
-Right now ${turnInfo}
+Right now ${turnInfo}`;
+  }
+  systemPrompt += `
 
 Do not use the players aliases. Make hot takes.
 

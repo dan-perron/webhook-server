@@ -9,11 +9,11 @@ import config from 'config';
 const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
 import {messageSummary, channelMap} from '../clients/slack.js';
-import * as slackApi from './slackApi.js';
 import * as mongo from '../clients/mongo.js';
 import {ootpChat} from '../clients/openai.js';
 import util from 'node:util';
 import child_process from "child_process";
+import * as openai from "../clients/openai.js";
 const exec = util.promisify(child_process.exec);
 
 const teamToSlackMap = {
@@ -248,7 +248,7 @@ async function getNextStepMessage(oldFiles) {
       role: 'assistant',
       content: 'What are my reminders?',
     }];
-    let text = await slackApi.getText(channelMap.ootpHighlights, input, reminders);
+    let text = openai.ootpChat({input, reminders});
     return `<@${perronSlack}> needs to sim. 
 
 Raw reminders: 
