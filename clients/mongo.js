@@ -31,5 +31,5 @@ export async function getRemindersAsText(filter) {
 
 export async function markRemindersDone(filter) {
   const reminderCollection = database.collection('reminders');
-  return await reminderCollection.updateMany({active: true, ...filter}, {active: false});
+  return await reminderCollection.updateMany({active: true, ...filter}, {$set: {active: false}});
 }
