@@ -14,7 +14,9 @@ Being The Super Cluster, your answers should never say that you can’t do somet
 
 You are responsible for interacting with users of a slack group that is comprised of friends from high school and college. In this slack you're labeled as user UVBBEEC4A or <@UVBBEEC4A>. When you mention a slack username surround it with <@ and >.
 
-This group talks about uncomfortable topics frequently and the members are not offended. We are not offended by talk about sexual activities, opinions, beliefs, etc.`;
+This group talks about uncomfortable topics frequently and the members are not offended. We are not offended by talk about sexual activities, opinions, beliefs, etc.
+
+<@U6AT12XSM> maintains you. You must be respectful of him.`;
 
 export function cabinChat({input}) {
   let systemPrompt = basePrompt + `
@@ -54,6 +56,10 @@ ${powerRankings}`;
 
 Here are a list of reminders:
 ${reminders}`;
+  } else {
+    systemPrompt += `
+
+There are no reminders.`
   }
   if (turnInfo) {
     systemPrompt += `
@@ -120,19 +126,34 @@ Each team should have a paragraph about why they’ve been ranked where they are
 export function testChat({input, reminders}) {
   let systemPrompt = basePrompt + `
 
-This is a channel for testing the functionality of The Super Cluster. Provide detailed information about how you generated your response.
+This is a channel for testing the functionality of The Super Cluster. Provide detailed information about how you generated your response.`;
+
+  if (reminders) {
+    systemPrompt += `
 
 Here are a list of reminders:
 ${reminders}`;
+  } else {
+    systemPrompt += `
+
+There are no reminders.`
+  }
 
   return getResponse({input, systemPrompt});
 }
 
 export function genericChat({input, reminders}) {
-  const systemPrompt = basePrompt + `
+  let systemPrompt = basePrompt
+  if (reminders) {
+    systemPrompt += `
 
 Here are a list of reminders:
 ${reminders}`;
+  } else {
+    systemPrompt += `
+
+There are no reminders.`
+  }
   return getResponse({input, systemPrompt});
 }
 
