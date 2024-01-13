@@ -1,5 +1,5 @@
 import config from 'config';
-import { MongoClient } from 'mongodb';
+import {MongoClient} from 'mongodb';
 
 // Replace the uri string with your connection string.
 const uri = config.get('mongodb.connectionString');
@@ -9,7 +9,7 @@ const database = client.db('webhook-server');
 
 export async function insertTokens(tokens) {
   const tokenCollection = database.collection('yahooFantasyTokens');
-  return tokenCollection.insertOne({date: new Date(), ...tokens });
+  return tokenCollection.insertOne({date: new Date(), ...tokens});
 }
 
 export async function getLatestTokens() {
@@ -25,7 +25,7 @@ export async function insertReminder(type, reminder) {
 
 export async function getRemindersAsText(filter) {
   const reminderCollection = database.collection('reminders');
-  let reminders = await reminderCollection.find(filter).sort({date: 1}).toArray();
+  let reminders = await reminderCollection.find({active: true, ...filter}).sort({date: 1}).toArray();
   return reminders.map((r) => r.reminder.text).join('\n');
 }
 
