@@ -243,19 +243,23 @@ async function getNextStepMessage(oldFiles) {
     return;
   }
   if (oldFiles.length === 0) {
+    let message = `<@${perronSlack}> needs to sim.`;
     let reminders = await mongo.getRemindersAsText({type: channelMap.ootpHighlights});
-    let input = [{
-      role: 'assistant',
-      content: 'What are my reminders?',
-    }];
-    let text = await openai.ootpChat({input, reminders});
-    return `<@${perronSlack}> needs to sim. 
+    if (reminders !== '') {
+      let input = [{
+        role: 'assistant',
+        content: 'What are my reminders?',
+      }];
+      let text = await openai.ootpChat({input, reminders});
+      message += `
 
 Raw reminders: 
 ${JSON.stringify(reminders, null, 2)}
 
 GPT'd reminders: 
 ${text}`;
+    }
+    return message;
   }
   return 'Waiting on ' + oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
 }
