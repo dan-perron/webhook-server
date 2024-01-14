@@ -66,7 +66,7 @@ export async function getText(channel, input, reminders) {
 
 const SUPER_CLUSTER_USER_STRING = 'UVBBEEC4A';
 
-app.event('app_mention', async ({event, say}) => {
+app.event('app_mention', async ({event, client, say}) => {
   console.log('⚡️ Mention recd! channel ' + event.channel);
   if (event.user === SUPER_CLUSTER_USER_STRING) {
     console.log('⚡️ Discarding message from bot ' + event.text);
@@ -74,7 +74,7 @@ app.event('app_mention', async ({event, say}) => {
   }
 
   let input = [];
-  let {messages} = await app.client.conversations.replies(
+  let {messages} = await client.conversations.replies(
       {channel: event.channel, ts: event.thread_ts || event.ts});
   for (let message of messages) {
     input.push({
