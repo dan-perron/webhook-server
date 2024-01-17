@@ -89,7 +89,7 @@ async function expandArchive(prevStat) {
   try {
     console.log('expanding archive');
     await exec(
-        'tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz');
+        'nice tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz');
     await SlackWebhook.send({text: `Reports are updated.`});
   } catch (e) {
     console.log('error while executing ' + e.toString());
