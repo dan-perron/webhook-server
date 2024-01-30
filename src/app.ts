@@ -34,7 +34,7 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.send("error\n");
 });
-process.on("unhandledRejection", error => {
+process.on("unhandledRejection", (error: Error) => {
   // Will print "unhandledRejection err is not defined"
   console.log("unhandledRejection", error.message);
 });

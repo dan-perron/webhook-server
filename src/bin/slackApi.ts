@@ -1,35 +1,19 @@
-import {getBotMessage, getCurrentDate, teams, getHighlightsIfMatched, getPowerRankings} from './ootpFileManager.js';
-import {app, channelToTeam, channelMap} from '../clients/slack.js';
+import {getBotMessage, getPowerRankings} from './ootpFileManager.js';
+import {app, channelMap} from '../clients/slack.js';
 import * as openai from '../clients/openai.js';
 import * as fantasy from '../clients/fantasy.js';
 import * as mongo from '../clients/mongo.js';
+import type {AppMentionEvent, GenericMessageEvent, SayFn} from "@slack/bolt";
 
 app.message(/.*who.?se? turn is it.*/i, async ({message, say}) => {
   // say() sends a message to the channel where the event was triggered
   console.log('⚡️ Msg recd! channel ' + message.channel);
-  if (message.text.includes('<@UVBBEEC4A>')) {
+  if ((message as GenericMessageEvent).text.includes('<@UVBBEEC4A>')) {
     return;
   }
   if (message.channel === channelMap.ootpHighlights) {
     await say(await getBotMessage());
   }
-});
-
-app.message(/highlights please/i, async ({message, say}) => {
-  console.log('⚡️ Highlight msg! channel ' + message.channel);
-  let teamFilter;
-  let dateFiler;
-  let currentDate = await getCurrentDate();
-  if (message.channel === channelMap.ootpHighlights) {
-    teamFilter = teams;
-    dateFiler = currentDate.subtract(1, 'days');
-  }
-  if (Object.keys(channelToTeam).includes(message.channel)) {
-    teamFilter = channelToTeam[message.channel];
-    dateFiler = currentDate.subtract(7, 'days');
-  }
-  let highlights = await getHighlightsIfMatched(teamFilter, dateFiler);
-  highlights.map((highlight) => say(highlight));
 });
 
 export async function getText(channel, input, reminders) {
@@ -89,11 +73,13 @@ app.event('app_mention', async ({event, say}) => {
     // TODO: How can we drop the await here / move it to the end of the function without
     // making the code ugly?
     await mongo.insertReminder(event.channel, event);
-    return await say({text: "I'll remember that.", thread_ts: event.thread_ts || event.ts})
+    await say({text: "I'll remember that.", thread_ts: event.thread_ts || event.ts})
+    return;
   }
   let reminders = await mongo.getRemindersAsText({type: event.channel});
   let text = await getText(event.channel, input, reminders);
-  return await say({text, thread_ts: event.thread_ts || event.ts});
+  await say({text, thread_ts: event.thread_ts || event.ts});
+  return;
 });
 
 (async () => {

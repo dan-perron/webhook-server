@@ -26,7 +26,7 @@ This is a conversation about cabin trips. Cabin trips are the most important eve
   return getResponse({input, systemPrompt});
 }
 
-export function ootpChat({turnInfo, input, powerRankings, reminders}) {
+export function ootpChat({turnInfo = null, input, powerRankings = null, reminders = null}) {
   let systemPrompt = basePrompt + `
 
 One function of the system is to keep track of whose turn in an Out Of The Park Baseball simulation it is.  
@@ -210,7 +210,7 @@ async function determineOutputType({input, systemPrompt}) {
   return 'TEXT';
 }
 
-async function chat({input, systemPrompt, model}) {
+async function chat({input, systemPrompt, model = null}) {
   let conf = extractConf(input);
   if (getConfigWithConf('useComplete', conf)) {
     return completeFromChat({input, systemPrompt, conf});
@@ -257,7 +257,7 @@ async function generateImage({input, systemPrompt}) {
 }
 
 async function completeFromChat({input, systemPrompt, conf}) {
-  return complete({input, prompt: convertInputToPrompt({input, systemPrompt}), conf});
+  return complete({prompt: convertInputToPrompt({input, systemPrompt}), conf});
 }
 
 async function complete({prompt, conf}) {

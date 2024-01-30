@@ -46,6 +46,7 @@ let civWebhookHandler = async ({ value1, value2, value3 }) => {
 };
 
 router.get("/", async (req, res) => {
+  // @ts-ignore
   await civWebhookHandler(req.query);
   res.send("Ok\n");
 });

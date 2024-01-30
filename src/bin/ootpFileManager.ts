@@ -45,7 +45,7 @@ export async function getCurrentDate() {
 
 for (const file in fileToSlackMap) {
   watchFile(pathToTeamUploads + file, async (curr, prev) => {
-    let oldFiles = await checkFiles({prev});
+    let oldFiles = await checkFiles(prev);
     let text = `<@${fileToSlackMap[file]}> just submitted their team's upload.`;
     let nextStepText = await getNextStepMessage(oldFiles);
     if (nextStepText) {
@@ -55,11 +55,11 @@ for (const file in fileToSlackMap) {
   });
 }
 
-let lastMessage = 0;
+let lastMessage = new Date(0);
 
 watchFile(pathToLeagueFile, () => {
   const now = new Date();
-  if (now - lastMessage < 60 * 1000) {
+  if (now.valueOf() - lastMessage.valueOf() < 60 * 1000) {
     // Don't message if we've had a new file in the last 60 seconds.
     return;
   }
@@ -214,7 +214,7 @@ export async function getHighlightsIfMatched(teamFilter, dateFilter) {
 //   });
 // }
 
-async function checkFiles({prev}) {
+async function checkFiles(prev = null) {
   let fileToStatPromises = {};
   for (const file in fileToSlackMap) {
     fileToStatPromises[file] = stat(pathToTeamUploads + file);
@@ -265,7 +265,7 @@ ${text}`;
 }
 
 export async function getBotMessage() {
-  let oldFiles = await checkFiles({});
+  let oldFiles = await checkFiles();
   return await getNextStepMessage(oldFiles);
 }
 
