@@ -12,13 +12,13 @@ const config = {
     key: null,
     useComplete: false,
     returnImages: false,
-    model: 'gpt-4-1106-preview'
+    model: "gpt-4-1106-preview",
   },
   yahoo: {
     appId: null,
     clientId: null,
     clientSecret: null,
     leagueKey: null,
-  }
+  },
 };
 module.exports = config;

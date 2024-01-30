@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 export const router = express.Router();
 
 router.post("/", async (req, res) => {

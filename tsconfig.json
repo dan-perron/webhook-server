@@ -12,10 +12,8 @@
     "verbatimModuleSyntax": true,
 
     "paths": {
-      "cheerio": [
-        "./node_modules/cheerio/lib/index.d.ts"
-      ]
-    }
+      "cheerio": ["./node_modules/cheerio/lib/index.d.ts"],
+    },
   },
-  "include": ["./src/**/*"]
+  "include": ["./src/**/*"],
 }

@@ -1,8 +1,8 @@
-import express from 'express';
-import config from 'config';
+import express from "express";
+import config from "config";
 export const router = express.Router();
 
-import { IncomingWebhook } from '@slack/webhook';
+import { IncomingWebhook } from "@slack/webhook";
 const SlackWebhook = new IncomingWebhook(config.get("slack.webhookUrls.test"));
 
 router.post("/", async (req, res) => {
