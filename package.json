@@ -20,13 +20,16 @@
     "object-hash": "^2.0.3",
     "openai": "^3.2.1",
     "pug": "3.0.1",
+    "typescript": "^5.3.3",
     "yahoo-fantasy": "^5.2.2"
   },
   "devDependencies": {
     "prettier": "1.19.1"
   },
   "scripts": {
-    "start": "node src/bin/www.js",
+    "build": "tsc -p .",
+    "prestart": "yarn build",
+    "start": "node built/bin/www.js",
     "deploy": "./deploy.sh"
   }
 }

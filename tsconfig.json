@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "outDir": "./built",
+    "allowJs": true,
+    // Required
+    "module": "nodenext",
+    // Implied by `"module": "nodenext"`:
+    // "moduleResolution": "nodenext",
+    // "esModuleInterop": true,
+    // "target": "esnext",
+    // Recommended
+    "verbatimModuleSyntax": true,
+
+    "paths": {
+      "cheerio": [
+        "./node_modules/cheerio/lib/index.d.ts"
+      ]
+    }
+  },
+  "include": ["./src/**/*"]
+}
