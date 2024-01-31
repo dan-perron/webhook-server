@@ -18,39 +18,39 @@ app.message(/.*who.?se? turn is it.*/i, async ({ message, say }) => {
 
 export async function getText(channel, input, reminders) {
   switch (channel) {
-  case channelMap.cabin:
-    return openai.cabinChat({ input });
-  case channelMap.ootpHighlights: {
-    const [turnInfo, powerRankings] = await Promise.all([
-      getBotMessage(),
-      getPowerRankings(),
-    ]);
-    return openai.ootpChat({ turnInfo, input, powerRankings, reminders });
-  }
-  case channelMap.specialist:
-    return openai.specialistChat({ input });
-  case channelMap.politics:
-    return openai.politicsChat({ input });
-  case channelMap.sports: {
-    const data = await fantasy.getLeagueData();
-    if (input[0].content.includes('generate power rankings')) {
-      return openai.generatePowerRankings({ input, data });
+    case channelMap.cabin:
+      return openai.cabinChat({ input });
+    case channelMap.ootpHighlights: {
+      const [turnInfo, powerRankings] = await Promise.all([
+        getBotMessage(),
+        getPowerRankings(),
+      ]);
+      return openai.ootpChat({ turnInfo, input, powerRankings, reminders });
     }
-    return openai.sportsChat({ input, data });
-  }
-  case channelMap.test: {
-    // Allow a user in the text channel to specify a different channel to interpret this as.
-    const lines = input[0].content.split('\n');
-    const channel = lines.shift();
-    if (Object.values(channelMap).includes(channel)) {
-      // Put the content back without the channel for consistent processing.
-      input[0].content = lines.join('\n');
-      return getText(channel, input, reminders);
+    case channelMap.specialist:
+      return openai.specialistChat({ input });
+    case channelMap.politics:
+      return openai.politicsChat({ input });
+    case channelMap.sports: {
+      const data = await fantasy.getLeagueData();
+      if (input[0].content.includes('generate power rankings')) {
+        return openai.generatePowerRankings({ input, data });
+      }
+      return openai.sportsChat({ input, data });
     }
-    return openai.testChat({ input, reminders });
-  }
-  default:
-    return openai.genericChat({ input, reminders });
+    case channelMap.test: {
+      // Allow a user in the text channel to specify a different channel to interpret this as.
+      const lines = input[0].content.split('\n');
+      const channel = lines.shift();
+      if (Object.values(channelMap).includes(channel)) {
+        // Put the content back without the channel for consistent processing.
+        input[0].content = lines.join('\n');
+        return getText(channel, input, reminders);
+      }
+      return openai.testChat({ input, reminders });
+    }
+    default:
+      return openai.genericChat({ input, reminders });
   }
 }
 

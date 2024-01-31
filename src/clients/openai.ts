@@ -203,11 +203,11 @@ async function getResponse({ input, systemPrompt }) {
     return chat({ input, systemPrompt });
   }
   switch (await determineOutputType({ input, systemPrompt })) {
-  case 'IMAGE':
-    return generateImage({ input, systemPrompt });
-  case 'TEXT':
-  default:
-    return chat({ input, systemPrompt });
+    case 'IMAGE':
+      return generateImage({ input, systemPrompt });
+    case 'TEXT':
+    default:
+      return chat({ input, systemPrompt });
   }
 }
 
