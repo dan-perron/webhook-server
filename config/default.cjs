@@ -20,5 +20,5 @@ const config = {
     clientSecret: null,
     leagueKey: null,
   },
-}
-module.exports = config
+};
+module.exports = config;

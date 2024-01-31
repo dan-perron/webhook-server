@@ -1,36 +1,36 @@
-import config from 'config'
-import { transform } from 'node-json-transform'
-import YahooFantasy from 'yahoo-fantasy'
+import config from 'config';
+import { transform } from 'node-json-transform';
+import YahooFantasy from 'yahoo-fantasy';
 
-import * as mongo from './mongo.js'
+import * as mongo from './mongo.js';
 
-const leagueKey = config.get('yahoo.leagueKey')
+const leagueKey = config.get('yahoo.leagueKey');
 
 const tokenCallback = (tokens) => {
-  console.log(JSON.stringify(tokens))
-  return mongo.insertTokens(tokens)
-}
+  console.log(JSON.stringify(tokens));
+  return mongo.insertTokens(tokens);
+};
 
 const yf = new YahooFantasy(
   config.get('yahoo.clientId'),
   config.get('yahoo.clientSecret'),
   tokenCallback, // optional
   'https://djperron.com/webhooks/yahoo/callback/' // optional
-)
+);
 
 mongo.getLatestTokens().then((tokens) => {
   if (tokens) {
-    yf.setUserToken(tokens.access_token)
-    yf.setRefreshToken(tokens.refresh_token)
+    yf.setUserToken(tokens.access_token);
+    yf.setRefreshToken(tokens.refresh_token);
   }
-})
+});
 
 export function auth(res) {
-  yf.auth(res)
+  yf.auth(res);
 }
 
 export function authCallback(req, cb) {
-  yf.authCallback(req, cb)
+  yf.authCallback(req, cb);
 }
 
 const leagueDataMap = {
@@ -46,7 +46,7 @@ const leagueDataMap = {
       on: 'teams',
     },
   ],
-}
+};
 
 const teamIdToSlackMap = {
   1: 'U6AT12XSM',
@@ -61,7 +61,7 @@ const teamIdToSlackMap = {
   11: 'U6APYUG9E',
   12: 'U6B0178NM',
   14: 'U6BDMEER0',
-}
+};
 
 const teamDataMap = {
   item: {
@@ -82,35 +82,35 @@ const teamDataMap = {
     },
   },
   each: (item) => {
-    item.slack_id = teamIdToSlackMap[item.team_id]
-    item.standings.streak = `${item.standings.streak.value} ${item.standings.streak.type}`
-    return item
+    item.slack_id = teamIdToSlackMap[item.team_id];
+    item.standings.streak = `${item.standings.streak.value} ${item.standings.streak.type}`;
+    return item;
   },
-}
+};
 
 const rosterDataMap = {
   item: {
     name: 'name.full',
     position: 'primary_position',
   },
-}
+};
 
 export async function getLeagueData() {
   const rawData = await yf.leagues.fetch(
     [leagueKey],
     ['standings', 'scoreboard']
-  )
-  const leagueData = transform(rawData.pop(), leagueDataMap)
+  );
+  const leagueData = transform(rawData.pop(), leagueDataMap);
   // const week = rawData.current_week;
   for (const team of leagueData.teams) {
-    const teamKey = leagueKey + '.t.' + team.team_id
+    const teamKey = leagueKey + '.t.' + team.team_id;
     const [rawRosterData] = await Promise.all([
       yf.roster.players(teamKey),
       yf.team.matchups(teamKey),
-    ])
-    const roster = transform(rawRosterData.roster, rosterDataMap)
-    team.roster = roster.map((p) => p.position + ': ' + p.name).join(', ')
+    ]);
+    const roster = transform(rawRosterData.roster, rosterDataMap);
+    team.roster = roster.map((p) => p.position + ': ' + p.name).join(', ');
   }
-  console.log(JSON.stringify(leagueData, null, 2))
-  return leagueData
+  console.log(JSON.stringify(leagueData, null, 2));
+  return leagueData;
 }
