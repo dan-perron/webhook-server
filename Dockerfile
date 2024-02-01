@@ -7,10 +7,11 @@ COPY package.json ./
 COPY yarn.lock ./
 
 RUN yarn
-RUN yarn build
 
 # Bundle app source
 COPY . .
+
+RUN yarn build
 
 EXPOSE 3000
 
