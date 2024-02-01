@@ -7,10 +7,11 @@ COPY package.json ./
 COPY yarn.lock ./
 
 RUN yarn
+RUN yarn build
 
 # Bundle app source
 COPY . .
 
 EXPOSE 3000
 
-CMD ["node", "./bin/www.ts"]
+CMD ["node", "./built/bin/www.js"]
