@@ -1,11 +1,13 @@
 import * as cheerio from 'cheerio';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
+
 dayjs.extend(isSameOrAfter);
 import { watchFile } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { IncomingWebhook } from '@slack/webhook';
 import config from 'config';
+
 const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
 import { channelMap } from '../clients/slack.js';
@@ -13,6 +15,7 @@ import * as mongo from '../clients/mongo.js';
 import util from 'node:util';
 import child_process from 'child_process';
 import * as openai from '../clients/openai.js';
+
 const exec = util.promisify(child_process.exec);
 
 const teamToSlackMap = {
@@ -25,7 +28,7 @@ const teamToSlackMap = {
 };
 
 const fileToSlackMap = Object.fromEntries(
-  Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v])
+  Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v]),
 );
 const perronSlack = 'U6AT12XSM';
 export const teams = [
@@ -89,7 +92,7 @@ async function expandArchive(prevStat) {
   try {
     console.log('expanding archive');
     await exec(
-      'nice tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz'
+      'nice tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz',
     );
     await SlackWebhook.send({ text: 'Reports are updated.' });
   } catch (e) {
@@ -144,20 +147,10 @@ async function getNextStepMessage(oldFiles) {
       type: channelMap.ootpHighlights,
     });
     if (reminders !== '') {
-      const input = [
-        {
-          role: 'assistant',
-          content: 'What are my reminders?',
-        },
-      ];
-      const text = await openai.ootpChat({ input, reminders });
       message += `
 
-Raw reminders: 
-${JSON.stringify(reminders, null, 2)}
-
-GPT'd reminders: 
-${text}`;
+Reminders: 
+${JSON.stringify(reminders, null, 2)}`;
     }
     return message;
   }
@@ -179,6 +172,6 @@ export async function getPowerRankings() {
   return cheer(
     cheer('table[class="data sortable"]')
       .html()
-      .replace(/<[/]t[dh]>\n/g, '</td>')
+      .replace(/<[/]t[dh]>\n/g, '</td>'),
   ).text();
 }
