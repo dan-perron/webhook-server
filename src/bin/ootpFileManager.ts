@@ -14,7 +14,7 @@ import { channelMap } from '../clients/slack.js';
 import * as mongo from '../clients/mongo.js';
 import util from 'node:util';
 import child_process from 'child_process';
-import * as openai from '../clients/openai.js';
+import * as openai from '../clients/ai/openai.js';
 
 const exec = util.promisify(child_process.exec);
 

@@ -1,9 +1,13 @@
+import config from 'config';
 import { getBotMessage, getPowerRankings } from './ootpFileManager.js';
 import { app, channelMap } from '../clients/slack.js';
-import * as openai from '../clients/openai.js';
+import {OpenAI} from '../clients/ai/openai.js';
+import * as googleai from '../clients/ai/googleAI.js';
 import * as fantasy from '../clients/fantasy.js';
 import * as mongo from '../clients/mongo.js';
 import type { GenericMessageEvent } from '@slack/bolt';
+import type { AIClient } from '../clients/ai/AIClient.js';
+import { GoogleAI } from '../clients/ai/googleAI.js';
 
 app.message(/.*who.?se? turn is it.*/i, async ({ message, say }) => {
   // say() sends a message to the channel where the event was triggered
@@ -17,26 +21,36 @@ app.message(/.*who.?se? turn is it.*/i, async ({ message, say }) => {
 });
 
 export async function getText(channel, input, reminders) {
+  if (config.get('ai.client') === 'openai') {
+    const openai = new OpenAI();
+    return getTextInternal(openai, channel, input, reminders);
+  } else if (config.get('ai.client') === 'openai') {
+    const googleai = new GoogleAI();
+    return getTextInternal(googleai, channel, input, reminders);
+  }
+}
+
+async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
   switch (channel) {
     case channelMap.cabin:
-      return openai.cabinChat({ input });
+      return aiClient.cabinChat({ input });
     case channelMap.ootpHighlights: {
       const [turnInfo, powerRankings] = await Promise.all([
         getBotMessage(),
         getPowerRankings(),
       ]);
-      return openai.ootpChat({ turnInfo, input, powerRankings, reminders });
+      return aiClient.ootpChat({ turnInfo, input, powerRankings, reminders });
     }
     case channelMap.specialist:
-      return openai.specialistChat({ input });
+      return aiClient.specialistChat({ input });
     case channelMap.politics:
-      return openai.politicsChat({ input });
+      return aiClient.politicsChat({ input });
     case channelMap.sports: {
       const data = await fantasy.getLeagueData();
       if (input[0].content.includes('generate power rankings')) {
-        return openai.generatePowerRankings({ input, data });
+        return aiClient.generatePowerRankings({ input, data });
       }
-      return openai.sportsChat({ input, data });
+      return aiClient.sportsChat({ input });
     }
     case channelMap.test: {
       // Allow a user in the text channel to specify a different channel to interpret this as.
@@ -47,10 +61,10 @@ export async function getText(channel, input, reminders) {
         input[0].content = lines.join('\n');
         return getText(channel, input, reminders);
       }
-      return openai.testChat({ input, reminders });
+      return aiClient.testChat({ input });
     }
     default:
-      return openai.genericChat({ input, reminders });
+      return aiClient.genericChat({ input, reminders });
   }
 }
 
