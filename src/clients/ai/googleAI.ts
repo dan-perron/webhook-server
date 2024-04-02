@@ -26,6 +26,7 @@ export class GoogleAI implements AIClient {
     messages.push(...input.map(i => {
       return { parts: i.content, role: i.role === 'system' ? 'model' : 'user', name: i.name };
     }));
+    console.log(JSON.stringify(messages, null,2));
     const lastMessage = messages.pop();
     if (messages[messages.length].role !== 'model') {
       messages.push({ parts: 'okay', role: 'model' });
