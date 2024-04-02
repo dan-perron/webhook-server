@@ -12,6 +12,7 @@ import {
 
 export class GoogleAI implements AIClient {
   genAI = new GoogleGenerativeAI(config.get('googleai.key'));
+
   model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro-latest' });
 
   getSafetySettings() {
@@ -21,11 +22,14 @@ export class GoogleAI implements AIClient {
   }
 
   async chat({ input, systemPrompt }) {
-    const messages = [{ role: 'system', parts: systemPrompt }];
+    const messages = [{ role: 'user', parts: systemPrompt }];
     messages.push(...input.map(i => {
-      return { parts: i.content, role: i.role, name: i.name };
+      return { parts: i.content, role: i.role === 'system' ? 'model' : 'user', name: i.name };
     }));
     const lastMessage = messages.pop();
+    if (messages[messages.length].role !== 'model') {
+      messages.push({ parts: 'okay', role: 'model' });
+    }
     console.log(JSON.stringify(messages, null, 2));
     const chat = await this.model.startChat({
       history: messages,
