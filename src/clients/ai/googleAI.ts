@@ -32,16 +32,12 @@ export class GoogleAI implements AIClient {
   }
 
   async chat({ input, systemPrompt }) {
-    const messages = [{ role: 'user', parts: systemPrompt }];
+    const messages = [{ role: 'user', parts: systemPrompt }, { role: 'model', parts: 'okay'}];
     messages.push(...input.map(i => {
-      return { parts: i.content, role: i.role === 'system' ? 'model' : 'user', name: i.name };
+      return { parts: i.content, role: i.role === 'assistant' ? 'model' : 'user', name: i.name };
     }));
     console.log(JSON.stringify(messages, null, 2));
     const lastMessage = messages.pop();
-    if (messages[messages.length - 1].role !== 'model') {
-      messages.push({ parts: 'okay', role: 'model' });
-    }
-    console.log(JSON.stringify(messages, null, 2));
     const chat = await this.model.startChat({
       history: messages,
       generationConfig: {},
