@@ -4,7 +4,7 @@ import type { AIClient } from './AIClient.js';
 import {
   basePrompt,
   cabinPrompt,
-  getOotpChatPrompt, getPowerRankingsPrompt,
+  getOotpChatPrompt,
   politicsPrompt,
   specialistPrompt,
   sportsPrompt,
@@ -16,9 +16,19 @@ export class GoogleAI implements AIClient {
   model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
 
   getSafetySettings() {
-    return Object.values(HarmCategory).map((hc) => {
-      return { category: hc, threshold: HarmBlockThreshold.BLOCK_NONE };
-    });
+    return [{
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    }, {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    }, {
+      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    }, {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    }];
   }
 
   async chat({ input, systemPrompt }) {
@@ -26,7 +36,7 @@ export class GoogleAI implements AIClient {
     messages.push(...input.map(i => {
       return { parts: i.content, role: i.role === 'system' ? 'model' : 'user', name: i.name };
     }));
-    console.log(JSON.stringify(messages, null,2));
+    console.log(JSON.stringify(messages, null, 2));
     const lastMessage = messages.pop();
     if (messages[messages.length - 1].role !== 'model') {
       messages.push({ parts: 'okay', role: 'model' });
@@ -35,7 +45,7 @@ export class GoogleAI implements AIClient {
     const chat = await this.model.startChat({
       history: messages,
       generationConfig: {},
-      //safetySettings: this.getSafetySettings(),
+      safetySettings: this.getSafetySettings(),
     });
     const result = await chat.sendMessage(lastMessage.parts);
     const response = await result.response;
