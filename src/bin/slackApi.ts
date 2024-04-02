@@ -2,7 +2,6 @@ import config from 'config';
 import { getBotMessage, getPowerRankings } from './ootpFileManager.js';
 import { app, channelMap } from '../clients/slack.js';
 import {OpenAI} from '../clients/ai/openai.js';
-import * as googleai from '../clients/ai/googleAI.js';
 import * as fantasy from '../clients/fantasy.js';
 import * as mongo from '../clients/mongo.js';
 import type { GenericMessageEvent } from '@slack/bolt';

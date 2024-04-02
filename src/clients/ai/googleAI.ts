@@ -30,7 +30,7 @@ export class GoogleAI implements AIClient {
     const chat = await this.model.startChat({
       history: messages,
       generationConfig: {},
-      safetySettings: this.getSafetySettings(),
+      //safetySettings: this.getSafetySettings(),
     });
     const result = await chat.sendMessage(lastMessage.parts);
     const response = await result.response;
