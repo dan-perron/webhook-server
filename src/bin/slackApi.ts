@@ -24,10 +24,11 @@ export async function getText(channel, input, reminders) {
   if (config.get('ai.client') === 'openai') {
     const openai = new OpenAI();
     return getTextInternal(openai, channel, input, reminders);
-  } else if (config.get('ai.client') === 'openai') {
+  } else if (config.get('ai.client') === 'google') {
     const googleai = new GoogleAI();
     return getTextInternal(googleai, channel, input, reminders);
   }
+  throw new Error('no ai client configured: ' + config.get('ai.client'));
 }
 
 async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
