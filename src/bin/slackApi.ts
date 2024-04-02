@@ -105,6 +105,7 @@ app.event('app_mention', async ({ event, say }) => {
   }
   const reminders = await mongo.getRemindersAsText({ type: event.channel });
   const text = await getText(event.channel, input, reminders);
+  console.log(text);
   await say({ text, thread_ts: event.thread_ts || event.ts });
   return;
 });
