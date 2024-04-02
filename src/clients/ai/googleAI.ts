@@ -13,7 +13,7 @@ import {
 export class GoogleAI implements AIClient {
   genAI = new GoogleGenerativeAI(config.get('googleai.key'));
 
-  model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro-latest' });
+  model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
 
   getSafetySettings() {
     return Object.values(HarmCategory).map((hc) => {
