@@ -58,7 +58,12 @@ for (const file in fileToSlackMap) {
 
 let lastMessage = new Date(0);
 
-watchFile(pathToLeagueFile, () => {
+function humanFileSize(size: number): string {
+  const i = size == 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
+  return Number((size / Math.pow(1024, i)).toFixed(2)) + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
+}
+
+watchFile(pathToLeagueFile, async () => {
   const now = new Date();
   if (now.valueOf() - lastMessage.valueOf() < 60 * 1000) {
     // Don't message if we've had a new file in the last 60 seconds.
@@ -68,8 +73,9 @@ watchFile(pathToLeagueFile, () => {
   const playersString = Object.values(fileToSlackMap)
     .map((s) => `<@${s}>`)
     .join(', ');
-  mongo.markRemindersDone({ type: channelMap.ootpHighlights });
-  SlackWebhook.send({ text: `New league file uploaded ${playersString}` });
+  await mongo.markRemindersDone({ type: channelMap.ootpHighlights });
+  const leagueFileStat = await stat(pathToLeagueFile);
+  await SlackWebhook.send({ text: `New ${humanFileSize(leagueFileStat.size)} league file uploaded ${playersString}` });
 });
 
 let archiveFileTimer;
