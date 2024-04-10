@@ -74,8 +74,13 @@ watchFile(pathToLeagueFile, async () => {
     .map((s) => `<@${s}>`)
     .join(', ');
   await mongo.markRemindersDone({ type: channelMap.ootpHighlights });
-  const leagueFileStat = await stat(pathToLeagueFile);
-  await SlackWebhook.send({ text: `New ${humanFileSize(leagueFileStat.size)} league file uploaded ${playersString}` });
+  try {
+    const leagueFileStat = await stat(pathToLeagueFile);
+    await SlackWebhook.send({ text: `New ${humanFileSize(leagueFileStat.size)} league file uploaded ${playersString}` });
+  } catch (e) {
+    console.log(e);
+    lastMessage = new Date(0);
+  }
 });
 
 let archiveFileTimer;
