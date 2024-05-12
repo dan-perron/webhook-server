@@ -14,7 +14,6 @@ import { channelMap } from '../clients/slack.js';
 import * as mongo from '../clients/mongo.js';
 import util from 'node:util';
 import child_process from 'child_process';
-import * as openai from '../clients/ai/openai.js';
 
 const exec = util.promisify(child_process.exec);
 
@@ -55,10 +54,12 @@ for (const file in fileToSlackMap) {
     }
     await SlackWebhook.send({ text });
   });
-  watchFile(pathToTeamReports + file + '_roster_page.html', async (curr, prev) => {
-    const buffer = await readFile(pathToTeamReports + file + '_roster_page.html');
+}
+for (const team in teamToSlackMap) {
+  watchFile(pathToTeamReports + team + '_roster_page.html', async () => {
+    const buffer = await readFile(pathToTeamReports + team + '_roster_page.html');
     if (buffer.includes('DESIGNATED FOR ASSIGNMENT')) {
-      let text = `<@${fileToSlackMap[file]}> has players on DFA.`;
+      let text = `<@${teamToSlackMap[team]}> has players on DFA.`;
       await SlackWebhook.send({ text });
     }
   });
