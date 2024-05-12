@@ -43,6 +43,7 @@ const pathToLeagueFile = '/ootp/game/league_file/cheeseburger_2023.zip';
 const pathToReportsArchive = '/ootp/game/reports/reports.tar.gz';
 const pathToPowerRankings =
   '/ootp/game/reports/html/leagues/league_202_team_power_rankings_page.html';
+const pathToTeamReports = '/ootp/game/reports/html/teams/';
 
 for (const file in fileToSlackMap) {
   watchFile(pathToTeamUploads + file, async (curr, prev) => {
@@ -53,6 +54,13 @@ for (const file in fileToSlackMap) {
       text += ' ' + nextStepText;
     }
     await SlackWebhook.send({ text });
+  });
+  watchFile(pathToTeamReports + file + '_roster_page.html', async (curr, prev) => {
+    const buffer = await readFile(pathToTeamReports + file + '_roster_page.html');
+    if (buffer.includes('DESIGNATED FOR ASSIGNMENT')) {
+      let text = `<@${fileToSlackMap[file]}> has players on DFA.`;
+      await SlackWebhook.send({ text });
+    }
   });
 }
 
