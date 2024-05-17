@@ -1,21 +1,20 @@
+import { IncomingWebhook } from '@slack/webhook';
 import * as cheerio from 'cheerio';
+import config from 'config';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
-
 dayjs.extend(isSameOrAfter);
 import { watchFile } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
-import { IncomingWebhook } from '@slack/webhook';
-import config from 'config';
-
-const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
+import util from 'node:util';
+import child_process from 'child_process';
+const exec = util.promisify(child_process.exec);
 
 import { channelMap } from '../clients/slack.js';
 import * as mongo from '../clients/mongo.js';
-import util from 'node:util';
-import child_process from 'child_process';
+import * as s3 from '../clients/s3.js';
 
-const exec = util.promisify(child_process.exec);
+const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
 const teamToSlackMap = {
   team_7: 'U6BEBDULB',
@@ -89,7 +88,10 @@ watchFile(pathToLeagueFile, async () => {
   } catch (e) {
     console.log(e);
     lastMessage = new Date(0);
+    return;
   }
+  await s3.putFile(pathToLeagueFile);
+  await SlackWebhook.send({ text: `League file uploaded to S3` });
 });
 
 let archiveFileTimer;

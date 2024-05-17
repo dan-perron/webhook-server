@@ -1,15 +1,18 @@
 const config = {
-  mongodb: {
-    connectionString: process.env.MONGODB_CONNSTRING,
-  },
-  slack: {
-    appToken: null,
-    signingSecret: null,
-    token: null,
-    webhookUrls: { civilization: null, test: null, ootp: null },
-  },
   ai: {
     client: 'google',
+  },
+  aws: {
+    accessKey: '',
+    secretAccessKey: '',
+    region: 'us-east-2',
+    bucket: '',
+  },
+  googleai: {
+    key: null,
+  },
+  mongodb: {
+    connectionString: process.env.MONGODB_CONNSTRING,
   },
   openai: {
     key: null,
@@ -17,8 +20,11 @@ const config = {
     returnImages: false,
     model: 'gpt-4-1106-preview',
   },
-  googleai: {
-    key: null,
+  slack: {
+    appToken: null,
+    signingSecret: null,
+    token: null,
+    webhookUrls: { civilization: null, test: null, ootp: null },
   },
   yahoo: {
     appId: null,
