@@ -71,7 +71,7 @@ async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
 const SUPER_CLUSTER_USER_STRING = 'UVBBEEC4A';
 
 app.event('app_mention', async ({ event, say }) => {
-  console.log('⚡️ Mention recd! channel ' + event.channel);
+  console.log(`⚡️ Mention recd! channel "${event.channel}" user "${event.user}" message "${event.text}"`);
   if (event.user === SUPER_CLUSTER_USER_STRING) {
     console.log('⚡️ Discarding message from bot ' + event.text);
     return;
