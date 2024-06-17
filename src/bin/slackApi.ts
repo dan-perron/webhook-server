@@ -1,12 +1,13 @@
-import config from 'config';
-import { getBotMessage, getPowerRankings } from './ootpFileManager.js';
-import { app, channelMap } from '../clients/slack.js';
-import {OpenAI} from '../clients/ai/openai.js';
-import * as fantasy from '../clients/fantasy.js';
-import * as mongo from '../clients/mongo.js';
 import type { GenericMessageEvent } from '@slack/bolt';
+import config from 'config';
+import https from 'https';
 import type { AIClient } from '../clients/ai/AIClient.js';
 import { GoogleAI } from '../clients/ai/googleAI.js';
+import { OpenAI } from '../clients/ai/openai.js';
+import * as fantasy from '../clients/fantasy.js';
+import * as mongo from '../clients/mongo.js';
+import { app, channelMap } from '../clients/slack.js';
+import { getBotMessage, getPowerRankings } from './ootpFileManager.js';
 
 app.message(/.*who.?se? turn is it.*/i, async ({ message, say }) => {
   // say() sends a message to the channel where the event was triggered
@@ -70,6 +71,42 @@ async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
 
 const SUPER_CLUSTER_USER_STRING = 'UVBBEEC4A';
 
+async function sendOotpChat(messages) {
+  const options = {
+    hostname: 'ootp.bedaire.com',
+    port: 443,
+    path: '/chat',
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'}
+  };
+  
+  const req = https.request(options, res => {
+    let responseData = '';
+    res.on('data', chunk => {
+      responseData += chunk;
+    });
+    res.on('end', () => {
+      try {
+        const parsedData = JSON.parse(responseData);
+        console.log(parsedData);
+      } catch (e) {
+        console.error('Error parsing JSON:', e);
+      }
+    });
+  });
+
+  req.on('error', e => {
+    console.error(`Problem with request: ${e.message}`);
+  });
+  req.write(JSON.stringify({
+    context: {
+      bot: SUPER_CLUSTER_USER_STRING,
+    },
+    messages
+  }));
+  req.end();
+}
+
 app.event('app_mention', async ({ event, say }) => {
   console.log(`⚡️ Mention recd! channel "${event.channel}" user "${event.user}" message "${event.text}"`);
   if (event.user === SUPER_CLUSTER_USER_STRING) {
@@ -89,6 +126,12 @@ app.event('app_mention', async ({ event, say }) => {
       content: message.text,
     });
   }
+
+  // TODO: Dark launch. If this works, process result and short-circuit.
+  if (event.channel === channelMap.ootpHighlights) {
+    sendOotpChat(messages);
+  }
+
   // TODO: Can we clean up this logic?
   if (
     event.text.toLowerCase().includes('remind') &&
