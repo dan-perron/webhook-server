@@ -1,6 +1,6 @@
 import type { GenericMessageEvent } from '@slack/bolt';
+import axios from 'axios';
 import config from 'config';
-import https from 'https';
 import type { AIClient } from '../clients/ai/AIClient.js';
 import { GoogleAI } from '../clients/ai/googleAI.js';
 import { OpenAI } from '../clients/ai/openai.js';
@@ -72,39 +72,26 @@ async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
 const SUPER_CLUSTER_USER_STRING = 'UVBBEEC4A';
 
 async function sendOotpChat(messages) {
-  const options = {
-    hostname: 'ootp.bedaire.com',
-    port: 443,
-    path: '/chat',
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'}
-  };
-  
-  const req = https.request(options, res => {
-    let responseData = '';
-    res.on('data', chunk => {
-      responseData += chunk;
-    });
-    res.on('end', () => {
-      try {
-        const parsedData = JSON.parse(responseData);
-        console.log(parsedData);
-      } catch (e) {
-        console.error('Error parsing JSON:', e);
+  axios
+    .post(
+      'https://ootp.bedaire.com/chat',
+      JSON.stringify({
+        context: {
+          bot: SUPER_CLUSTER_USER_STRING,
+        },
+        messages,
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' },
       }
+    )
+    .then((response) => JSON.parse(response.data))
+    .then((response) => {
+      console.log('chat response', response);
+    })
+    .catch((error) => {
+      console.log('chat error', error);
     });
-  });
-
-  req.on('error', e => {
-    console.error(`Problem with request: ${e.message}`);
-  });
-  req.write(JSON.stringify({
-    context: {
-      bot: SUPER_CLUSTER_USER_STRING,
-    },
-    messages
-  }));
-  req.end();
 }
 
 app.event('app_mention', async ({ event, say }) => {
