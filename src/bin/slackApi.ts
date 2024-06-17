@@ -71,8 +71,8 @@ async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
 
 const SUPER_CLUSTER_USER_STRING = 'UVBBEEC4A';
 
-async function sendOotpChat(messages) {
-  axios
+async function sendOotpChat(messages, channel, say) {
+  return axios
     .post(
       'https://ootp.bedaire.com/chat',
       {
@@ -85,8 +85,25 @@ async function sendOotpChat(messages) {
         headers: { 'Content-Type': 'application/json' },
       }
     )
-    .then((response) => {
-      console.log('chat response', response.data);
+    .then(async (response) => {
+      const data = response.data;
+      switch (data.kind) {
+        case 'conversation':
+        case 'query':
+          return data.message;
+        case 'add_reminder':
+          await mongo.insertReminder(channel, data.message);
+          return "I'll remember that";
+        case 'list_reminders':
+          return mongo.getRemindersAsText({
+            type: channel,
+          });
+      }
+    })
+    .then((text) => {
+      if (text) {
+        return say(text);
+      }
     })
     .catch((error) => {
       console.log('chat error', error);
@@ -115,9 +132,14 @@ app.event('app_mention', async ({ event, say }) => {
     });
   }
 
-  // TODO: Dark launch. If this works, process result and short-circuit.
   if (event.channel === channelMap.ootpHighlights) {
-    sendOotpChat(messages);
+    await sendOotpChat(messages, event.channel, (text) =>
+      say({
+        text,
+        thread_ts: event.thread_ts || event.ts,
+      })
+    );
+    return;
   }
 
   // TODO: Can we clean up this logic?
