@@ -75,19 +75,18 @@ async function sendOotpChat(messages) {
   axios
     .post(
       'https://ootp.bedaire.com/chat',
-      JSON.stringify({
+      {
         context: {
           bot: SUPER_CLUSTER_USER_STRING,
         },
         messages,
-      }),
+      },
       {
         headers: { 'Content-Type': 'application/json' },
       }
     )
-    .then((response) => JSON.parse(response.data))
     .then((response) => {
-      console.log('chat response', response);
+      console.log('chat response', response.data);
     })
     .catch((error) => {
       console.log('chat error', error);
