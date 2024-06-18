@@ -1,5 +1,9 @@
 import config from 'config';
-import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
+import {
+  GoogleGenerativeAI,
+  HarmBlockThreshold,
+  HarmCategory,
+} from '@google/generative-ai';
 import type { AIClient } from './AIClient.js';
 import {
   basePrompt,
@@ -16,26 +20,40 @@ export class GoogleAI implements AIClient {
   model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
 
   getSafetySettings() {
-    return [{
-      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
-    }, {
-      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
-    }, {
-      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
-    }, {
-      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
-    }];
+    return [
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_NONE,
+      },
+    ];
   }
 
   async chat({ input, systemPrompt }) {
-    const messages = [{ role: 'user', parts: systemPrompt }, { role: 'model', parts: 'okay'}];
-    messages.push(...input.map(i => {
-      return { parts: i.content, role: i.role === 'assistant' ? 'model' : 'user', name: i.name };
-    }));
+    const messages = [
+      { role: 'user', parts: systemPrompt },
+      { role: 'model', parts: 'okay' },
+    ];
+    messages.push(
+      ...input.map((i) => {
+        return {
+          parts: i.content,
+          role: i.role === 'assistant' ? 'model' : 'user',
+          name: i.name,
+        };
+      })
+    );
     console.log(JSON.stringify(messages, null, 2));
     const lastMessage = messages.pop();
     const chat = await this.model.startChat({
@@ -56,8 +74,7 @@ export class GoogleAI implements AIClient {
 
   ootpChat({ turnInfo, input, powerRankings, reminders }) {
     let systemPrompt =
-      basePrompt +
-      getOotpChatPrompt({ turnInfo, powerRankings, reminders });
+      basePrompt + getOotpChatPrompt({ turnInfo, powerRankings, reminders });
     return this.chat({ input, systemPrompt });
   }
 

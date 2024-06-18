@@ -26,10 +26,10 @@ export const sportsPrompt = `
 
 This is a conversation about sports or fantasy football.`;
 export function getOotpChatPrompt({
-                                    turnInfo = null,
-                                    powerRankings = null,
-                                    reminders = null,
-                                  }) {
+  turnInfo = null,
+  powerRankings = null,
+  reminders = null,
+}) {
   let prompt = `
 
 One function of the system is to keep track of whose turn in an Out Of The Park Baseball simulation it is.  
@@ -77,7 +77,7 @@ This is a conversation about baseball.`;
   return prompt;
 }
 
-export function getPowerRankingsPrompt({data}) {
+export function getPowerRankingsPrompt({ data }) {
   return `Here is a lot of data about our fantasy football league:
 ---
 ${JSON.stringify(data)}

@@ -1,7 +1,4 @@
-import {
-  S3Client,
-  PutObjectCommand,
-} from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 import config from 'config';
 import * as fs from 'fs';
@@ -21,6 +18,6 @@ export async function putFile(path, key?) {
       Bucket: config.get('aws.bucket'),
       Key: key || path.split('/').pop(),
       Body: fs.createReadStream(path),
-    }),
+    })
   );
 }

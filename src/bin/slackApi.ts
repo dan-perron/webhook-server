@@ -94,7 +94,9 @@ async function sendOotpChat(messages) {
 }
 
 app.event('app_mention', async ({ event, say }) => {
-  console.log(`⚡️ Mention recd! channel "${event.channel}" user "${event.user}" message "${event.text}"`);
+  console.log(
+    `⚡️ Mention recd! channel "${event.channel}" user "${event.user}" message "${event.text}"`
+  );
   if (event.user === SUPER_CLUSTER_USER_STRING) {
     console.log('⚡️ Discarding message from bot ' + event.text);
     return;
@@ -127,7 +129,7 @@ app.event('app_mention', async ({ event, say }) => {
     // making the code ugly?
     await mongo.insertReminder(event.channel, event);
     await say({
-      text: 'I\'ll remember that.',
+      text: "I'll remember that.",
       thread_ts: event.thread_ts || event.ts,
     });
     return;

@@ -1,6 +1,6 @@
 export interface AIClient {
   cabinChat({ input }): Promise<string>;
-  ootpChat({turnInfo, input, powerRankings, reminders}): Promise<string>;
+  ootpChat({ turnInfo, input, powerRankings, reminders }): Promise<string>;
   politicsChat({ input }): Promise<string>;
   specialistChat({ input }): Promise<string>;
   sportsChat({ input }): Promise<string>;

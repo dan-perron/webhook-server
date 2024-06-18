@@ -26,7 +26,7 @@ const teamToSlackMap = {
 };
 
 const fileToSlackMap = Object.fromEntries(
-  Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v]),
+  Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v])
 );
 const perronSlack = 'U6AT12XSM';
 export const teams = [
@@ -56,7 +56,9 @@ for (const file in fileToSlackMap) {
 }
 for (const team in teamToSlackMap) {
   watchFile(pathToTeamReports + team + '_roster_page.html', async () => {
-    const buffer = await readFile(pathToTeamReports + team + '_roster_page.html');
+    const buffer = await readFile(
+      pathToTeamReports + team + '_roster_page.html'
+    );
     if (buffer.includes('DESIGNATED FOR ASSIGNMENT')) {
       let text = `<@${teamToSlackMap[team]}> has players on DFA.`;
       await SlackWebhook.send({ text });
@@ -68,7 +70,11 @@ let lastMessage = new Date(0);
 
 function humanFileSize(size: number): string {
   const i = size == 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
-  return Number((size / Math.pow(1024, i)).toFixed(2)) + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
+  return (
+    Number((size / Math.pow(1024, i)).toFixed(2)) +
+    ' ' +
+    ['B', 'kB', 'MB', 'GB', 'TB'][i]
+  );
 }
 
 watchFile(pathToLeagueFile, async () => {
@@ -84,14 +90,18 @@ watchFile(pathToLeagueFile, async () => {
   await mongo.markRemindersDone({ type: channelMap.ootpHighlights });
   try {
     const leagueFileStat = await stat(pathToLeagueFile);
-    await SlackWebhook.send({ text: `New ${humanFileSize(leagueFileStat.size)} league file uploaded <@${perronSlack}>` });
+    await SlackWebhook.send({
+      text: `New ${humanFileSize(leagueFileStat.size)} league file uploaded <@${perronSlack}>`,
+    });
   } catch (e) {
     console.log(e);
     lastMessage = new Date(0);
     return;
   }
   await s3.putFile(pathToLeagueFile);
-  await SlackWebhook.send({ text: `League file uploaded to S3 ${playersString}` });
+  await SlackWebhook.send({
+    text: `League file uploaded to S3 ${playersString}`,
+  });
 });
 
 let archiveFileTimer;
@@ -114,7 +124,7 @@ async function expandArchive(prevStat) {
   try {
     console.log('expanding archive');
     await exec(
-      'nice tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz',
+      'nice tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz'
     );
     await SlackWebhook.send({ text: 'Reports are updated.' });
   } catch (e) {
@@ -194,6 +204,6 @@ export async function getPowerRankings() {
   return cheer(
     cheer('table[class="data sortable"]')
       .html()
-      .replace(/<[/]t[dh]>\n/g, '</td>'),
+      .replace(/<[/]t[dh]>\n/g, '</td>')
   ).text();
 }

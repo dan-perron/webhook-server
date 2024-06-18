@@ -3,7 +3,8 @@ import { Configuration, OpenAIApi } from 'openai';
 import {
   basePrompt,
   cabinPrompt,
-  getOotpChatPrompt, getPowerRankingsPrompt,
+  getOotpChatPrompt,
+  getPowerRankingsPrompt,
   politicsPrompt,
   specialistPrompt,
   sportsPrompt,
@@ -21,15 +22,9 @@ export class OpenAI implements AIClient {
     return this.getResponse({ input, systemPrompt });
   }
 
-  ootpChat({
-             turnInfo = null,
-             input,
-             powerRankings = null,
-             reminders = null,
-           }) {
+  ootpChat({ turnInfo = null, input, powerRankings = null, reminders = null }) {
     let systemPrompt =
-      basePrompt +
-      getOotpChatPrompt({ turnInfo, powerRankings, reminders });
+      basePrompt + getOotpChatPrompt({ turnInfo, powerRankings, reminders });
     return this.getResponse({ input, systemPrompt });
   }
 
