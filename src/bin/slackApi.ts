@@ -84,7 +84,7 @@ async function sendOotpChat(messages, channel, say) {
       headers: { 'Content-Type': 'application/json' },
     }
   );
-  const data = response.data;
+  const {data} = response;
   switch (data.kind) {
     case 'conversation':
     case 'query':
