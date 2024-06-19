@@ -72,42 +72,38 @@ async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
 const SUPER_CLUSTER_USER_STRING = 'UVBBEEC4A';
 
 async function sendOotpChat(messages, channel, say) {
-  return axios
-    .post(
-      'https://ootp.bedaire.com/chat',
-      {
-        context: {
-          bot: SUPER_CLUSTER_USER_STRING,
-        },
-        messages,
+  const response = await axios.post(
+    'https://ootp.bedaire.com/chat',
+    {
+      context: {
+        bot: SUPER_CLUSTER_USER_STRING,
       },
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
-    .then(async (response) => {
-      const data = response.data;
-      switch (data.kind) {
-        case 'conversation':
-        case 'query':
-          return data.message;
-        case 'add_reminder':
-          await mongo.insertReminder(channel, data.message);
-          return "I'll remember that";
-        case 'list_reminders':
-          return mongo.getRemindersAsText({
-            type: channel,
-          });
-      }
-    })
-    .then((text) => {
-      if (text) {
-        return say(text);
-      }
-    })
-    .catch((error) => {
-      console.log('chat error', error);
-    });
+      messages,
+    },
+    {
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
+  const data = response.data;
+  switch (data.kind) {
+    case 'conversation':
+    case 'query':
+      say(data.message);
+      break;
+    case 'add_reminder':
+      await mongo.insertReminder(channel, data.message);
+      say("I'll remember that");
+      break;
+    case 'list_reminders':
+      const reminders = mongo.getRemindersAsText({
+        type: channel,
+      });
+      say(reminders);
+      break;
+    default:
+      console.error('unknown action:', data.kind);
+      break;
+  }
 }
 
 app.event('app_mention', async ({ event, say }) => {
