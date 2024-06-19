@@ -72,19 +72,13 @@ async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
 const SUPER_CLUSTER_USER_STRING = 'UVBBEEC4A';
 
 async function sendOotpChat(messages, channel, say) {
-  const response = await axios.post(
-    'https://ootp.bedaire.com/chat',
-    {
-      context: {
-        bot: SUPER_CLUSTER_USER_STRING,
-      },
-      messages,
+  const response = await axios.post('https://ootp.bedaire.com/chat', {
+    context: {
+      bot: SUPER_CLUSTER_USER_STRING,
     },
-    {
-      headers: { 'Content-Type': 'application/json' },
-    }
-  );
-  const {data} = response;
+    messages,
+  });
+  const { data } = response;
   switch (data.kind) {
     case 'conversation':
     case 'query':
