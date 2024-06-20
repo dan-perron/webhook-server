@@ -78,6 +78,7 @@ async function sendOotpChat(messages, channel, say) {
     },
     messages,
   });
+  console.log('chat response', response);
   const { data } = response;
   switch (data.kind) {
     case 'conversation':
