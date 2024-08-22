@@ -7,7 +7,7 @@ import { OpenAI } from '../clients/ai/openai.js';
 import * as fantasy from '../clients/fantasy.js';
 import * as mongo from '../clients/mongo.js';
 import { app, channelMap } from '../clients/slack.js';
-import { getBotMessage, getPowerRankings } from './ootpFileManager.js';
+import { getBotMessage, getPowerRankings, teams } from './ootpFileManager.js';
 
 app.message(/.*who.?se? turn is it.*/i, async ({ message, say }) => {
   // say() sends a message to the channel where the event was triggered
@@ -106,6 +106,18 @@ app.event('app_mention', async ({ event, say }) => {
   );
   if (event.user === SUPER_CLUSTER_USER_STRING) {
     console.log('⚡️ Discarding message from bot ' + event.text);
+    return;
+  }
+  if (event.text === 'shuffle teams') {
+    let shuffled = [];
+    while (teams.length > 0) {
+      let i = Math.floor(Math.random()*teams.length);
+      shuffled.push(...teams.splice(i, 1));
+    }
+    await say({
+      text: shuffled.join("\n"),
+      thread_ts: event.thread_ts || event.ts,
+    });
     return;
   }
 

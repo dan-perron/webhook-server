@@ -34,6 +34,8 @@ export const teams = [
   'Kansas City Royals',
   'Miami Marlins',
   'Oakland Athletics',
+  'Colorado Rockies',
+  'Tampa Bay Rays',
 ];
 
 const pathToTeamUploads = '/ootp/game/team_uploads/';
