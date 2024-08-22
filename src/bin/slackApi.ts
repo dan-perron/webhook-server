@@ -108,7 +108,7 @@ app.event('app_mention', async ({ event, say }) => {
     console.log('⚡️ Discarding message from bot ' + event.text);
     return;
   }
-  if (event.text === 'shuffle teams') {
+  if (event.text === `<@${SUPER_CLUSTER_USER_STRING}> shuffle teams`) {
     let shuffled = [];
     while (teams.length > 0) {
       let i = Math.floor(Math.random()*teams.length);
