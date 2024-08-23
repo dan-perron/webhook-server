@@ -110,9 +110,10 @@ app.event('app_mention', async ({ event, say }) => {
   }
   if (event.text === `<@${SUPER_CLUSTER_USER_STRING}> shuffle teams`) {
     let shuffled = [];
-    while (teams.length > 0) {
-      let i = Math.floor(Math.random()*teams.length);
-      shuffled.push(...teams.splice(i, 1));
+    let teamsCopy = [...teams];
+    while (teamsCopy.length > 0) {
+      let i = Math.floor(Math.random()*teamsCopy.length);
+      shuffled.push(...teamsCopy.splice(i, 1));
     }
     await say({
       text: shuffled.join("\n"),
