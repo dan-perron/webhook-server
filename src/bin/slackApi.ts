@@ -51,7 +51,7 @@ async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
       if (input[0].content.includes('generate power rankings')) {
         return aiClient.generatePowerRankings({ input, data });
       }
-      return aiClient.sportsChat({ input });
+      return aiClient.sportsChat({ input, data });
     }
     case channelMap.test: {
       // Allow a user in the text channel to specify a different channel to interpret this as.
