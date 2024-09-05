@@ -3,7 +3,7 @@ export interface AIClient {
   ootpChat({ turnInfo, input, powerRankings, reminders }): Promise<string>;
   politicsChat({ input }): Promise<string>;
   specialistChat({ input }): Promise<string>;
-  sportsChat({ input }): Promise<string>;
+  sportsChat({ input, data }): Promise<string>;
   generatePowerRankings({ input, data }): Promise<string>;
   testChat({ input }): Promise<string>;
   genericChat({ input, reminders }): Promise<string>;

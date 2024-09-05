@@ -88,8 +88,8 @@ export class GoogleAI implements AIClient {
     return this.chat({ input, systemPrompt });
   }
 
-  sportsChat({ input }) {
-    const systemPrompt = basePrompt + sportsPrompt;
+  sportsChat({ input, data }) {
+    const systemPrompt = basePrompt + sportsPrompt + JSON.stringify(data);
     return this.chat({ input, systemPrompt });
   }
 

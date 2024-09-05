@@ -24,7 +24,9 @@ This is a conversation about random things.`;
 
 export const sportsPrompt = `
 
-This is a conversation about sports or fantasy football.`;
+This is a conversation about sports or fantasy football. Here is a dump of information about our football league:
+
+`;
 export function getOotpChatPrompt({
   turnInfo = null,
   powerRankings = null,
