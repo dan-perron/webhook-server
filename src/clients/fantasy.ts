@@ -83,7 +83,9 @@ const teamDataMap = {
   },
   each: (item) => {
     item.slack_id = teamIdToSlackMap[item.team_id];
-    item.standings.streak = `${item.standings.streak.value} ${item.standings.streak.type}`;
+    if (item.standings.streak) {
+      item.standings.streak = `${item.standings.streak.value} ${item.standings.streak.type}`;
+    }
     return item;
   },
 };
