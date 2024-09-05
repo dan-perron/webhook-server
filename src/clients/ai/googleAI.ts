@@ -54,6 +54,7 @@ export class GoogleAI implements AIClient {
         };
       })
     );
+    messages.splice(-1, 0, {role: 'user', parts: `I am ${input.at(-1).name}`}, {role: 'model', parts: 'okay'})
     console.log(JSON.stringify(messages, null, 2));
     const lastMessage = messages.pop();
     const chat = await this.model.startChat({
@@ -73,7 +74,7 @@ export class GoogleAI implements AIClient {
   }
 
   ootpChat({ turnInfo, input, powerRankings, reminders }) {
-    let systemPrompt =
+    const systemPrompt =
       basePrompt + getOotpChatPrompt({ turnInfo, powerRankings, reminders });
     return this.chat({ input, systemPrompt });
   }
@@ -93,7 +94,7 @@ export class GoogleAI implements AIClient {
     return this.chat({ input, systemPrompt });
   }
 
-  generatePowerRankings({ input, data }) {
+  generatePowerRankings() {
     return Promise.resolve('');
   }
 

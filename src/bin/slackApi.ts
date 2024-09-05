@@ -86,13 +86,12 @@ async function sendOotpChat(messages, channel, say) {
       break;
     case 'add_reminder':
       await mongo.insertReminder(channel, data.message);
-      say("I'll remember that");
+      say('I\'ll remember that');
       break;
     case 'list_reminders':
-      const reminders = mongo.getRemindersAsText({
+      say(mongo.getRemindersAsText({
         type: channel,
-      });
-      say(reminders);
+      }));
       break;
     default:
       console.error('unknown action:', data.kind);
@@ -109,14 +108,14 @@ app.event('app_mention', async ({ event, say }) => {
     return;
   }
   if (event.text === `<@${SUPER_CLUSTER_USER_STRING}> shuffle teams`) {
-    let shuffled = [];
-    let teamsCopy = [...teams];
+    const shuffled = [];
+    const teamsCopy = [...teams];
     while (teamsCopy.length > 0) {
-      let i = Math.floor(Math.random()*teamsCopy.length);
+      const i = Math.floor(Math.random()*teamsCopy.length);
       shuffled.push(...teamsCopy.splice(i, 1));
     }
     await say({
-      text: shuffled.join("\n"),
+      text: shuffled.join('\n'),
       thread_ts: event.thread_ts || event.ts,
     });
     return;
@@ -154,7 +153,7 @@ app.event('app_mention', async ({ event, say }) => {
     // making the code ugly?
     await mongo.insertReminder(event.channel, event);
     await say({
-      text: "I'll remember that.",
+      text: 'I\'ll remember that.',
       thread_ts: event.thread_ts || event.ts,
     });
     return;

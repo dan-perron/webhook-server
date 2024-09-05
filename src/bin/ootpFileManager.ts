@@ -62,7 +62,7 @@ for (const team in teamToSlackMap) {
       pathToTeamReports + team + '_roster_page.html'
     );
     if (buffer.includes('DESIGNATED FOR ASSIGNMENT')) {
-      let text = `<@${teamToSlackMap[team]}> has players on DFA.`;
+      const text = `<@${teamToSlackMap[team]}> has players on DFA.`;
       await SlackWebhook.send({ text });
     }
   });

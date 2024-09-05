@@ -23,7 +23,7 @@ export class OpenAI implements AIClient {
   }
 
   ootpChat({ turnInfo = null, input, powerRankings = null, reminders = null }) {
-    let systemPrompt =
+    const systemPrompt =
       basePrompt + getOotpChatPrompt({ turnInfo, powerRankings, reminders });
     return this.getResponse({ input, systemPrompt });
   }
