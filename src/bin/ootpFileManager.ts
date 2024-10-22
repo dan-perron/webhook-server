@@ -21,6 +21,7 @@ const teamToSlackMap = {
   team_9: 'U6DCHN9K2',
   team_11: 'U6KNBPYLE',
   team_13: 'U6CACS3GW',
+  team_16: 'U07RYKRC7UP',
   team_20: 'U6AT12XSM',
   team_27: 'U060JASDCMC',
 };
@@ -36,6 +37,7 @@ export const teams = [
   'Oakland Athletics',
   'Colorado Rockies',
   'Tampa Bay Rays',
+  'Milwaukee Brewers',
 ];
 
 const pathToTeamUploads = '/ootp/game/team_uploads/';
