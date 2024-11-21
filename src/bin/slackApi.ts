@@ -1,4 +1,5 @@
 import type { GenericMessageEvent } from '@slack/bolt';
+import { subtype } from '@slack/bolt';
 import axios from 'axios';
 import config from 'config';
 import type { AIClient } from '../clients/ai/AIClient.js';
@@ -93,11 +94,41 @@ async function sendOotpChat(messages, channel, say) {
         type: channel,
       }));
       break;
+    case '':
+      // Intentional no response.
+      break;
     default:
       console.error('unknown action:', data.kind);
       break;
   }
 }
+
+app.message(subtype('file_share'), async ({ event, message, say }) => {
+  if (event.channel === channelMap.ootpHighlights) {
+    for (const file of message.files) {
+      const response = await axios.get(file.url_private, {
+        responseType: 'arraybuffer',
+        headers: {'Authorization': `Bearer ${process.env.SLACK_BOT_TOKEN}`}
+      });
+      if (response.status == 200) {
+        const messages = [{
+          user: message.user,
+          text: message.text,
+          file: {
+            mimetype: file.mimetype,
+            data: Buffer.from(response.data).toString('base64')
+          }
+        }];
+        await sendOotpChat(messages, event.channel, (text) =>
+          say({
+            text,
+            thread_ts: event.thread_ts || event.ts,
+          })
+        )
+      }
+    }
+  }
+});
 
 app.event('app_mention', async ({ event, say }) => {
   console.log(
