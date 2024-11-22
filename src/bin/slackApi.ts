@@ -103,7 +103,7 @@ async function sendOotpChat(messages, channel, say) {
   }
 }
 
-app.message(subtype('file_share'), async ({ event, message, say }) => {
+app.message(subtype('file_share'), async ({ event, message, say, client }) => {
   if (message.subtype !== 'file_share' || event.subtype !== 'file_share') {
     return;
   }
@@ -111,7 +111,7 @@ app.message(subtype('file_share'), async ({ event, message, say }) => {
     for (const file of message.files) {
       const response = await axios.get(file.url_private, {
         responseType: 'arraybuffer',
-        headers: {'Authorization': `Bearer ${process.env.SLACK_BOT_TOKEN}`}
+        headers: {'Authorization': `Bearer ${client.token}`}
       });
       if (response.status == 200) {
         const messages = [{
