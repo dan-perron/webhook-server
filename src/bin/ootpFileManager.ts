@@ -1,18 +1,19 @@
 import { IncomingWebhook } from '@slack/webhook';
+import axios from 'axios';
 import * as cheerio from 'cheerio';
+import child_process from 'child_process';
 import config from 'config';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
-dayjs.extend(isSameOrAfter);
 import { watchFile } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import util from 'node:util';
-import child_process from 'child_process';
+dayjs.extend(isSameOrAfter);
 const exec = util.promisify(child_process.exec);
 
-import { channelMap } from '../clients/slack.js';
 import * as mongo from '../clients/mongo.js';
 import * as s3 from '../clients/s3.js';
+import { app, channelMap } from '../clients/slack.js';
 
 const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
 
@@ -81,11 +82,55 @@ function humanFileSize(size: number): string {
   );
 }
 
+async function postSummary(client, lastMessage) {
+  let messages = [];
+  let cursor = undefined;
+
+  while (true) {
+    const result = await client.conversations.history({
+      channel: channelMap.ootpLog,
+      oldest: lastMessage,
+      latest: Date.now,
+      limit: 200,
+      cursor: cursor
+    });
+    if (!result.ok) {
+      console.log('error', result);
+      break;
+    }
+    messages = messages.concat(result.messages.map((message) => {
+      return {
+        ts: message.ts,
+        user: message.user,
+        text: message.text.slice(0, 4*1024) // truncate large messages
+      };
+    }));
+    if (!result.has_more) {
+      break;
+    }
+    cursor = result.response_metadata.next_cursor;
+  }
+  const summary = await axios.post('http://ootp.bedaire.com/summary', {
+    messages,
+  });
+  await SlackWebhook.send({
+    text: `${summary.data.text}`,
+  });
+}
+
 watchFile(pathToLeagueFile, async () => {
   const now = new Date();
   if (now.valueOf() - lastMessage.valueOf() < 60 * 1000) {
     // Don't message if we've had a new file in the last 60 seconds.
     return;
+  }
+  try {
+    // Run asynchronously so we don't block the rest of file handling.
+    postSummary(app.client, lastMessage.valueOf()).catch((e) => {
+      console.error(e);
+    });
+  } catch (e) {
+    console.log(e);
   }
   lastMessage = now;
   const playersString = Object.values(fileToSlackMap)
