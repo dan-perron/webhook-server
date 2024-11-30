@@ -1,6 +1,6 @@
 import bolt from '@slack/bolt';
-const App = bolt.App;
 import config from 'config';
+const App = bolt.App;
 
 export const app = new App({
   token: config.get('slack.token'),
@@ -15,6 +15,7 @@ export const app = new App({
 export const channelMap = {
   cabin: 'C6BB7U95Z',
   ootpHighlights: 'C04J9TWRNJ3',
+  ootpLog: 'C04K33NVCC9',
   politics: 'CPXA5CBHP',
   specialist: 'C6APJ5KG8',
   sports: 'C6ATH6LBB',
