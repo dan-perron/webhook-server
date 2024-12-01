@@ -90,7 +90,7 @@ async function postSummary(client, lastMessage) {
     const result = await client.conversations.history({
       channel: channelMap.ootpLog,
       oldest: lastMessage,
-      latest: Date.now,
+      latest: Date.now(),
       limit: 200,
       cursor: cursor
     });
