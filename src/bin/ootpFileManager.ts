@@ -110,7 +110,7 @@ async function postSummary(client, lastMessage) {
     }
     cursor = result.response_metadata.next_cursor;
   }
-  const summary = await axios.post('http://ootp.bedaire.com/summary', {
+  const summary = await axios.post('https://ootp.bedaire.com/summary', {
     messages,
   });
   await SlackWebhook.send({
