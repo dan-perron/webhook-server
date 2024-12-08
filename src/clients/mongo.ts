@@ -1,5 +1,5 @@
 import config from 'config';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 
 // Replace the uri string with your connection string.
 const uri = config.get('mongodb.connectionString');
@@ -47,4 +47,41 @@ export async function markRemindersDone(filter) {
     { active: true, ...filter },
     { $set: { active: false } }
   );
+}
+
+export class OOTPSim {
+  public id?: ObjectId;
+  public fileSize?: number;
+  public error?: string;
+
+  constructor(public date: Date) {}
+}
+
+export async function recordOOTPSim(sim: OOTPSim): Promise<OOTPSim> {
+  const simCollection = database.collection('ootpSims');
+  const val = await simCollection.insertOne(sim);
+  sim.id = val.insertedId;
+  return sim
+}
+
+export async function getLastOOTPSim(): Promise<OOTPSim|null> {
+  const simCollection = database.collection<OOTPSim>('ootpSims');
+  const sims = await simCollection
+    .find({ error: { $exists: false } })
+    .sort({ date: -1 })
+    .limit(1)
+    .toArray();
+  if (!sims) {
+    return null;
+  }
+  return sims[0];
+}
+
+export async function updateOOTPSim(sim: OOTPSim) {
+  if (!sim.id) {
+    return;
+  }
+  const simCollection = database.collection<OOTPSim>('ootpSims');
+  const query = { _id: new ObjectId(sim.id) };
+  await simCollection.updateOne(query, { $set: sim });
 }
