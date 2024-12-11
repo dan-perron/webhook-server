@@ -120,6 +120,7 @@ async function postSummary(client, lastMessage) {
 
 watchFile(pathToLeagueFile, async () => {
   const now = new Date();
+  console.log(`league file changed new date ${now}`);
   if (now.valueOf() - lastMessage.valueOf() < 60 * 1000) {
     // Don't message if we've had a new file in the last 60 seconds.
     return;
@@ -145,6 +146,7 @@ watchFile(pathToLeagueFile, async () => {
   } catch (e) {
     console.log(e);
     lastMessage = new Date(0);
+    return;
   }
   await s3.putFile(pathToLeagueFile);
   await SlackWebhook.send({
