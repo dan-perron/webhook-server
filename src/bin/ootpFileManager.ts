@@ -145,7 +145,6 @@ watchFile(pathToLeagueFile, async () => {
   } catch (e) {
     console.log(e);
     lastMessage = new Date(0);
-    return;
   }
   await s3.putFile(pathToLeagueFile);
   await SlackWebhook.send({
