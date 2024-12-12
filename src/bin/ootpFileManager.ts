@@ -71,8 +71,6 @@ for (const team in teamToSlackMap) {
   });
 }
 
-let lastMessage = new Date(0);
-
 function humanFileSize(size: number): string {
   const i = size == 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
   return (
@@ -119,21 +117,24 @@ async function postSummary(client, lastMessage) {
 }
 
 watchFile(pathToLeagueFile, async () => {
-  const now = new Date();
-  console.log(`league file changed new date ${now}`);
-  if (now.valueOf() - lastMessage.valueOf() < 60 * 1000) {
+  const lastSim = await mongo.getLastOOTPSim();
+  let sim = new mongo.OOTPSim(new Date());
+  console.log(`league file changed new date ${sim.date}`);
+  if (lastSim && sim.date.valueOf() - lastSim.date.valueOf() < 60 * 1000) {
     // Don't message if we've had a new file in the last 60 seconds.
     return;
   }
+  sim = await mongo.recordOOTPSim(sim);
   try {
+    // Truncate history to last 24 hours at the most.
+    const lastTimestamp = lastSim?.date?.valueOf() ?? sim.date.valueOf() - 24*60*60*1000;
     // Run asynchronously so we don't block the rest of file handling.
-    postSummary(app.client, lastMessage.valueOf()).catch((e) => {
+    postSummary(app.client, lastTimestamp).catch((e) => {
       console.error(e);
     });
   } catch (e) {
     console.log(e);
   }
-  lastMessage = now;
   const playersString = Object.values(fileToSlackMap)
     .map((s) => `<@${s}>`)
     .join(', ');
@@ -143,9 +144,12 @@ watchFile(pathToLeagueFile, async () => {
     await SlackWebhook.send({
       text: `New ${humanFileSize(leagueFileStat.size)} league file uploaded <@${perronSlack}>`,
     });
+    sim.fileSize = leagueFileStat.size;
+    await mongo.updateOOTPSim(sim);
   } catch (e) {
     console.log(e);
-    lastMessage = new Date(0);
+    sim.error = e.toString();
+    await mongo.updateOOTPSim(sim);
     return;
   }
   await s3.putFile(pathToLeagueFile);
