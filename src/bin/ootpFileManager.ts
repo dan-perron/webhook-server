@@ -119,6 +119,7 @@ async function postSummary(client, lastMessage) {
 watchFile(pathToLeagueFile, async () => {
   const lastSim = await mongo.getLastOOTPSim();
   let sim = new mongo.OOTPSim(new Date());
+  console.log(`league file changed new date ${sim.date}`);
   if (lastSim && sim.date.valueOf() - lastSim.date.valueOf() < 60 * 1000) {
     // Don't message if we've had a new file in the last 60 seconds.
     return;
