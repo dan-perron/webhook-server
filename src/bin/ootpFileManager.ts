@@ -125,16 +125,13 @@ watchFile(pathToLeagueFile, async () => {
     return;
   }
   sim = await mongo.recordOOTPSim(sim);
-  try {
-    // Truncate history to last 24 hours at the most.
-    const lastTimestamp = lastSim?.date?.valueOf() ?? sim.date.valueOf() - 24*60*60*1000;
-    // Run asynchronously so we don't block the rest of file handling.
-    postSummary(app.client, lastTimestamp).catch((e) => {
-      console.error(e);
-    });
-  } catch (e) {
+  // Truncate history to last 24 hours at the most.
+  const lastTimestamp = lastSim?.date?.valueOf() ?? sim.date.valueOf() - 24*60*60*1000;
+  // Run asynchronously so we don't block the rest of file handling.
+  postSummary(app.client, lastTimestamp).catch((e) => {
+    console.log("watchLeague - Error occurred in postSummary")
     console.log(e);
-  }
+  });
   const playersString = Object.values(fileToSlackMap)
     .map((s) => `<@${s}>`)
     .join(', ');
@@ -147,11 +144,13 @@ watchFile(pathToLeagueFile, async () => {
     sim.fileSize = leagueFileStat.size;
     await mongo.updateOOTPSim(sim);
   } catch (e) {
+    console.log("watchLeague - Error occurred in stat file")
     console.log(e);
     sim.error = e.toString();
     await mongo.updateOOTPSim(sim);
     return;
   }
+  console.log("watchLeague - Uploading league file to s3")
   await s3.putFile(pathToLeagueFile);
   await SlackWebhook.send({
     text: `League file uploaded to S3 ${playersString}`,
