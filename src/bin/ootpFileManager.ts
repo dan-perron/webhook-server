@@ -128,10 +128,10 @@ watchFile(pathToLeagueFile, async () => {
   // Truncate history to last 24 hours at the most.
   const lastTimestamp = lastSim?.date?.valueOf() ?? sim.date.valueOf() - 24*60*60*1000;
   // Run asynchronously so we don't block the rest of file handling.
-  postSummary(app.client, lastTimestamp).catch((e) => {
-    console.log("watchLeague - Error occurred in postSummary")
-    console.log(e);
-  });
+  // postSummary(app.client, lastTimestamp).catch((e) => {
+  //   console.log("watchLeague - Error occurred in postSummary")
+  //   console.log(e);
+  // });
   const playersString = Object.values(fileToSlackMap)
     .map((s) => `<@${s}>`)
     .join(', ');
