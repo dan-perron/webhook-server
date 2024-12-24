@@ -151,10 +151,20 @@ watchFile(pathToLeagueFile, async () => {
     return;
   }
   console.log("watchLeague - Uploading league file to s3")
-  await s3.putFile(pathToLeagueFile);
-  await SlackWebhook.send({
-    text: `League file uploaded to S3 ${playersString}`,
-  });
+  let retry = 0;
+  while (retry < 2) {
+    try {
+      await s3.putFile(pathToLeagueFile);
+      await SlackWebhook.send({
+        text: `League file uploaded to S3 ${playersString}`,
+      });
+      return;
+    } catch (e) {
+      console.log("watchLeague - Error occurred in sending to s3");
+      console.log(e);
+    }
+    retry++;
+  }
 });
 
 let archiveFileTimer;
