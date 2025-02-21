@@ -10,6 +10,7 @@ const config = {
   },
   googleai: {
     key: null,
+    model: 'gemini-2.0-flash',
   },
   mongodb: {
     connectionString: process.env.MONGODB_CONNSTRING,

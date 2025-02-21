@@ -17,7 +17,7 @@ import {
 export class GoogleAI implements AIClient {
   genAI = new GoogleGenerativeAI(config.get('googleai.key'));
 
-  model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+  model = this.genAI.getGenerativeModel({ model: config.get('googleai.model') });
 
   getSafetySettings() {
     return [
