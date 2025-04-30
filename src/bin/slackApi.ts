@@ -1,5 +1,4 @@
-import type { GenericMessageEvent } from '@slack/bolt';
-import { subtype } from '@slack/bolt';
+import type { BotMessageEvent, GenericMessageEvent } from '@slack/bolt';
 import axios from 'axios';
 import config from 'config';
 import type { AIClient } from '../clients/ai/AIClient.js';
@@ -72,12 +71,12 @@ async function getTextInternal(aiClient: AIClient, channel, input, reminders) {
 
 const SUPER_CLUSTER_USER_STRING = 'UVBBEEC4A';
 
-async function sendOotpChat(messages, channel, say) {
+async function sendOotpChat(message, channel, say) {
   const response = await axios.post('https://ootp.bedaire.com/chat', {
     context: {
       bot: SUPER_CLUSTER_USER_STRING,
     },
-    messages,
+    message,
   });
   const { data } = response;
   switch (data.kind) {
@@ -103,34 +102,56 @@ async function sendOotpChat(messages, channel, say) {
   }
 }
 
-app.message(subtype('file_share'), async ({ event, message, say, client }) => {
-  if (message.subtype !== 'file_share' || event.subtype !== 'file_share') {
+function isNormalMessage(message: any): message is GenericMessageEvent | BotMessageEvent {
+  return (
+    message.type === 'message' &&
+    (typeof message.user === 'string' || typeof message.bot_id === 'string')
+  );
+}
+
+app.message(async ({ event, message, say, client }) => {
+  if (event.channel !== channelMap.ootpHighlights) {
     return;
   }
-  if (event.channel === channelMap.ootpHighlights) {
-    for (const file of message.files) {
-      const response = await axios.get(file.url_private, {
-        responseType: 'arraybuffer',
-        headers: {'Authorization': `Bearer ${client.token}`}
-      });
-      if (response.status == 200) {
-        const messages = [{
-          user: message.user,
-          text: message.text,
-          file: {
-            mimetype: file.mimetype,
-            data: Buffer.from(response.data).toString('base64')
-          }
-        }];
-        await sendOotpChat(messages, event.channel, (text) =>
-          say({
-            text,
-            thread_ts: event.thread_ts || event.ts,
-          })
-        )
-      }
-    }
+  if (!isNormalMessage(message)) {
+    return;
   }
+  if (message.text === `<@${SUPER_CLUSTER_USER_STRING}> shuffle teams`) {
+    // Avoid duplicate response from the app_mention event.
+    return;
+  }
+  const files = ('files' in message ? message.files : []) ?? [];
+  const serverMessage = {
+    user: message.user,
+    text: message.text,
+    channel: message.channel,
+    subtype: message.subtype,
+    ts: message.ts,
+    thread_ts: message.thread_ts,
+    files: await Promise.all(files.map(async file => {
+        return await axios.get(file.url_private, {
+          responseType: 'arraybuffer',
+          headers: {'Authorization': `Bearer ${client.token}`}
+        }).then(response => {
+          if (response.status == 200) {
+            return {mimetype: file.mimetype, data: Buffer.from(response.data).toString('base64')}
+          }
+          return {status: response.status};
+        }).catch(error => {
+          if (error.response) {
+            return {status: error.response.status};
+          }
+          return {status: 500, error: error.message};
+        });
+      }
+    )),
+  };
+  await sendOotpChat(serverMessage, event.channel, (text) =>
+    say({
+      text,
+      thread_ts: message.thread_ts || message.ts,
+    })
+  );
 });
 
 app.event('app_mention', async ({ event, say }) => {
@@ -154,6 +175,10 @@ app.event('app_mention', async ({ event, say }) => {
     });
     return;
   }
+  if (event.channel === channelMap.ootpHighlights) {
+    // Handled by the overall message handler.
+    return;
+  }
 
   const input = [];
   const { messages } = await app.client.conversations.replies({
@@ -166,16 +191,6 @@ app.event('app_mention', async ({ event, say }) => {
       name: message.user,
       content: message.text,
     });
-  }
-
-  if (event.channel === channelMap.ootpHighlights) {
-    await sendOotpChat(messages, event.channel, (text) =>
-      say({
-        text,
-        thread_ts: event.thread_ts || event.ts,
-      })
-    );
-    return;
   }
 
   // TODO: Can we clean up this logic?
