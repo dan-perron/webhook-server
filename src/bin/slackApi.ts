@@ -11,7 +11,39 @@ import { app, channelMap } from '../clients/slack.js';
 import { isAuthorizedUser } from '../consts/slack.js';
 import { getBotMessage, getPowerRankings, teams } from './ootpFileManager.js';
 import { addSimulationPause, resumeSimulationPause, resumeAllSimulationPauses, getSimulationState } from '../utils/simulation.js';
+import { sendOotpMessage, sendOotpDebugMessage } from '../utils/slack.js';
 import dayjs from 'dayjs';
+
+// Function to call the simulate endpoint
+async function callSimulateEndpoint(isResumedSimulation = false) {
+  try {
+    // Notify that simulation is starting
+    await sendOotpMessage(
+      isResumedSimulation ? '🔄 Resuming previously skipped simulation...' : '🔄 Starting scheduled simulation...'
+    );
+
+    const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
+    const response = await axios.post(simulateEndpoint);
+    console.log('Simulate endpoint response:', response.data);
+    
+    // Send response to debug channel
+    await sendOotpDebugMessage(`Simulate endpoint response: ${JSON.stringify(response.data, null, 2)}`);
+    
+    // Add system pauses for both files
+    await addSimulationPause('system_league_file');
+    await addSimulationPause('system_archive_file');
+    console.log('Simulation automatically paused until both files are updated');
+    
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error calling simulate endpoint:', error);
+    // Notify about the error
+    await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
+    // Send error details to debug channel
+    await sendOotpDebugMessage(`Simulate endpoint error: ${JSON.stringify(error, null, 2)}`);
+    return { success: false, error };
+  }
+}
 
 // Add slash command to control simulation
 app.command('/supercluster', async ({ ack, body, client }) => {
@@ -31,6 +63,37 @@ app.command('/supercluster', async ({ ack, body, client }) => {
   const [action, subAction] = text.split(' ');
 
   switch (action) {
+    case 'simulate':
+      if (userId !== 'U6AT12XSM') {
+        await client.chat.postEphemeral({
+          channel: body.channel_id,
+          user: userId,
+          text: "Only <@U6AT12XSM> can force a simulation to run.",
+        });
+        return;
+      }
+      const pauseState = await getSimulationState();
+      if (pauseState.length > 0) {
+        await client.chat.postMessage({
+          channel: body.channel_id,
+          text: `<@${userId}> Cannot start simulation while it is paused. Use \`/supercluster status\` to see who has paused it.`,
+        });
+        return;
+      }
+      const result = await callSimulateEndpoint(false);
+      if (result.success) {
+        await client.chat.postMessage({
+          channel: body.channel_id,
+          text: `<@${userId}> Simulation started successfully.`,
+        });
+      } else {
+        await client.chat.postMessage({
+          channel: body.channel_id,
+          text: `<@${userId}> Failed to start simulation: ${result.error.message}`,
+        });
+      }
+      break;
+
     case 'pause':
       await addSimulationPause(userId);
       await client.chat.postMessage({
