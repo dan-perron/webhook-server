@@ -23,7 +23,11 @@ async function callSimulateEndpoint(isResumedSimulation = false) {
     );
 
     const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
-    const response = await axios.post(simulateEndpoint);
+    const response = await axios.post(simulateEndpoint, {}, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     console.log('Simulate endpoint response:', response.data);
     
     // Send response to debug channel
@@ -127,10 +131,12 @@ app.command('/supercluster', async ({ ack, body, client }) => {
 
     case 'status':
       const state = await getSimulationState();
+      const botStatus = await getBotMessage();
+      
       if (state.length === 0) {
         await client.chat.postMessage({
           channel: body.channel_id,
-          text: `<@${userId}> Simulation is not paused.`,
+          text: `<@${userId}> Simulation is not paused.\n\n${botStatus}`,
         });
       } else {
         const systemPauses = state.filter(pause => pause.userId.startsWith('system_'));
@@ -153,7 +159,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
         }
         await client.chat.postMessage({
           channel: body.channel_id,
-          text: `<@${userId}> ${message}`,
+          text: `<@${userId}> ${message}\n\n${botStatus}`,
         });
       }
       break;
@@ -169,6 +175,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
 • \`/supercluster resume\` - Resume your pause
 • \`/supercluster resume all\` - Resume all pauses
 • \`/supercluster status\` - Check current pause state
+• \`/supercluster simulate\` - Force a simulation to run (admin only)
 • \`/supercluster help\` - Show this help message
 
 *How it works:*
@@ -176,11 +183,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
 • Each user can only resume their own pause
 • The simulation will not run while any pause is active
 • System pauses are automatically added after each simulation
-• System pauses are removed when files are updated
-
-*Permissions:*
-• Only authorized users can control the simulation
-• Contact an admin if you need access`,
+• System pauses are removed when files are updated`,
       });
       break;
 
