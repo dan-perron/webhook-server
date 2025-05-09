@@ -19,8 +19,10 @@ router.post('/', async (req, res) => {
       // Process the command using Bolt's built-in handler
       await app.processEvent({
         body: req.body,
-        ack: () => res.send(''),
-        respond: () => Promise.resolve(),
+        ack: () => {
+          res.send('');
+          return Promise.resolve();
+        }
       });
     } catch (error) {
       console.error('Error processing slash command:', error);
