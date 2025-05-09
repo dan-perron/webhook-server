@@ -16,6 +16,7 @@ export const channelMap = {
   cabin: 'C6BB7U95Z',
   ootpHighlights: 'C04J9TWRNJ3',
   ootpLog: 'C04K33NVCC9',
+  ootpDebug: 'C08RNBK56LB',
   politics: 'CPXA5CBHP',
   specialist: 'C6APJ5KG8',
   sports: 'C6ATH6LBB',

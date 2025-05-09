@@ -8,7 +8,124 @@ import { OpenAI } from '../clients/ai/openai.js';
 import * as fantasy from '../clients/fantasy.js';
 import * as mongo from '../clients/mongo.js';
 import { app, channelMap } from '../clients/slack.js';
+import { isAuthorizedUser } from '../consts/slack.js';
 import { getBotMessage, getPowerRankings, teams } from './ootpFileManager.js';
+import { addSimulationPause, resumeSimulationPause, resumeAllSimulationPauses, getSimulationState } from '../utils/simulation.js';
+import dayjs from 'dayjs';
+
+// Add slash command to control simulation
+app.command('/supercluster', async ({ ack, body, client }) => {
+  await ack();
+  const userId = body.user_id;
+  const text = body.text.trim().toLowerCase();
+
+  if (!isAuthorizedUser(userId)) {
+    await client.chat.postEphemeral({
+      channel: body.channel_id,
+      user: userId,
+      text: "You don't have permission to control the simulation.",
+    });
+    return;
+  }
+
+  const [action, subAction] = text.split(' ');
+
+  switch (action) {
+    case 'pause':
+      await addSimulationPause(userId);
+      await client.chat.postEphemeral({
+        channel: body.channel_id,
+        user: userId,
+        text: 'Simulation paused. It will remain paused until you resume it.',
+      });
+      break;
+
+    case 'resume':
+      if (subAction === 'all') {
+        const count = await resumeAllSimulationPauses();
+        await client.chat.postEphemeral({
+          channel: body.channel_id,
+          user: userId,
+          text: `Resumed all simulation pauses (${count} total).`,
+        });
+      } else {
+        const resumed = await resumeSimulationPause(userId);
+        if (resumed) {
+          await client.chat.postEphemeral({
+            channel: body.channel_id,
+            user: userId,
+            text: 'Your simulation pause has been removed.',
+          });
+        } else {
+          await client.chat.postEphemeral({
+            channel: body.channel_id,
+            user: userId,
+            text: "You don't have an active simulation pause.",
+          });
+        }
+      }
+      break;
+
+    case 'status':
+      const state = await getSimulationState();
+      if (state.length === 0) {
+        await client.chat.postEphemeral({
+          channel: body.channel_id,
+          user: userId,
+          text: 'Simulation is currently running.',
+        });
+      } else {
+        const pauseList = state.map(pause => {
+          const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
+          return `• <@${pause.userId}> (${timeAgo} minutes ago)`;
+        }).join('\n');
+        await client.chat.postEphemeral({
+          channel: body.channel_id,
+          user: userId,
+          text: `Simulation is currently paused by:\n${pauseList}`,
+        });
+      }
+      break;
+
+    case 'help':
+      await client.chat.postEphemeral({
+        channel: body.channel_id,
+        user: userId,
+        text: `*Supercluster Simulation Control*
+
+*Commands:*
+• \`/supercluster pause\` - Pause the simulation
+• \`/supercluster resume\` - Resume your pause
+• \`/supercluster resume all\` - Resume all pauses
+• \`/supercluster status\` - Check current pause state
+• \`/supercluster help\` - Show this help message
+
+*How it works:*
+• Multiple users can pause the simulation simultaneously
+• Each user can only resume their own pause
+• The simulation will not run while any pause is active
+• System pauses are automatically added after each simulation
+• System pauses are removed when files are updated
+
+*Permissions:*
+• Only authorized users can control the simulation
+• Contact an admin if you need access`,
+      });
+      break;
+
+    default:
+      await client.chat.postEphemeral({
+        channel: body.channel_id,
+        user: userId,
+        text: 'Unknown command. Use `/supercluster help` to see available commands.',
+      });
+  }
+});
+
+// Export the pause state for the scheduler to use
+export async function isSimulationPaused() {
+  return await mongo.getSimulationState();
+}
 
 app.message(/.*who.?se? turn is it.*/i, async ({ message, say }) => {
   // say() sends a message to the channel where the event was triggered

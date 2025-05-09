@@ -1,12 +1,10 @@
 import express from 'express';
 import config from 'config';
-export const router = express.Router();
-
 import hash from 'object-hash';
-import { IncomingWebhook } from '@slack/webhook';
-const SlackWebhook = new IncomingWebhook(
-  config.get('slack.webhookUrls.civilization')
-);
+import { channelMap } from '../clients/slack.js';
+import { sendSlackMessage } from '../utils/slack.js';
+
+export const router = express.Router();
 
 const receivedWebhooks = {};
 const playerMap = {
@@ -42,7 +40,7 @@ const civWebhookHandler = async ({ value1, value2, value3 }) => {
   const playerName = getSlackUser(value2) || value2;
   const message = `${playerName} new turn! Game ${value1}. Turn number ${value3}.`;
   console.log(message);
-  await SlackWebhook.send({ text: message });
+  await sendSlackMessage(channelMap.cabin, message);
 };
 
 router.get('/', async (req, res) => {

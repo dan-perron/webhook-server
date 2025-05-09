@@ -8,6 +8,7 @@ import * as indexRouter from './routes/index.js';
 import * as yahooRouter from './routes/yahoo.js';
 import './bin/ootpFileManager.js';
 import './bin/slackApi.js';
+import './bin/simulationScheduler.js';
 
 export const app = express();
 app.use(express.json());

@@ -8,24 +8,15 @@ import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
 import { watchFile } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import util from 'node:util';
-dayjs.extend(isSameOrAfter);
-const exec = util.promisify(child_process.exec);
-
+import { checkPausesRemoved } from './simulationScheduler.js';
+import { resumeSimulationPause } from '../utils/simulation.js';
 import * as mongo from '../clients/mongo.js';
 import * as s3 from '../clients/s3.js';
-import { app, channelMap } from '../clients/slack.js';
+import { channelMap } from '../clients/slack.js';
+import { teamToSlackMap } from '../consts/slack.js';
+import { sendOotpMessage } from '../utils/slack.js';
 
-const SlackWebhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
-
-const teamToSlackMap = {
-  team_7: 'U6BEBDULB',
-  team_9: 'U6DCHN9K2',
-  team_11: 'U6KNBPYLE',
-  team_13: 'U6CACS3GW',
-  team_16: 'U07RYKRC7UP',
-  team_20: 'U6AT12XSM',
-  team_27: 'U060JASDCMC',
-};
+const exec = util.promisify(child_process.exec);
 
 const fileToSlackMap = Object.fromEntries(
   Object.entries(teamToSlackMap).map(([k, v]) => [`${k}.ootp`, v])
@@ -48,15 +39,36 @@ const pathToPowerRankings =
   '/ootp/game/reports/html/leagues/league_202_team_power_rankings_page.html';
 const pathToTeamReports = '/ootp/game/reports/html/teams/';
 
+let lastLeagueFileUpdate: Date | null = null;
+let lastArchiveUpdate: Date | null = null;
+
+async function checkAndResumeSystemPause() {
+  if (lastLeagueFileUpdate && lastArchiveUpdate) {
+    // If both files were updated within 5 minutes of each other, resume the system pause
+    const timeDiff = Math.abs(lastLeagueFileUpdate.getTime() - lastArchiveUpdate.getTime());
+    if (timeDiff < 5 * 60 * 1000) { // 5 minutes in milliseconds
+      await mongo.resumeSimulationPause('system');
+      console.log('System pause resumed after files were updated');
+    }
+  }
+}
+
 for (const file in fileToSlackMap) {
   watchFile(pathToTeamUploads + file, async (curr, prev) => {
     const oldFiles = await checkFiles(prev);
     let text = `<@${fileToSlackMap[file]}> just submitted their team's upload.`;
+    
+    // Reset the user's pause if they have one
+    const resumed = await mongo.resumeSimulationPause(fileToSlackMap[file]);
+    if (resumed) {
+      text += ' Their simulation pause has been automatically removed.';
+    }
+    
     const nextStepText = await getNextStepMessage(oldFiles);
     if (nextStepText) {
       text += ' ' + nextStepText;
     }
-    await SlackWebhook.send({ text });
+    await sendOotpMessage(text);
   });
 }
 for (const team in teamToSlackMap) {
@@ -66,7 +78,7 @@ for (const team in teamToSlackMap) {
     );
     if (buffer.includes('DESIGNATED FOR ASSIGNMENT')) {
       const text = `<@${teamToSlackMap[team]}> has players on DFA.`;
-      await SlackWebhook.send({ text });
+      await sendOotpMessage(text);
     }
   });
 }
@@ -111,9 +123,7 @@ async function postSummary(client, lastMessage) {
   const summary = await axios.post('https://ootp.bedaire.com/summary', {
     messages,
   });
-  await SlackWebhook.send({
-    text: `${summary.data.text}`,
-  });
+  await sendOotpMessage(summary.data.text);
 }
 
 watchFile(pathToLeagueFile, async () => {
@@ -127,20 +137,17 @@ watchFile(pathToLeagueFile, async () => {
   sim = await mongo.recordOOTPSim(sim);
   // Truncate history to last 24 hours at the most.
   const lastTimestamp = lastSim?.date?.valueOf() ?? sim.date.valueOf() - 24*60*60*1000;
-  // Run asynchronously so we don't block the rest of file handling.
-  // postSummary(app.client, lastTimestamp).catch((e) => {
-  //   console.log("watchLeague - Error occurred in postSummary")
-  //   console.log(e);
-  // });
+  
+  // Remove the league file pause immediately
+  await resumeSimulationPause('system_league_file');
+
   const playersString = Object.values(fileToSlackMap)
     .map((s) => `<@${s}>`)
     .join(', ');
   await mongo.markRemindersDone({ type: channelMap.ootpHighlights });
   try {
     const leagueFileStat = await stat(pathToLeagueFile);
-    await SlackWebhook.send({
-      text: `New ${humanFileSize(leagueFileStat.size)} league file uploaded <@${perronSlack}>`,
-    });
+    await sendOotpMessage(`New ${humanFileSize(leagueFileStat.size)} league file uploaded <@${perronSlack}>`);
     sim.fileSize = leagueFileStat.size;
     await mongo.updateOOTPSim(sim);
   } catch (e) {
@@ -155,9 +162,7 @@ watchFile(pathToLeagueFile, async () => {
   while (retry < 2) {
     try {
       await s3.putFile(pathToLeagueFile);
-      await SlackWebhook.send({
-        text: `League file uploaded to S3 ${playersString}`,
-      });
+      await sendOotpMessage(`League file uploaded to S3 ${playersString}`);
       return;
     } catch (e) {
       console.log("watchLeague - Error occurred in sending to s3");
@@ -185,11 +190,14 @@ async function expandArchive(prevStat) {
   }
   executing = true;
   try {
+    // Remove the archive file pause immediately
+    await resumeSimulationPause('system_archive_file');
+
     console.log('expanding archive');
     await exec(
       'nice tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz'
     );
-    await SlackWebhook.send({ text: 'Reports are updated.' });
+    await sendOotpMessage('Reports are updated.');
   } catch (e) {
     console.log('error while executing ' + e.toString());
   }

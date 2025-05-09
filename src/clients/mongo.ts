@@ -85,3 +85,71 @@ export async function updateOOTPSim(sim: OOTPSim) {
   const query = { _id: new ObjectId(sim.id) };
   await simCollection.updateOne(query, { $set: sim });
 }
+
+interface SimulationPause {
+  userId: string;
+  pausedAt: Date;
+  resumedAt?: Date;
+}
+
+interface SimulationState {
+  lastScheduledRun: Date | null;
+  skippedRun: boolean;
+}
+
+export async function getSimulationState(): Promise<SimulationPause[]> {
+  const result = await database
+    .collection('simulation_pauses')
+    .find({ resumedAt: { $exists: false } })
+    .sort({ pausedAt: 1 })
+    .toArray();
+  return result as unknown as SimulationPause[];
+}
+
+export async function addSimulationPause(userId: string): Promise<void> {
+  const pause: SimulationPause = {
+    userId,
+    pausedAt: new Date()
+  };
+
+  await database
+    .collection('simulation_pauses')
+    .insertOne(pause);
+}
+
+export async function resumeSimulationPause(userId: string): Promise<boolean> {
+  const result = await database
+    .collection('simulation_pauses')
+    .updateOne(
+      { userId, resumedAt: { $exists: false } },
+      { $set: { resumedAt: new Date() } }
+    );
+  return result.modifiedCount > 0;
+}
+
+export async function resumeAllSimulationPauses(): Promise<number> {
+  const result = await database
+    .collection('simulation_pauses')
+    .updateMany(
+      { resumedAt: { $exists: false } },
+      { $set: { resumedAt: new Date() } }
+    );
+  return result.modifiedCount;
+}
+
+export async function getSimulationRunState(): Promise<SimulationState> {
+  const result = await database
+    .collection('simulation_state')
+    .findOne({ _id: new ObjectId('000000000000000000000000') });
+  return (result as unknown as SimulationState) || { lastScheduledRun: null, skippedRun: false };
+}
+
+export async function updateSimulationRunState(state: Partial<SimulationState>): Promise<void> {
+  await database
+    .collection('simulation_state')
+    .updateOne(
+      { _id: new ObjectId('000000000000000000000000') },
+      { $set: state },
+      { upsert: true }
+    );
+}

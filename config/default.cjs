@@ -27,6 +27,9 @@ const config = {
     token: null,
     webhookUrls: { civilization: null, test: null, ootp: null },
   },
+  simulation: {
+    hostname: 'windows-facilitator',
+  },
   yahoo: {
     appId: null,
     clientId: null,
