@@ -33,34 +33,30 @@ app.command('/supercluster', async ({ ack, body, client }) => {
   switch (action) {
     case 'pause':
       await addSimulationPause(userId);
-      await client.chat.postEphemeral({
+      await client.chat.postMessage({
         channel: body.channel_id,
-        user: userId,
-        text: 'Simulation paused. It will remain paused until you resume it.',
+        text: `<@${userId}> Simulation paused. It will remain paused until you resume it.`,
       });
       break;
 
     case 'resume':
       if (subAction === 'all') {
         const count = await resumeAllSimulationPauses();
-        await client.chat.postEphemeral({
+        await client.chat.postMessage({
           channel: body.channel_id,
-          user: userId,
-          text: `Resumed all simulation pauses (${count} total).`,
+          text: `<@${userId}> Resumed all simulation pauses (${count} total).`,
         });
       } else {
         const resumed = await resumeSimulationPause(userId);
         if (resumed) {
-          await client.chat.postEphemeral({
+          await client.chat.postMessage({
             channel: body.channel_id,
-            user: userId,
-            text: 'Your simulation pause has been removed.',
+            text: `<@${userId}> Your simulation pause has been removed.`,
           });
         } else {
-          await client.chat.postEphemeral({
+          await client.chat.postMessage({
             channel: body.channel_id,
-            user: userId,
-            text: "You don't have an active simulation pause.",
+            text: `<@${userId}> You don't have an active simulation pause.`,
           });
         }
       }
@@ -69,20 +65,32 @@ app.command('/supercluster', async ({ ack, body, client }) => {
     case 'status':
       const state = await getSimulationState();
       if (state.length === 0) {
-        await client.chat.postEphemeral({
+        await client.chat.postMessage({
           channel: body.channel_id,
-          user: userId,
-          text: 'Simulation is currently running.',
+          text: `<@${userId}> Simulation is not paused.`,
         });
       } else {
-        const pauseList = state.map(pause => {
-          const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
-          return `• <@${pause.userId}> (${timeAgo} minutes ago)`;
-        }).join('\n');
-        await client.chat.postEphemeral({
+        const systemPauses = state.filter(pause => pause.userId.startsWith('system_'));
+        const userPauses = state.filter(pause => !pause.userId.startsWith('system_'));
+        
+        let message = '';
+        if (userPauses.length > 0) {
+          const pauseList = userPauses.map(pause => {
+            const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
+            return `• <@${pause.userId}> (${timeAgo} minutes ago)`;
+          }).join('\n');
+          message = `Simulation is currently paused by:\n${pauseList}`;
+        } else {
+          message = 'Simulation is currently running, we\'re waiting for:';
+          const systemPauseList = systemPauses.map(pause => {
+            const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
+            return `• ${pause.userId.replace('system_', '')} file (${timeAgo} minutes ago)`;
+          }).join('\n');
+          message += `\n${systemPauseList}`;
+        }
+        await client.chat.postMessage({
           channel: body.channel_id,
-          user: userId,
-          text: `Simulation is currently paused by:\n${pauseList}`,
+          text: `<@${userId}> ${message}`,
         });
       }
       break;
@@ -114,10 +122,9 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       break;
 
     default:
-      await client.chat.postEphemeral({
+      await client.chat.postMessage({
         channel: body.channel_id,
-        user: userId,
-        text: 'Unknown command. Use `/supercluster help` to see available commands.',
+        text: `<@${userId}> Unknown command. Use \`/supercluster help\` to see available commands.`,
       });
   }
 });
