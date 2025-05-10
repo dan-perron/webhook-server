@@ -14,11 +14,39 @@ import { addSimulationPause, resumeSimulationPause, resumeAllSimulationPauses, g
 import { sendOotpMessage, sendOotpDebugMessage } from '../utils/slack.js';
 import dayjs from 'dayjs';
 
+// Define the checkbox config interface
+interface CommishCheckboxConfig {
+  backup_league_files: boolean;
+  retrieve_team_exports_from_server: boolean;
+  retrieve_team_exports_from_your_pc: boolean;
+  break_if_team_files_are_missing: boolean;
+  break_if_trades_are_pending: boolean;
+  demote_release_players_with_dfa_time_left_of_x_days_or_less: boolean;
+  auto_play_days: boolean;
+  create_and_upload_league_file: boolean;
+  create_and_upload_html_reports: boolean;
+  create_sql_dump_for_ms_access: boolean;
+  create_sql_dump_for_mysql: boolean;
+  export_data_to_csv_files: boolean;
+  upload_status_report_to_server: boolean;
+  create_and_send_result_emails: boolean;
+  dfa_days_value?: number;
+  auto_play_days_value?: number;
+}
+
 // Function to call the simulate endpoint
-async function callSimulateEndpoint(isResumedSimulation = false) {
+async function callSimulateEndpoint(isResumedSimulation = false, options = { 
+  backupLeagueFolder: true,
+  manualImportTeams: false,
+  commishCheckboxes: {} as CommishCheckboxConfig
+}) {
   try {
     const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
-    const response = await axios.post(simulateEndpoint, {}, {
+    const response = await axios.post(simulateEndpoint, {
+      backup_league_folder: options.backupLeagueFolder,
+      manual_import_teams: options.manualImportTeams,
+      commish_checkboxes: options.commishCheckboxes
+    }, {
       headers: {
         'Content-Type': 'application/json'
       }
@@ -57,7 +85,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
     return;
   }
 
-  const [action, subAction] = text.split(' ');
+  const [action, subAction, ...args] = text.split(' ');
 
   switch (action) {
     case 'simulate':
@@ -71,14 +99,94 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       }
       const pauseState = await getSimulationState();
       if (pauseState.length > 0) {
-        await client.chat.postMessage({
+        await client.chat.postEphemeral({
           channel: body.channel_id,
-          text: `<@${userId}> Cannot start simulation while it is paused. Use \`/supercluster status\` to see who has paused it.`,
+          user: userId,
+          text: `Cannot start simulation while it is paused. Use \`/supercluster status\` to see who has paused it.`,
         });
         return;
       }
-      await sendOotpMessage('🔄 Starting manual simulation...');
-      const result = await callSimulateEndpoint(false);
+
+      // Parse flags
+      const backupFlag = args.find(arg => arg === '--no-backup' || arg === 'backup:false');
+      const importFlag = args.find(arg => arg === '--import-teams' || arg === 'import:true');
+      
+      // Parse checkbox flags
+      const checkboxFlags: CommishCheckboxConfig = {
+        backup_league_files: !args.find(arg => arg === '--no-backup-files' || arg === 'backup_files:false'),
+        retrieve_team_exports_from_server: !args.find(arg => arg === '--no-server-exports' || arg === 'server_exports:false'),
+        retrieve_team_exports_from_your_pc: !!args.find(arg => arg === '--pc-exports' || arg === 'pc_exports:true'),
+        break_if_team_files_are_missing: !!args.find(arg => arg === '--break-missing-files' || arg === 'break_missing_files:true'),
+        break_if_trades_are_pending: !!args.find(arg => arg === '--break-pending-trades' || arg === 'break_pending_trades:true'),
+        demote_release_players_with_dfa_time_left_of_x_days_or_less: !!args.find(arg => arg === '--demote-dfa' || arg === 'demote_dfa:true'),
+        auto_play_days: !args.find(arg => arg === '--no-auto-play' || arg === 'auto_play:false'),
+        create_and_upload_league_file: !args.find(arg => arg === '--no-upload-league' || arg === 'upload_league:false'),
+        create_and_upload_html_reports: !args.find(arg => arg === '--no-upload-reports' || arg === 'upload_reports:false'),
+        create_sql_dump_for_ms_access: !!args.find(arg => arg === '--ms-access' || arg === 'ms_access:true'),
+        create_sql_dump_for_mysql: !!args.find(arg => arg === '--mysql' || arg === 'mysql:true'),
+        export_data_to_csv_files: !!args.find(arg => arg === '--csv' || arg === 'csv:true'),
+        upload_status_report_to_server: !args.find(arg => arg === '--no-status-report' || arg === 'status_report:false'),
+        create_and_send_result_emails: !args.find(arg => arg === '--no-emails' || arg === 'emails:false')
+      };
+
+      // Parse numeric values
+      const dfaDaysMatch = args.find(arg => arg.startsWith('dfa_days:'));
+      if (dfaDaysMatch) {
+        const dfaDays = parseInt(dfaDaysMatch.split(':')[1]);
+        if (!isNaN(dfaDays)) {
+          checkboxFlags.dfa_days_value = dfaDays;
+        }
+      }
+
+      const autoPlayDaysMatch = args.find(arg => arg.startsWith('auto_play_days:'));
+      if (autoPlayDaysMatch) {
+        const autoPlayDays = parseInt(autoPlayDaysMatch.split(':')[1]);
+        if (!isNaN(autoPlayDays)) {
+          checkboxFlags.auto_play_days_value = autoPlayDays;
+        }
+      }
+
+      const options = {
+        backupLeagueFolder: !backupFlag,
+        manualImportTeams: !!importFlag,
+        commishCheckboxes: checkboxFlags
+      };
+      
+      // Build status message
+      let statusMsg = '🔄 Starting manual simulation...';
+      if (backupFlag) statusMsg += ' (without backup)';
+      if (importFlag) statusMsg += ' (with team imports)';
+      
+      // Add any non-default checkbox states to status
+      const nonDefaultFlags = Object.entries(checkboxFlags)
+        .filter(([key, value]) => {
+          // Default values based on CommishHomeCheckboxConfig
+          const defaultValues: CommishCheckboxConfig = {
+            backup_league_files: true,
+            retrieve_team_exports_from_server: true,
+            retrieve_team_exports_from_your_pc: false,
+            break_if_team_files_are_missing: false,
+            break_if_trades_are_pending: false,
+            demote_release_players_with_dfa_time_left_of_x_days_or_less: false,
+            auto_play_days: true,
+            create_and_upload_league_file: true,
+            create_and_upload_html_reports: true,
+            create_sql_dump_for_ms_access: false,
+            create_sql_dump_for_mysql: false,
+            export_data_to_csv_files: false,
+            upload_status_report_to_server: true,
+            create_and_send_result_emails: true
+          };
+          return value !== defaultValues[key as keyof CommishCheckboxConfig];
+        })
+        .map(([key]) => key.replace(/_/g, ' '));
+      
+      if (nonDefaultFlags.length > 0) {
+        statusMsg += ` (with custom settings: ${nonDefaultFlags.join(', ')})`;
+      }
+      
+      await sendOotpMessage(statusMsg);
+      const result = await callSimulateEndpoint(false, options);
       if (!result.success) {
         await sendOotpMessage(`❌ Error during simulation: ${result.error.message}`);
       }
@@ -162,7 +270,30 @@ app.command('/supercluster', async ({ ack, body, client }) => {
 • \`/supercluster resume all\` - Resume all pauses
 • \`/supercluster status\` - Check current pause state
 • \`/supercluster simulate\` - Force a simulation to run (admin only)
-• \`/supercluster help\` - Show this help message
+
+*Simulation Flags:*
+• \`--no-backup\` or \`backup:false\` - Run without backup
+• \`--import-teams\` or \`import:true\` - Run with team imports
+
+*Checkbox Settings:*
+• \`--no-backup-files\` or \`backup_files:false\` - Disable league file backup
+• \`--no-server-exports\` or \`server_exports:false\` - Disable server exports
+• \`--pc-exports\` or \`pc_exports:true\` - Enable PC exports
+• \`--break-missing-files\` or \`break_missing_files:true\` - Break on missing files
+• \`--break-pending-trades\` or \`break_pending_trades:true\` - Break on pending trades
+• \`--demote-dfa\` or \`demote_dfa:true\` - Enable DFA demotion
+• \`--no-auto-play\` or \`auto_play:false\` - Disable auto-play
+• \`--no-upload-league\` or \`upload_league:false\` - Disable league upload
+• \`--no-upload-reports\` or \`upload_reports:false\` - Disable report upload
+• \`--ms-access\` or \`ms_access:true\` - Enable MS Access dump
+• \`--mysql\` or \`mysql:true\` - Enable MySQL dump
+• \`--csv\` or \`csv:true\` - Enable CSV export
+• \`--no-status-report\` or \`status_report:false\` - Disable status report
+• \`--no-emails\` or \`emails:false\` - Disable result emails
+
+*Numeric Settings:*
+• \`dfa_days:N\` - Set DFA days value (e.g. \`dfa_days:7\`)
+• \`auto_play_days:N\` - Set auto-play days value (e.g. \`auto_play_days:3\`)
 
 *How it works:*
 • Multiple users can pause the simulation simultaneously
@@ -174,9 +305,10 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       break;
 
     default:
-      await client.chat.postMessage({
+      await client.chat.postEphemeral({
         channel: body.channel_id,
-        text: `<@${userId}> Unknown command. Use \`/supercluster help\` to see available commands.`,
+        user: userId,
+        text: `Unknown command. Use \`/supercluster help\` to see available commands.`,
       });
   }
 });
