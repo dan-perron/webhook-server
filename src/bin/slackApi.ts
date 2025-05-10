@@ -75,8 +75,11 @@ app.command('/supercluster', async ({ ack, body, client }) => {
   await ack();
   const userId = body.user_id;
   const text = body.text.trim().toLowerCase();
+  
+  console.log(`[Supercluster] Command received from user ${userId}: ${text}`);
 
   if (!isAuthorizedUser(userId)) {
+    console.log(`[Supercluster] Unauthorized access attempt from user ${userId}`);
     await client.chat.postEphemeral({
       channel: body.channel_id,
       user: userId,
@@ -86,10 +89,12 @@ app.command('/supercluster', async ({ ack, body, client }) => {
   }
 
   const [action, subAction, ...args] = text.split(' ');
+  console.log(`[Supercluster] Parsed command: action=${action}, subAction=${subAction}, args=${args.join(' ')}`);
 
   switch (action) {
     case 'simulate':
       if (userId !== 'U6AT12XSM') {
+        console.log(`[Supercluster] Unauthorized simulation attempt from user ${userId}`);
         await client.chat.postEphemeral({
           channel: body.channel_id,
           user: userId,
@@ -99,6 +104,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       }
       const pauseState = await getSimulationState();
       if (pauseState.length > 0) {
+        console.log(`[Supercluster] Simulation blocked due to active pauses: ${JSON.stringify(pauseState)}`);
         await client.chat.postEphemeral({
           channel: body.channel_id,
           user: userId,
@@ -110,6 +116,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       // Parse flags
       const backupFlag = args.find(arg => arg === '--no-backup' || arg === 'backup:false');
       const importFlag = args.find(arg => arg === '--import-teams' || arg === 'import:true');
+      console.log(`[Supercluster] Parsed simulation flags: backup=${!backupFlag}, import=${!!importFlag}`);
       
       // Parse checkbox flags
       const checkboxFlags: CommishCheckboxConfig = {
@@ -128,6 +135,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
         upload_status_report_to_server: !args.find(arg => arg === '--no-status-report' || arg === 'status_report:false'),
         create_and_send_result_emails: !args.find(arg => arg === '--no-emails' || arg === 'emails:false')
       };
+      console.log(`[Supercluster] Parsed checkbox flags: ${JSON.stringify(checkboxFlags)}`);
 
       // Parse numeric values
       const dfaDaysMatch = args.find(arg => arg.startsWith('dfa_days:'));
@@ -135,6 +143,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
         const dfaDays = parseInt(dfaDaysMatch.split(':')[1]);
         if (!isNaN(dfaDays)) {
           checkboxFlags.dfa_days_value = dfaDays;
+          console.log(`[Supercluster] Set DFA days value: ${dfaDays}`);
         }
       }
 
@@ -143,6 +152,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
         const autoPlayDays = parseInt(autoPlayDaysMatch.split(':')[1]);
         if (!isNaN(autoPlayDays)) {
           checkboxFlags.auto_play_days_value = autoPlayDays;
+          console.log(`[Supercluster] Set auto-play days value: ${autoPlayDays}`);
         }
       }
 
@@ -185,14 +195,19 @@ app.command('/supercluster', async ({ ack, body, client }) => {
         statusMsg += ` (with custom settings: ${nonDefaultFlags.join(', ')})`;
       }
       
+      console.log(`[Supercluster] Starting simulation with options: ${JSON.stringify(options)}`);
       await sendOotpMessage(statusMsg);
       const result = await callSimulateEndpoint(false, options);
       if (!result.success) {
+        console.error(`[Supercluster] Simulation failed: ${result.error.message}`);
         await sendOotpMessage(`❌ Error during simulation: ${result.error.message}`);
+      } else {
+        console.log(`[Supercluster] Simulation started successfully`);
       }
       break;
 
     case 'pause':
+      console.log(`[Supercluster] User ${userId} pausing simulation`);
       await addSimulationPause(userId);
       await client.chat.postMessage({
         channel: body.channel_id,
@@ -202,19 +217,23 @@ app.command('/supercluster', async ({ ack, body, client }) => {
 
     case 'resume':
       if (subAction === 'all') {
+        console.log(`[Supercluster] User ${userId} resuming all simulation pauses`);
         const count = await resumeAllSimulationPauses();
         await client.chat.postMessage({
           channel: body.channel_id,
           text: `<@${userId}> Resumed all simulation pauses (${count} total).`,
         });
       } else {
+        console.log(`[Supercluster] User ${userId} attempting to resume their pause`);
         const resumed = await resumeSimulationPause(userId);
         if (resumed) {
+          console.log(`[Supercluster] Successfully resumed pause for user ${userId}`);
           await client.chat.postMessage({
             channel: body.channel_id,
             text: `<@${userId}> Your simulation pause has been removed.`,
           });
         } else {
+          console.log(`[Supercluster] No active pause found for user ${userId}`);
           await client.chat.postMessage({
             channel: body.channel_id,
             text: `<@${userId}> You don't have an active simulation pause.`,
@@ -224,10 +243,12 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       break;
 
     case 'status':
+      console.log(`[Supercluster] User ${userId} checking simulation status`);
       const state = await getSimulationState();
       const botStatus = await getBotMessage();
       
       if (state.length === 0) {
+        console.log(`[Supercluster] No active pauses found`);
         await client.chat.postMessage({
           channel: body.channel_id,
           text: `<@${userId}> Simulation is not paused.\n\n${botStatus}`,
@@ -235,6 +256,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       } else {
         const systemPauses = state.filter(pause => pause.userId.startsWith('system_'));
         const userPauses = state.filter(pause => !pause.userId.startsWith('system_'));
+        console.log(`[Supercluster] Found ${systemPauses.length} system pauses and ${userPauses.length} user pauses`);
         
         let message = '';
         if (userPauses.length > 0) {
@@ -259,6 +281,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       break;
 
     case 'help':
+      console.log(`[Supercluster] User ${userId} requested help`);
       await client.chat.postEphemeral({
         channel: body.channel_id,
         user: userId,
@@ -305,6 +328,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       break;
 
     default:
+      console.log(`[Supercluster] Unknown command from user ${userId}: ${action}`);
       await client.chat.postEphemeral({
         channel: body.channel_id,
         user: userId,
