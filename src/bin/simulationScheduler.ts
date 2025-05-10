@@ -8,13 +8,12 @@ import { sendOotpMessage, sendOotpDebugMessage } from '../utils/slack.js';
 // Function to call the simulate endpoint
 async function callSimulateEndpoint(isResumedSimulation = false) {
   try {
-    // Notify that simulation is starting
-    await sendOotpMessage(
-      isResumedSimulation ? '🔄 Resuming previously skipped simulation...' : '🔄 Starting scheduled simulation...'
-    );
-
     const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
-    const response = await axios.post(simulateEndpoint);
+    const response = await axios.post(simulateEndpoint, {}, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     console.log('Simulate endpoint response:', response.data);
     
     // Send response to debug channel
@@ -32,10 +31,9 @@ async function callSimulateEndpoint(isResumedSimulation = false) {
     });
   } catch (error) {
     console.error('Error calling simulate endpoint:', error);
-    // Notify about the error
-    await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     // Send error details to debug channel
     await sendOotpDebugMessage(`Simulate endpoint error: ${JSON.stringify(error, null, 2)}`);
+    throw error;
   }
 }
 
@@ -50,13 +48,20 @@ async function checkAndRunSimulation() {
     });
     return;
   }
-  await callSimulateEndpoint(false);
+  await sendOotpMessage('🔄 Starting scheduled simulation...');
+  try {
+    await callSimulateEndpoint(false);
+  } catch (error) {
+    await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
+  }
 }
 
 // Schedule the cron job to run every hour from 9 AM to 6 PM Central Time
 cron.schedule('0 9-18 * * *', () => {
   console.log('Running scheduled simulation at:', new Date().toISOString());
   checkAndRunSimulation();
+}, {
+  timezone: 'America/Chicago'
 });
 
 // Also check when pauses are removed
@@ -66,7 +71,12 @@ export async function checkPausesRemoved() {
     const runState = await getSimulationRunState();
     if (runState.skippedRun) {
       console.log('All pauses removed and there was a skipped run, executing now');
-      await callSimulateEndpoint(true);
+      await sendOotpMessage('🔄 Resuming previously skipped simulation...');
+      try {
+        await callSimulateEndpoint(true);
+      } catch (error) {
+        await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
+      }
     }
   }
 }
