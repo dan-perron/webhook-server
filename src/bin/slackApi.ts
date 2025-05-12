@@ -10,7 +10,7 @@ import * as mongo from '../clients/mongo.js';
 import { app, channelMap } from '../clients/slack.js';
 import { isAuthorizedUser } from '../consts/slack.js';
 import { getBotMessage, getPowerRankings, teams } from './ootpFileManager.js';
-import { addSimulationPause, resumeSimulationPause, resumeAllSimulationPauses, getSimulationState } from '../utils/simulation.js';
+import { addSimulationPause, resumeSimulationPause, resumeAllSimulationPauses, getSimulationState, getSimulationRunState } from '../utils/simulation.js';
 import { sendOotpMessage, sendOotpDebugMessage } from '../utils/slack.js';
 import dayjs from 'dayjs';
 
@@ -246,38 +246,72 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       console.log(`[Supercluster] User ${userId} checking simulation status`);
       const state = await getSimulationState();
       const botStatus = await getBotMessage();
+      const runState = await getSimulationRunState();
+      const history = await mongo.getSimulationHistory(5);
       
+      let nextSimMessage = '';
+      if (runState.lastScheduledRun) {
+        const nextSimTime = new Date(runState.lastScheduledRun.getTime() + (48 * 60 * 60 * 1000));
+        const now = new Date();
+        const hoursUntilNext = (nextSimTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursUntilNext > 0) {
+          const days = Math.floor(hoursUntilNext / 24);
+          const hours = Math.floor(hoursUntilNext % 24);
+          nextSimMessage = `\nNext simulation in: ${days}d ${hours}h`;
+        } else {
+          nextSimMessage = '\nNext simulation is due now';
+        }
+      }
+      
+      let message = '';
       if (state.length === 0) {
         console.log(`[Supercluster] No active pauses found`);
-        await client.chat.postMessage({
-          channel: body.channel_id,
-          text: `<@${userId}> Simulation is not paused.\n\n${botStatus}`,
-        });
+        message = `Simulation is not paused.${nextSimMessage}\n\n`;
       } else {
         const systemPauses = state.filter(pause => pause.userId.startsWith('system_'));
         const userPauses = state.filter(pause => !pause.userId.startsWith('system_'));
         console.log(`[Supercluster] Found ${systemPauses.length} system pauses and ${userPauses.length} user pauses`);
         
-        let message = '';
         if (userPauses.length > 0) {
           const pauseList = userPauses.map(pause => {
             const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
             return `• <@${pause.userId}> (${timeAgo} minutes ago)`;
           }).join('\n');
-          message = `Simulation is currently paused by:\n${pauseList}`;
+          message = `Simulation is currently paused by:\n${pauseList}\n\n`;
         } else {
-          message = 'Simulation is currently running, we\'re waiting for:';
+          message = 'Simulation is currently running, we\'re waiting for:\n';
           const systemPauseList = systemPauses.map(pause => {
             const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
             return `• ${pause.userId.replace('system_', '')} file (${timeAgo} minutes ago)`;
           }).join('\n');
-          message += `\n${systemPauseList}`;
+          message += `${systemPauseList}\n\n`;
         }
-        await client.chat.postMessage({
-          channel: body.channel_id,
-          text: `<@${userId}> ${message}\n\n${botStatus}`,
+      }
+
+      // Add simulation history
+      if (history.length > 0) {
+        message += 'Recent simulation history:\n';
+        history.forEach(sim => {
+          const timeAgo = dayjs().diff(dayjs(sim.createdAt), 'minute');
+          const status = sim.status === 'failed' ? '❌' : 
+                        sim.status === 'skipped' ? '⏸️' : 
+                        sim.status === 'completed' ? '✅' : '🔄';
+          message += `${status} ${timeAgo}m ago: ${sim.status}`;
+          if (sim.reason) {
+            message += ` (${sim.reason})`;
+          }
+          if (sim.triggeredBy) {
+            message += ` by ${sim.triggeredBy}`;
+          }
+          message += '\n';
         });
       }
+      
+      await client.chat.postMessage({
+        channel: body.channel_id,
+        text: `<@${userId}> ${message}${nextSimMessage}\n\n${botStatus}`,
+      });
       break;
 
     case 'help':

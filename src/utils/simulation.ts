@@ -1,5 +1,45 @@
 import * as mongo from '../clients/mongo.js';
 import { checkPausesRemoved } from '../bin/simulationScheduler.js';
+import { ObjectId } from 'mongodb';
+
+export interface CommishCheckboxConfig {
+  [key: string]: boolean | number | undefined;
+  backup_league_files: boolean;
+  retrieve_team_exports_from_server: boolean;
+  retrieve_team_exports_from_your_pc: boolean;
+  break_if_team_files_are_missing: boolean;
+  break_if_trades_are_pending: boolean;
+  demote_release_players_with_dfa_time_left_of_x_days_or_less: boolean;
+  auto_play_days: boolean;
+  create_and_upload_league_file: boolean;
+  create_and_upload_html_reports: boolean;
+  create_sql_dump_for_ms_access: boolean;
+  create_sql_dump_for_mysql: boolean;
+  export_data_to_csv_files: boolean;
+  upload_status_report_to_server: boolean;
+  create_and_send_result_emails: boolean;
+  dfa_days_value?: number;
+  auto_play_days_value?: number;
+}
+
+/**
+ * Type definition for the simulation run state
+ */
+export interface SimulationRunState {
+  _id?: ObjectId;
+  lastScheduledRun: Date | null;
+  skippedRun: boolean;
+  createdAt: Date;
+  completedAt?: Date;
+  status: 'scheduled' | 'skipped' | 'completed' | 'failed';
+  reason?: string;
+  triggeredBy?: string;
+  options?: {
+    backupLeagueFolder?: boolean;
+    manualImportTeams?: boolean;
+    commishCheckboxes?: CommishCheckboxConfig;
+  };
+}
 
 /**
  * Resumes a simulation pause and checks if we should run a skipped simulation
@@ -49,7 +89,7 @@ export async function getSimulationState() {
  * Gets the current simulation run state
  * @returns The current run state including last scheduled run and skipped run status
  */
-export async function getSimulationRunState() {
+export async function getSimulationRunState(): Promise<SimulationRunState> {
   return await mongo.getSimulationRunState();
 }
 
@@ -57,6 +97,6 @@ export async function getSimulationRunState() {
  * Updates the simulation run state
  * @param state The new run state to set
  */
-export async function updateSimulationRunState(state: { lastScheduledRun: Date; skippedRun: boolean }) {
+export async function updateSimulationRunState(state: SimulationRunState): Promise<void> {
   return await mongo.updateSimulationRunState(state);
 } 

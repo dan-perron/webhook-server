@@ -8,7 +8,7 @@ import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
 import { watchFile } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import util from 'node:util';
-import { checkPausesRemoved } from './simulationScheduler.js';
+import { checkPausesRemoved, checkAndRunSimulation } from './simulationScheduler.js';
 import { resumeSimulationPause } from '../utils/simulation.js';
 import * as mongo from '../clients/mongo.js';
 import * as s3 from '../clients/s3.js';
@@ -69,6 +69,12 @@ for (const file in fileToSlackMap) {
       text += ' ' + nextStepText;
     }
     await sendOotpMessage(text);
+
+    // Check if all teams have submitted and run simulation if they have
+    const allTeamsSubmitted = await haveAllTeamsSubmitted();
+    if (allTeamsSubmitted) {
+      await checkAndRunSimulation();
+    }
   });
 }
 for (const team in teamToSlackMap) {
@@ -198,6 +204,20 @@ async function expandArchive(prevStat) {
       'nice tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz'
     );
     await sendOotpMessage('Reports are updated.');
+
+    // Check if both system pauses are removed and mark simulation as completed
+    const state = await mongo.getSimulationState();
+    const systemPauses = state.filter(pause => pause.userId.startsWith('system_'));
+    if (systemPauses.length === 0) {
+      const runState = await mongo.getSimulationRunState();
+      if (runState && runState.status === 'scheduled') {
+        await mongo.updateSimulationRunState({
+          ...runState,
+          status: 'completed',
+          completedAt: new Date()
+        });
+      }
+    }
   } catch (e) {
     console.log('error while executing ' + e.toString());
   }
@@ -277,4 +297,20 @@ export async function getPowerRankings() {
       .html()
       .replace(/<[/]t[dh]>\n/g, '</td>')
   ).text();
+}
+
+export async function haveAllTeamsSubmitted(): Promise<boolean> {
+  try {
+    const fileToStatPromises = {};
+    for (const team of teams) {
+      fileToStatPromises[team] = stat(pathToTeamUploads + team + '.ootp');
+    }
+    
+    // Wait for all stats to complete
+    await Promise.all(Object.values(fileToStatPromises));
+    return true;
+  } catch (error) {
+    // If any file is missing, return false
+    return false;
+  }
 }

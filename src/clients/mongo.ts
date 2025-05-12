@@ -93,8 +93,37 @@ interface SimulationPause {
 }
 
 interface SimulationState {
+  _id?: ObjectId;
   lastScheduledRun: Date | null;
   skippedRun: boolean;
+  createdAt: Date;
+  completedAt?: Date;
+  status: 'scheduled' | 'skipped' | 'completed' | 'failed';
+  reason?: string;
+  triggeredBy?: string;
+  options?: {
+    backupLeagueFolder?: boolean;
+    manualImportTeams?: boolean;
+    commishCheckboxes?: {
+      [key: string]: boolean | number | undefined;
+      backup_league_files: boolean;
+      retrieve_team_exports_from_server: boolean;
+      retrieve_team_exports_from_your_pc: boolean;
+      break_if_team_files_are_missing: boolean;
+      break_if_trades_are_pending: boolean;
+      demote_release_players_with_dfa_time_left_of_x_days_or_less: boolean;
+      auto_play_days: boolean;
+      create_and_upload_league_file: boolean;
+      create_and_upload_html_reports: boolean;
+      create_sql_dump_for_ms_access: boolean;
+      create_sql_dump_for_mysql: boolean;
+      export_data_to_csv_files: boolean;
+      upload_status_report_to_server: boolean;
+      create_and_send_result_emails: boolean;
+      dfa_days_value?: number;
+      auto_play_days_value?: number;
+    };
+  };
 }
 
 export async function getSimulationState(): Promise<SimulationPause[]> {
@@ -140,16 +169,45 @@ export async function resumeAllSimulationPauses(): Promise<number> {
 export async function getSimulationRunState(): Promise<SimulationState> {
   const result = await database
     .collection('simulation_state')
-    .findOne({ _id: new ObjectId('000000000000000000000000') });
-  return (result as unknown as SimulationState) || { lastScheduledRun: null, skippedRun: false };
+    .findOne(
+      { completedAt: { $exists: false } },
+      { sort: { createdAt: -1 } }
+    );
+  return (result as unknown as SimulationState) || { 
+    lastScheduledRun: null, 
+    skippedRun: false,
+    status: 'scheduled',
+    createdAt: new Date()
+  };
 }
 
 export async function updateSimulationRunState(state: Partial<SimulationState>): Promise<void> {
-  await database
+  const currentState = await getSimulationRunState();
+  if (currentState._id) {
+    // Update existing record
+    await database
+      .collection('simulation_state')
+      .updateOne(
+        { _id: currentState._id },
+        { $set: { ...state, updatedAt: new Date() } }
+      );
+  } else {
+    // Create new record
+    await database
+      .collection('simulation_state')
+      .insertOne({
+        ...state,
+        createdAt: new Date(),
+        status: 'scheduled'
+      });
+  }
+}
+
+export async function getSimulationHistory(limit = 10): Promise<SimulationState[]> {
+  return await database
     .collection('simulation_state')
-    .updateOne(
-      { _id: new ObjectId('000000000000000000000000') },
-      { $set: state },
-      { upsert: true }
-    );
+    .find({})
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .toArray() as unknown as SimulationState[];
 }
