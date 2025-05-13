@@ -119,6 +119,27 @@ app.command('/supercluster', async ({ ack, body }) => {
 
         await sendMessage(body.channel_id, '🔄 Starting simulation...');
 
+        // Build options message
+        const activeOptions = [];
+        if (!options.backupLeagueFolder) activeOptions.push('no-backup');
+        if (options.manualImportTeams) activeOptions.push('manual-import');
+        if (options.dryRun) activeOptions.push('dry-run');
+        if (options.commishCheckboxes.auto_play_days) {
+          activeOptions.push(
+            `auto-play-days=${options.commishCheckboxes.auto_play_days_value}`
+          );
+        }
+
+        const optionsMessage =
+          activeOptions.length > 0
+            ? `\nOptions: ${activeOptions.join(', ')}`
+            : '';
+
+        await sendMessage(
+          body.channel_id,
+          `🔄 Starting simulation...${optionsMessage}`
+        );
+
         await callSimulateEndpoint(options, false);
 
         await sendMessage(
