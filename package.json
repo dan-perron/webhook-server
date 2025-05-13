@@ -34,6 +34,8 @@
     "@typescript-eslint/parser": "^6.20.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.4.0",
+    "husky": "^9.1.7",
     "prettier": "^3.2.4"
   },
   "scripts": {
@@ -44,6 +46,12 @@
     "build": "tsc -p .",
     "prestart": "yarn build",
     "start": "node built/bin/www.js",
-    "deploy": "./deploy.sh"
+    "deploy": "./deploy.sh",
+    "prepare": "husky install"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn lint:check && yarn format:check"
+    }
   }
 }

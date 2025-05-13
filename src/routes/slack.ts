@@ -6,7 +6,7 @@ export const router = express.Router();
 // Handle all Slack events and interactions
 router.post('/', async (req, res) => {
   console.log(`Received ${JSON.stringify(req.body, null, 2)} from slack.`);
-  
+
   // Handle URL verification for Slack app setup
   if (req.body.type === 'url_verification') {
     res.send(req.body.challenge);
@@ -22,7 +22,7 @@ router.post('/', async (req, res) => {
         ack: () => {
           res.send('');
           return Promise.resolve();
-        }
+        },
       });
     } catch (error) {
       console.error('Error processing slash command:', error);

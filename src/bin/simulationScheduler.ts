@@ -1,10 +1,12 @@
 import axios from 'axios';
 import config from 'config';
 import cron from 'node-cron';
-import { ObjectId } from 'mongodb';
-import * as mongo from '../clients/mongo.js';
-import { addSimulationPause, getSimulationState, getSimulationRunState, updateSimulationRunState } from '../utils/simulation.js';
-import type { SimulationRunState } from '../utils/simulation.js';
+import {
+  addSimulationPause,
+  getSimulationState,
+  getSimulationRunState,
+  updateSimulationRunState,
+} from '../utils/simulation.js';
 import { sendOotpMessage, sendOotpDebugMessage } from '../utils/slack.js';
 import { haveAllTeamsSubmitted } from './ootpFileManager.js';
 
@@ -28,35 +30,42 @@ interface CommishCheckboxConfig {
   auto_play_days_value?: number;
 }
 
-const pathToTeamUploads = '/ootp/game/team_uploads/';
-
 // Function to call the simulate endpoint
-async function callSimulateEndpoint(isResumedSimulation = false, options = { 
-  backupLeagueFolder: true,
-  manualImportTeams: false,
-  commishCheckboxes: {} as CommishCheckboxConfig
-}) {
+async function callSimulateEndpoint(
+  isResumedSimulation = false,
+  options = {
+    backupLeagueFolder: true,
+    manualImportTeams: false,
+    commishCheckboxes: {} as CommishCheckboxConfig,
+  }
+) {
   try {
     const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
-    const response = await axios.post(simulateEndpoint, {
-      backup_league_folder: options.backupLeagueFolder,
-      manual_import_teams: options.manualImportTeams,
-      commish_checkboxes: options.commishCheckboxes
-    }, {
-      headers: {
-        'Content-Type': 'application/json'
+    const response = await axios.post(
+      simulateEndpoint,
+      {
+        backup_league_folder: options.backupLeagueFolder,
+        manual_import_teams: options.manualImportTeams,
+        commish_checkboxes: options.commishCheckboxes,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }
-    });
+    );
     console.log('Simulate endpoint response:', response.data);
-    
+
     // Send response to debug channel
-    await sendOotpDebugMessage(`Simulate endpoint response: ${JSON.stringify(response.data, null, 2)}`);
-    
+    await sendOotpDebugMessage(
+      `Simulate endpoint response: ${JSON.stringify(response.data, null, 2)}`
+    );
+
     // Add system pauses for both files
     await addSimulationPause('system_league_file');
     await addSimulationPause('system_archive_file');
     console.log('Simulation automatically paused until both files are updated');
-    
+
     // Update run state
     await updateSimulationRunState({
       lastScheduledRun: new Date(),
@@ -67,23 +76,25 @@ async function callSimulateEndpoint(isResumedSimulation = false, options = {
       options: {
         backupLeagueFolder: options.backupLeagueFolder,
         manualImportTeams: options.manualImportTeams,
-        commishCheckboxes: options.commishCheckboxes
-      }
+        commishCheckboxes: options.commishCheckboxes,
+      },
     });
   } catch (error) {
     console.error('Error calling simulate endpoint:', error);
     // Send error details to debug channel
-    await sendOotpDebugMessage(`Simulate endpoint error: ${JSON.stringify(error, null, 2)}`);
-    
+    await sendOotpDebugMessage(
+      `Simulate endpoint error: ${JSON.stringify(error, null, 2)}`
+    );
+
     // Update state to failed
     await updateSimulationRunState({
       status: 'failed',
       reason: error.message,
       lastScheduledRun: new Date(),
       skippedRun: false,
-      createdAt: new Date()
+      createdAt: new Date(),
     });
-    
+
     throw error;
   }
 }
@@ -99,13 +110,13 @@ export async function checkAndRunSimulation() {
       status: 'skipped',
       reason: 'Simulation is paused',
       triggeredBy: 'scheduler',
-      createdAt: new Date()
+      createdAt: new Date(),
     });
     return;
   }
 
   const runState = await getSimulationRunState();
-  
+
   // Check if there's already a simulation in progress
   if (runState && runState.status === 'scheduled') {
     console.log('Simulation already in progress, skipping scheduled run');
@@ -114,15 +125,18 @@ export async function checkAndRunSimulation() {
 
   const lastRun = runState.lastScheduledRun;
   const now = new Date();
-  
+
   // Check if 48 hours have passed since the last run
-  const hoursSinceLastRun = (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60);
-  
+  const hoursSinceLastRun =
+    (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60);
+
   // Check if all teams have submitted their turns
   const allTeamsSubmitted = await haveAllTeamsSubmitted();
-  
+
   if (hoursSinceLastRun >= 48 || allTeamsSubmitted) {
-    const reason = allTeamsSubmitted ? 'all teams have submitted their turns' : '48-hour interval has passed';
+    const reason = allTeamsSubmitted
+      ? 'all teams have submitted their turns'
+      : '48-hour interval has passed';
     await sendOotpMessage(`🔄 Starting scheduled simulation (${reason})...`);
     try {
       await callSimulateEndpoint(false);
@@ -130,7 +144,9 @@ export async function checkAndRunSimulation() {
       await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     }
   } else {
-    console.log(`Not enough time has passed since last run (${hoursSinceLastRun.toFixed(2)} hours) and not all teams have submitted`);
+    console.log(
+      `Not enough time has passed since last run (${hoursSinceLastRun.toFixed(2)} hours) and not all teams have submitted`
+    );
   }
 }
 
@@ -140,7 +156,9 @@ export async function checkPausesRemoved() {
   if (state.length === 0) {
     const runState = await getSimulationRunState();
     if (runState.skippedRun) {
-      console.log('All pauses removed and there was a skipped run, executing now');
+      console.log(
+        'All pauses removed and there was a skipped run, executing now'
+      );
       await sendOotpMessage('🔄 Resuming previously skipped simulation...');
       try {
         await callSimulateEndpoint(true);
@@ -153,8 +171,11 @@ export async function checkPausesRemoved() {
 
 // Check every minute if it's time to run a simulation
 cron.schedule('* * * * *', () => {
-  console.log('Checking if simulation should run at:', new Date().toISOString());
+  console.log(
+    'Checking if simulation should run at:',
+    new Date().toISOString()
+  );
   checkAndRunSimulation();
 });
 
-console.log('Simulation scheduler initialized'); 
+console.log('Simulation scheduler initialized');

@@ -1,14 +1,9 @@
-import { IncomingWebhook } from '@slack/webhook';
-import axios from 'axios';
-import * as cheerio from 'cheerio';
-import child_process from 'child_process';
-import config from 'config';
-import dayjs from 'dayjs';
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
 import { watchFile } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import util from 'node:util';
-import { checkPausesRemoved, checkAndRunSimulation } from './simulationScheduler.js';
+import * as cheerio from 'cheerio';
+import child_process from 'child_process';
+import { checkAndRunSimulation } from './simulationScheduler.js';
 import { resumeSimulationPause } from '../utils/simulation.js';
 import * as mongo from '../clients/mongo.js';
 import * as s3 from '../clients/s3.js';
@@ -39,31 +34,17 @@ const pathToPowerRankings =
   '/ootp/game/reports/html/leagues/league_202_team_power_rankings_page.html';
 const pathToTeamReports = '/ootp/game/reports/html/teams/';
 
-let lastLeagueFileUpdate: Date | null = null;
-let lastArchiveUpdate: Date | null = null;
-
-async function checkAndResumeSystemPause() {
-  if (lastLeagueFileUpdate && lastArchiveUpdate) {
-    // If both files were updated within 5 minutes of each other, resume the system pause
-    const timeDiff = Math.abs(lastLeagueFileUpdate.getTime() - lastArchiveUpdate.getTime());
-    if (timeDiff < 5 * 60 * 1000) { // 5 minutes in milliseconds
-      await mongo.resumeSimulationPause('system');
-      console.log('System pause resumed after files were updated');
-    }
-  }
-}
-
 for (const file in fileToSlackMap) {
   watchFile(pathToTeamUploads + file, async (curr, prev) => {
     const oldFiles = await checkFiles(prev);
     let text = `<@${fileToSlackMap[file]}> just submitted their team's upload.`;
-    
+
     // Reset the user's pause if they have one
     const resumed = await mongo.resumeSimulationPause(fileToSlackMap[file]);
     if (resumed) {
       text += ' Their simulation pause has been automatically removed.';
     }
-    
+
     const nextStepText = await getNextStepMessage(oldFiles);
     if (nextStepText) {
       text += ' ' + nextStepText;
@@ -98,40 +79,6 @@ function humanFileSize(size: number): string {
   );
 }
 
-async function postSummary(client, lastMessage) {
-  let messages = [];
-  let cursor = undefined;
-
-  while (true) {
-    const result = await client.conversations.history({
-      channel: channelMap.ootpLog,
-      oldest: lastMessage,
-      latest: Date.now(),
-      limit: 200,
-      cursor: cursor
-    });
-    if (!result.ok) {
-      console.log('error', result);
-      break;
-    }
-    messages = messages.concat(result.messages.map((message) => {
-      return {
-        ts: message.ts,
-        user: message.user,
-        text: message.text.slice(0, 4*1024) // truncate large messages
-      };
-    }));
-    if (!result.has_more) {
-      break;
-    }
-    cursor = result.response_metadata.next_cursor;
-  }
-  const summary = await axios.post('https://ootp.bedaire.com/summary', {
-    messages,
-  });
-  await sendOotpMessage(summary.data.text);
-}
-
 watchFile(pathToLeagueFile, async () => {
   const lastSim = await mongo.getLastOOTPSim();
   let sim = new mongo.OOTPSim(new Date());
@@ -141,9 +88,7 @@ watchFile(pathToLeagueFile, async () => {
     return;
   }
   sim = await mongo.recordOOTPSim(sim);
-  // Truncate history to last 24 hours at the most.
-  const lastTimestamp = lastSim?.date?.valueOf() ?? sim.date.valueOf() - 24*60*60*1000;
-  
+
   // Remove the league file pause immediately
   await resumeSimulationPause('system_league_file');
 
@@ -153,17 +98,19 @@ watchFile(pathToLeagueFile, async () => {
   await mongo.markRemindersDone({ type: channelMap.ootpHighlights });
   try {
     const leagueFileStat = await stat(pathToLeagueFile);
-    await sendOotpMessage(`New ${humanFileSize(leagueFileStat.size)} league file uploaded <@${perronSlack}>`);
+    await sendOotpMessage(
+      `New ${humanFileSize(leagueFileStat.size)} league file uploaded <@${perronSlack}>`
+    );
     sim.fileSize = leagueFileStat.size;
     await mongo.updateOOTPSim(sim);
   } catch (e) {
-    console.log("watchLeague - Error occurred in stat file")
+    console.log('watchLeague - Error occurred in stat file');
     console.log(e);
     sim.error = e.toString();
     await mongo.updateOOTPSim(sim);
     return;
   }
-  console.log("watchLeague - Uploading league file to s3")
+  console.log('watchLeague - Uploading league file to s3');
   let retry = 0;
   while (retry < 2) {
     try {
@@ -171,7 +118,7 @@ watchFile(pathToLeagueFile, async () => {
       await sendOotpMessage(`League file uploaded to S3 ${playersString}`);
       return;
     } catch (e) {
-      console.log("watchLeague - Error occurred in sending to s3");
+      console.log('watchLeague - Error occurred in sending to s3');
       console.log(e);
     }
     retry++;
@@ -207,14 +154,16 @@ async function expandArchive(prevStat) {
 
     // Check if both system pauses are removed and mark simulation as completed
     const state = await mongo.getSimulationState();
-    const systemPauses = state.filter(pause => pause.userId.startsWith('system_'));
+    const systemPauses = state.filter((pause) =>
+      pause.userId.startsWith('system_')
+    );
     if (systemPauses.length === 0) {
       const runState = await mongo.getSimulationRunState();
       if (runState && runState.status === 'scheduled') {
         await mongo.updateSimulationRunState({
           ...runState,
           status: 'completed',
-          completedAt: new Date()
+          completedAt: new Date(),
         });
       }
     }
@@ -305,7 +254,7 @@ export async function haveAllTeamsSubmitted(): Promise<boolean> {
     for (const team of teams) {
       fileToStatPromises[team] = stat(pathToTeamUploads + team + '.ootp');
     }
-    
+
     // Wait for all stats to complete
     await Promise.all(Object.values(fileToStatPromises));
     return true;

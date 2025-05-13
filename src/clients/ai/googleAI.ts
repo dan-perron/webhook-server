@@ -17,7 +17,9 @@ import {
 export class GoogleAI implements AIClient {
   genAI = new GoogleGenerativeAI(config.get('googleai.key'));
 
-  model = this.genAI.getGenerativeModel({ model: config.get('googleai.model') });
+  model = this.genAI.getGenerativeModel({
+    model: config.get('googleai.model'),
+  });
 
   getSafetySettings() {
     return [
@@ -54,7 +56,12 @@ export class GoogleAI implements AIClient {
         };
       })
     );
-    messages.splice(-1, 0, {role: 'user', parts: `I am ${input.at(-1).name}`}, {role: 'model', parts: 'okay'})
+    messages.splice(
+      -1,
+      0,
+      { role: 'user', parts: `I am ${input.at(-1).name}` },
+      { role: 'model', parts: 'okay' }
+    );
     console.log(JSON.stringify(messages, null, 2));
     const lastMessage = messages.pop();
     const chat = await this.model.startChat({

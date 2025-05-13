@@ -14,5 +14,7 @@ export const validSlackUserIds = Object.values(teamToSlackMap);
 
 // Helper function to check if a user ID is authorized
 export function isAuthorizedUser(userId: string): boolean {
-  return validSlackUserIds.includes(userId as typeof validSlackUserIds[number]);
-} 
+  return validSlackUserIds.includes(
+    userId as (typeof validSlackUserIds)[number]
+  );
+}

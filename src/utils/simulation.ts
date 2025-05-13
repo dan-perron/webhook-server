@@ -97,6 +97,8 @@ export async function getSimulationRunState(): Promise<SimulationRunState> {
  * Updates the simulation run state
  * @param state The new run state to set
  */
-export async function updateSimulationRunState(state: SimulationRunState): Promise<void> {
+export async function updateSimulationRunState(
+  state: SimulationRunState
+): Promise<void> {
   return await mongo.updateSimulationRunState(state);
-} 
+}

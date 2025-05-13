@@ -61,10 +61,10 @@ export async function recordOOTPSim(sim: OOTPSim): Promise<OOTPSim> {
   const simCollection = database.collection('ootpSims');
   const val = await simCollection.insertOne(sim);
   sim.id = val.insertedId;
-  return sim
+  return sim;
 }
 
-export async function getLastOOTPSim(): Promise<OOTPSim|null> {
+export async function getLastOOTPSim(): Promise<OOTPSim | null> {
   const simCollection = database.collection<OOTPSim>('ootpSims');
   const sims = await simCollection
     .find({ error: { $exists: false } })
@@ -138,12 +138,10 @@ export async function getSimulationState(): Promise<SimulationPause[]> {
 export async function addSimulationPause(userId: string): Promise<void> {
   const pause: SimulationPause = {
     userId,
-    pausedAt: new Date()
+    pausedAt: new Date(),
   };
 
-  await database
-    .collection('simulation_pauses')
-    .insertOne(pause);
+  await database.collection('simulation_pauses').insertOne(pause);
 }
 
 export async function resumeSimulationPause(userId: string): Promise<boolean> {
@@ -169,19 +167,20 @@ export async function resumeAllSimulationPauses(): Promise<number> {
 export async function getSimulationRunState(): Promise<SimulationState> {
   const result = await database
     .collection('simulation_state')
-    .findOne(
-      { completedAt: { $exists: false } },
-      { sort: { createdAt: -1 } }
-    );
-  return (result as unknown as SimulationState) || { 
-    lastScheduledRun: null, 
-    skippedRun: false,
-    status: 'scheduled',
-    createdAt: new Date()
-  };
+    .findOne({ completedAt: { $exists: false } }, { sort: { createdAt: -1 } });
+  return (
+    (result as unknown as SimulationState) || {
+      lastScheduledRun: null,
+      skippedRun: false,
+      status: 'scheduled',
+      createdAt: new Date(),
+    }
+  );
 }
 
-export async function updateSimulationRunState(state: Partial<SimulationState>): Promise<void> {
+export async function updateSimulationRunState(
+  state: Partial<SimulationState>
+): Promise<void> {
   const currentState = await getSimulationRunState();
   if (currentState._id) {
     // Update existing record
@@ -193,21 +192,21 @@ export async function updateSimulationRunState(state: Partial<SimulationState>):
       );
   } else {
     // Create new record
-    await database
-      .collection('simulation_state')
-      .insertOne({
-        ...state,
-        createdAt: new Date(),
-        status: 'scheduled'
-      });
+    await database.collection('simulation_state').insertOne({
+      ...state,
+      createdAt: new Date(),
+      status: 'scheduled',
+    });
   }
 }
 
-export async function getSimulationHistory(limit = 10): Promise<SimulationState[]> {
-  return await database
+export async function getSimulationHistory(
+  limit = 10
+): Promise<SimulationState[]> {
+  return (await database
     .collection('simulation_state')
     .find({})
     .sort({ createdAt: -1 })
     .limit(limit)
-    .toArray() as unknown as SimulationState[];
+    .toArray()) as unknown as SimulationState[];
 }

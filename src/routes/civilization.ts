@@ -1,10 +1,9 @@
 import express from 'express';
-import config from 'config';
 import hash from 'object-hash';
 import { channelMap } from '../clients/slack.js';
 import { sendSlackMessage } from '../utils/slack.js';
 
-export const router = express.Router();
+const router = express.Router();
 
 const receivedWebhooks = {};
 const playerMap = {
