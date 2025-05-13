@@ -53,3 +53,5 @@ router.post('/', async (req, res) => {
   await civWebhookHandler(req.body);
   res.send('Ok\n');
 });
+
+export default router;

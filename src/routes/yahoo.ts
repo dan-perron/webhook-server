@@ -1,5 +1,5 @@
 import express from 'express';
-export const router = express.Router();
+const router = express.Router();
 
 import * as fantasy from '../clients/fantasy.js';
 
@@ -17,3 +17,5 @@ router.get('/callback', (req, res) => {
     return res.redirect('/');
   });
 });
+
+export default router;

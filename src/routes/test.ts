@@ -10,3 +10,5 @@ router.post('/', async (req, res) => {
   await sendOotpMessage(req.body.text || JSON.stringify(req.body));
   res.send('Ok\n');
 });
+
+export default router;

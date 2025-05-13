@@ -1,11 +1,11 @@
 import createError from 'http-errors';
 import express from 'express';
 
-import * as civilizationRouter from './routes/civilization.js';
-import * as slackRouter from './routes/slack.js';
-import * as testRouter from './routes/test.js';
-import * as indexRouter from './routes/index.js';
-import * as yahooRouter from './routes/yahoo.js';
+import civilizationRouter from './routes/civilization.js';
+import slackRouter from './routes/slack.js';
+import testRouter from './routes/test.js';
+import indexRouter from './routes/index.js';
+import yahooRouter from './routes/yahoo.js';
 import './bin/ootpFileManager.js';
 import './bin/slackApi.js';
 import './bin/simulationScheduler.js';
@@ -14,11 +14,11 @@ export const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.use('/civilization', civilizationRouter.router);
-app.use('/slack', slackRouter.router);
-app.use('/test', testRouter.router);
-app.use('/yahoo', yahooRouter.router);
-app.use('/', indexRouter.router);
+app.use('/civilization', civilizationRouter);
+app.use('/slack', slackRouter);
+app.use('/test', testRouter);
+app.use('/yahoo', yahooRouter);
+app.use('/', indexRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

@@ -1,7 +1,7 @@
 import express from 'express';
 import { app } from '../clients/slack.js';
 
-export const router = express.Router();
+const router = express.Router();
 
 // Handle all Slack events and interactions
 router.post('/', async (req, res) => {
@@ -34,3 +34,5 @@ router.post('/', async (req, res) => {
   // For other events, just acknowledge receipt
   res.send('Ok\n');
 });
+
+export default router;
