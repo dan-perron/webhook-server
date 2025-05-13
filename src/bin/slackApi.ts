@@ -74,6 +74,7 @@ app.command('/supercluster', async ({ ack, body }) => {
     backupLeagueFolder: true,
     manualImportTeams: false,
     commishCheckboxes: {} as CommishCheckboxConfig,
+    dryRun: false,
   };
 
   switch (action) {
@@ -102,6 +103,7 @@ app.command('/supercluster', async ({ ack, body }) => {
         // Parse command arguments
         options.backupLeagueFolder = !args.includes('--no-backup');
         options.manualImportTeams = args.includes('--manual-import');
+        options.dryRun = args.includes('--dry-run');
 
         // Add any additional commish checkbox options
         if (args.includes('--days')) {
@@ -287,6 +289,7 @@ app.command('/supercluster', async ({ ack, body }) => {
 *Simulation Flags:*
 • \`--no-backup\` - Run without backup
 • \`--import-teams\` - Run with team imports
+• \`--dry-run\` - Run simulation in dry-run mode
 
 *Numeric Settings:*
 • \`--days N\` - Set auto-play days value (e.g. \`--days 3\`)
