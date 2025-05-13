@@ -42,9 +42,7 @@ export async function callSimulateEndpoint(
   },
   isResumedSimulation = false
 ) {
-  // Ensure default 7 days unless overridden
   if (options.commishCheckboxes.auto_play_days_value === undefined) {
-    options.commishCheckboxes.auto_play_days = true;
     options.commishCheckboxes.auto_play_days_value = 7;
   }
 
