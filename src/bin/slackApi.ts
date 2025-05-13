@@ -60,9 +60,9 @@ app.command('/supercluster', async ({ ack, body, client }) => {
     return;
   }
 
-  const [action, subAction, ...args] = text.split(' ');
+  const [action, ...args] = text.split(' ');
   console.log(
-    `[Supercluster] Parsed command: action=${action}, subAction=${subAction}, args=${args.join(' ')}`
+    `[Supercluster] Parsed command: action=${action}, args=${args.join(' ')}`
   );
 
   const options = {
@@ -139,7 +139,8 @@ app.command('/supercluster', async ({ ack, body, client }) => {
       });
       break;
 
-    case 'resume':
+    case 'resume': {
+      const subAction = args[0];
       if (subAction === 'all') {
         console.log(
           `[Supercluster] User ${body.user_id} resuming all simulation pauses`
@@ -173,7 +174,7 @@ app.command('/supercluster', async ({ ack, body, client }) => {
         }
       }
       break;
-
+    }
     case 'status': {
       console.log(
         `[Supercluster] User ${body.user_id} checking simulation status`
