@@ -72,9 +72,64 @@ app.command('/supercluster', async ({ ack, body, client }) => {
   };
 
   switch (action) {
-    case 'simulate':
-      await callSimulateEndpoint(options);
+    case 'simulate': {
+      try {
+        // Check if simulation is already paused
+        const state = await getSimulationState();
+        if (state.length > 0) {
+          await client.chat.postMessage({
+            channel: body.channel_id,
+            text: '❌ Simulation is already paused. Please resume it first.',
+          });
+          return;
+        }
+
+        // Check if there's already a simulation in progress
+        const runState = await getSimulationRunState();
+        if (runState && runState.status === 'scheduled') {
+          await client.chat.postMessage({
+            channel: body.channel_id,
+            text: '❌ A simulation is already in progress.',
+          });
+          return;
+        }
+
+        // Parse command arguments
+        options.backupLeagueFolder = !args.includes('--no-backup');
+        options.manualImportTeams = args.includes('--manual-import');
+
+        // Add any additional commish checkbox options
+        if (args.includes('--days')) {
+          const daysIndex = args.indexOf('--days');
+          if (daysIndex < args.length - 1) {
+            const days = parseInt(args[daysIndex + 1], 10);
+            if (!isNaN(days)) {
+              options.commishCheckboxes.auto_play_days = true;
+              options.commishCheckboxes.auto_play_days_value = days;
+            }
+          }
+        }
+
+        await client.chat.postMessage({
+          channel: body.channel_id,
+          text: '🔄 Starting simulation...',
+        });
+
+        await callSimulateEndpoint(options, false);
+
+        await client.chat.postMessage({
+          channel: body.channel_id,
+          text: '✅ Simulation started successfully!',
+        });
+      } catch (error) {
+        console.error('Error in simulation command:', error);
+        await client.chat.postMessage({
+          channel: body.channel_id,
+          text: `❌ Error starting simulation: ${error.message}`,
+        });
+      }
       break;
+    }
     case 'pause':
       console.log(`[Supercluster] User ${body.user_id} pausing simulation`);
       await addSimulationPause(body.user_id);
@@ -227,28 +282,11 @@ app.command('/supercluster', async ({ ack, body, client }) => {
 • \`/supercluster simulate\` - Force a simulation to run (admin only)
 
 *Simulation Flags:*
-• \`--no-backup\` or \`backup:false\` - Run without backup
-• \`--import-teams\` or \`import:true\` - Run with team imports
-
-*Checkbox Settings:*
-• \`--no-backup-files\` or \`backup_files:false\` - Disable league file backup
-• \`--no-server-exports\` or \`server_exports:false\` - Disable server exports
-• \`--pc-exports\` or \`pc_exports:true\` - Enable PC exports
-• \`--break-missing-files\` or \`break_missing_files:true\` - Break on missing files
-• \`--break-pending-trades\` or \`break_pending_trades:true\` - Break on pending trades
-• \`--demote-dfa\` or \`demote_dfa:true\` - Enable DFA demotion
-• \`--no-auto-play\` or \`auto_play:false\` - Disable auto-play
-• \`--no-upload-league\` or \`upload_league:false\` - Disable league upload
-• \`--no-upload-reports\` or \`upload_reports:false\` - Disable report upload
-• \`--ms-access\` or \`ms_access:true\` - Enable MS Access dump
-• \`--mysql\` or \`mysql:true\` - Enable MySQL dump
-• \`--csv\` or \`csv:true\` - Enable CSV export
-• \`--no-status-report\` or \`status_report:false\` - Disable status report
-• \`--no-emails\` or \`emails:false\` - Disable result emails
+• \`--no-backup\` - Run without backup
+• \`--import-teams\` - Run with team imports
 
 *Numeric Settings:*
-• \`dfa_days:N\` - Set DFA days value (e.g. \`dfa_days:7\`)
-• \`auto_play_days:N\` - Set auto-play days value (e.g. \`auto_play_days:3\`)
+• \`--days N\` - Set auto-play days value (e.g. \`--days 3\`)
 
 *How it works:*
 • Multiple users can pause the simulation simultaneously
@@ -467,72 +505,6 @@ app.event('app_mention', async ({ event, say }) => {
   console.log(text);
   await say({ text, thread_ts: event.thread_ts || event.ts });
   return;
-});
-
-// Update the /simulate command handler to use the imported function
-app.command('/simulate', async ({ ack, body, client }) => {
-  await ack();
-  const channelId = body.channel_id;
-
-  try {
-    // Check if simulation is already paused
-    const state = await getSimulationState();
-    if (state.length > 0) {
-      await client.chat.postMessage({
-        channel: channelId,
-        text: '❌ Simulation is already paused. Please resume it first.',
-      });
-      return;
-    }
-
-    // Check if there's already a simulation in progress
-    const runState = await getSimulationRunState();
-    if (runState && runState.status === 'scheduled') {
-      await client.chat.postMessage({
-        channel: channelId,
-        text: '❌ A simulation is already in progress.',
-      });
-      return;
-    }
-
-    // Parse the command text to get options
-    const args = body.text.split(' ');
-    const options = {
-      backupLeagueFolder: !args.includes('--no-backup'),
-      manualImportTeams: args.includes('--manual-import'),
-      commishCheckboxes: {} as CommishCheckboxConfig,
-    };
-
-    // Add any additional commish checkbox options
-    if (args.includes('--days')) {
-      const daysIndex = args.indexOf('--days');
-      if (daysIndex < args.length - 1) {
-        const days = parseInt(args[daysIndex + 1], 10);
-        if (!isNaN(days)) {
-          options.commishCheckboxes.auto_play_days = true;
-          options.commishCheckboxes.auto_play_days_value = days;
-        }
-      }
-    }
-
-    await client.chat.postMessage({
-      channel: channelId,
-      text: '🔄 Starting simulation...',
-    });
-
-    await callSimulateEndpoint(options, false);
-
-    await client.chat.postMessage({
-      channel: channelId,
-      text: '✅ Simulation started successfully!',
-    });
-  } catch (error) {
-    console.error('Error in /simulate command:', error);
-    await client.chat.postMessage({
-      channel: channelId,
-      text: `❌ Error starting simulation: ${error.message}`,
-    });
-  }
 });
 
 (async () => {
