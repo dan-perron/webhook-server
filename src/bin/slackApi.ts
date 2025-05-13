@@ -7,7 +7,12 @@ import { GoogleAI } from '../clients/ai/googleAI.js';
 import { OpenAI } from '../clients/ai/openai.js';
 import * as fantasy from '../clients/fantasy.js';
 import * as mongo from '../clients/mongo.js';
-import { app, channelMap } from '../clients/slack.js';
+import {
+  app,
+  channelMap,
+  sendMessage,
+  sendEphemeralMessage,
+} from '../clients/slack.js';
 import { isAuthorizedUser } from '../consts/slack.js';
 import { getBotMessage, getPowerRankings, teams } from './ootpFileManager.js';
 import {
@@ -42,7 +47,7 @@ interface CommishCheckboxConfig {
 }
 
 // Add slash command to control simulation
-app.command('/supercluster', async ({ ack, body, client }) => {
+app.command('/supercluster', async ({ ack, body }) => {
   await ack();
   const text = body.text.trim().toLowerCase();
 
@@ -52,11 +57,11 @@ app.command('/supercluster', async ({ ack, body, client }) => {
     console.log(
       `[Supercluster] Unauthorized access attempt from user ${body.user_id}`
     );
-    await client.chat.postEphemeral({
-      channel: body.channel_id,
-      user: body.user_id,
-      text: "You don't have permission to control the simulation.",
-    });
+    await sendEphemeralMessage(
+      body.channel_id,
+      body.user_id,
+      "You don't have permission to control the simulation."
+    );
     return;
   }
 
@@ -77,20 +82,20 @@ app.command('/supercluster', async ({ ack, body, client }) => {
         // Check if simulation is already paused
         const state = await getSimulationState();
         if (state.length > 0) {
-          await client.chat.postMessage({
-            channel: body.channel_id,
-            text: '❌ Simulation is already paused. Please resume it first.',
-          });
+          await sendMessage(
+            body.channel_id,
+            '❌ Simulation is already paused. Please resume it first.'
+          );
           return;
         }
 
         // Check if there's already a simulation in progress
         const runState = await getSimulationRunState();
         if (runState && runState.status === 'scheduled') {
-          await client.chat.postMessage({
-            channel: body.channel_id,
-            text: '❌ A simulation is already in progress.',
-          });
+          await sendMessage(
+            body.channel_id,
+            '❌ A simulation is already in progress.'
+          );
           return;
         }
 
@@ -110,33 +115,30 @@ app.command('/supercluster', async ({ ack, body, client }) => {
           }
         }
 
-        await client.chat.postMessage({
-          channel: body.channel_id,
-          text: '🔄 Starting simulation...',
-        });
+        await sendMessage(body.channel_id, '🔄 Starting simulation...');
 
         await callSimulateEndpoint(options, false);
 
-        await client.chat.postMessage({
-          channel: body.channel_id,
-          text: '✅ Simulation started successfully!',
-        });
+        await sendMessage(
+          body.channel_id,
+          '✅ Simulation started successfully!'
+        );
       } catch (error) {
         console.error('Error in simulation command:', error);
-        await client.chat.postMessage({
-          channel: body.channel_id,
-          text: `❌ Error starting simulation: ${error.message}`,
-        });
+        await sendMessage(
+          body.channel_id,
+          `❌ Error starting simulation: ${error.message}`
+        );
       }
       break;
     }
     case 'pause':
       console.log(`[Supercluster] User ${body.user_id} pausing simulation`);
       await addSimulationPause(body.user_id);
-      await client.chat.postMessage({
-        channel: body.channel_id,
-        text: `<@${body.user_id}> Simulation paused. It will remain paused until you resume it.`,
-      });
+      await sendMessage(
+        body.channel_id,
+        `<@${body.user_id}> Simulation paused. It will remain paused until you resume it.`
+      );
       break;
 
     case 'resume': {
@@ -146,10 +148,10 @@ app.command('/supercluster', async ({ ack, body, client }) => {
           `[Supercluster] User ${body.user_id} resuming all simulation pauses`
         );
         const count = await resumeAllSimulationPauses();
-        await client.chat.postMessage({
-          channel: body.channel_id,
-          text: `<@${body.user_id}> Resumed all simulation pauses (${count} total).`,
-        });
+        await sendMessage(
+          body.channel_id,
+          `<@${body.user_id}> Resumed all simulation pauses (${count} total).`
+        );
       } else {
         console.log(
           `[Supercluster] User ${body.user_id} attempting to resume their pause`
@@ -159,18 +161,18 @@ app.command('/supercluster', async ({ ack, body, client }) => {
           console.log(
             `[Supercluster] Successfully resumed pause for user ${body.user_id}`
           );
-          await client.chat.postMessage({
-            channel: body.channel_id,
-            text: `<@${body.user_id}> Your simulation pause has been removed.`,
-          });
+          await sendMessage(
+            body.channel_id,
+            `<@${body.user_id}> Your simulation pause has been removed.`
+          );
         } else {
           console.log(
             `[Supercluster] No active pause found for user ${body.user_id}`
           );
-          await client.chat.postMessage({
-            channel: body.channel_id,
-            text: `<@${body.user_id}> You don't have an active simulation pause.`,
-          });
+          await sendMessage(
+            body.channel_id,
+            `<@${body.user_id}> You don't have an active simulation pause.`
+          );
         }
       }
       break;
@@ -261,19 +263,19 @@ app.command('/supercluster', async ({ ack, body, client }) => {
         });
       }
 
-      await client.chat.postMessage({
-        channel: body.channel_id,
-        text: `<@${body.user_id}> ${message}${nextSimMessage}\n\n${botStatus}`,
-      });
+      await sendMessage(
+        body.channel_id,
+        `<@${body.user_id}> ${message}${nextSimMessage}\n\n${botStatus}`
+      );
       break;
     }
 
     case 'help':
       console.log(`[Supercluster] User ${body.user_id} requested help`);
-      await client.chat.postEphemeral({
-        channel: body.channel_id,
-        user: body.user_id,
-        text: `*Supercluster Simulation Control*
+      await sendEphemeralMessage(
+        body.channel_id,
+        body.user_id,
+        `*Supercluster Simulation Control*
 
 *Commands:*
 • \`/supercluster pause\` - Pause the simulation
@@ -294,19 +296,19 @@ app.command('/supercluster', async ({ ack, body, client }) => {
 • Each user can only resume their own pause
 • The simulation will not run while any pause is active
 • System pauses are automatically added after each simulation
-• System pauses are removed when files are updated`,
-      });
+• System pauses are removed when files are updated`
+      );
       break;
 
     default:
       console.log(
         `[Supercluster] Unknown command from user ${body.user_id}: ${action}`
       );
-      await client.chat.postEphemeral({
-        channel: body.channel_id,
-        user: body.user_id,
-        text: 'Unknown command. Use `/supercluster help` to see available commands.',
-      });
+      await sendEphemeralMessage(
+        body.channel_id,
+        body.user_id,
+        'Unknown command. Use `/supercluster help` to see available commands.'
+      );
   }
 });
 

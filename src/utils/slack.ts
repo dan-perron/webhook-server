@@ -1,7 +1,5 @@
 import { WebClient } from '@slack/web-api';
-import { IncomingWebhook } from '@slack/webhook';
-import config from 'config';
-import { app } from '../clients/slack.js';
+import { channelMap, sendMessage } from '../clients/slack.js';
 
 interface SlackMessage {
   text: string;
@@ -32,15 +30,7 @@ export async function sendSlackMessage(
   text: string,
   options: Record<string, unknown> = {}
 ): Promise<void> {
-  try {
-    await app.client.chat.postMessage({
-      channel,
-      text,
-      ...options,
-    });
-  } catch (error) {
-    console.error('Error sending Slack message:', error);
-  }
+  await sendMessage(channel, text, options);
 }
 
 /**
@@ -49,8 +39,7 @@ export async function sendSlackMessage(
  * @param options Additional options for the message (e.g., thread_ts)
  */
 export async function sendOotpMessage(text: string): Promise<void> {
-  const webhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
-  await webhook.send({ text });
+  await sendMessage(channelMap.ootpHighlights, text);
 }
 
 /**
@@ -59,10 +48,7 @@ export async function sendOotpMessage(text: string): Promise<void> {
  * @param options Additional options for the message (e.g., thread_ts)
  */
 export async function sendOotpDebugMessage(text: string): Promise<void> {
-  const webhook = new IncomingWebhook(
-    config.get('slack.webhookUrls.ootpDebug')
-  );
-  await webhook.send({ text });
+  await sendMessage(channelMap.ootpDebug, text);
 }
 
 export async function postSummary(
@@ -75,7 +61,7 @@ export async function postSummary(
   let hasMore = true;
   while (hasMore) {
     const result = (await client.conversations.history({
-      channel: config.get('slack.channels.ootpLog'),
+      channel: channelMap.ootpLog,
       oldest: lastMessage,
       latest: Date.now().toString(),
       limit: 200,

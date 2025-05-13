@@ -25,7 +25,6 @@ const config = {
     appToken: null,
     signingSecret: null,
     token: null,
-    webhookUrls: { civilization: null, test: null, ootp: null },
   },
   simulation: {
     hostname: 'windows-facilitator',
