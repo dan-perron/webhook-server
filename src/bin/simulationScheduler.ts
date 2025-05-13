@@ -1,14 +1,12 @@
-import axios from 'axios';
-import config from 'config';
-import cron from 'node-cron';
 import {
-  addSimulationPause,
   getSimulationState,
   getSimulationRunState,
   updateSimulationRunState,
 } from '../utils/simulation.js';
-import { sendOotpMessage, sendOotpDebugMessage } from '../utils/slack.js';
+import { sendOotpMessage } from '../utils/slack.js';
 import { haveAllTeamsSubmitted } from './ootpFileManager.js';
+import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
+import cron from 'node-cron';
 
 interface CommishCheckboxConfig {
   [key: string]: boolean | number | undefined;
@@ -28,75 +26,6 @@ interface CommishCheckboxConfig {
   create_and_send_result_emails: boolean;
   dfa_days_value?: number;
   auto_play_days_value?: number;
-}
-
-// Function to call the simulate endpoint
-async function callSimulateEndpoint(
-  isResumedSimulation = false,
-  options = {
-    backupLeagueFolder: true,
-    manualImportTeams: false,
-    commishCheckboxes: {} as CommishCheckboxConfig,
-  }
-) {
-  try {
-    const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
-    const response = await axios.post(
-      simulateEndpoint,
-      {
-        backup_league_folder: options.backupLeagueFolder,
-        manual_import_teams: options.manualImportTeams,
-        commish_checkboxes: options.commishCheckboxes,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    console.log('Simulate endpoint response:', response.data);
-
-    // Send response to debug channel
-    await sendOotpDebugMessage(
-      `Simulate endpoint response: ${JSON.stringify(response.data, null, 2)}`
-    );
-
-    // Add system pauses for both files
-    await addSimulationPause('system_league_file');
-    await addSimulationPause('system_archive_file');
-    console.log('Simulation automatically paused until both files are updated');
-
-    // Update run state
-    await updateSimulationRunState({
-      lastScheduledRun: new Date(),
-      skippedRun: false,
-      status: 'scheduled',
-      triggeredBy: isResumedSimulation ? 'resumed' : 'scheduled',
-      createdAt: new Date(),
-      options: {
-        backupLeagueFolder: options.backupLeagueFolder,
-        manualImportTeams: options.manualImportTeams,
-        commishCheckboxes: options.commishCheckboxes,
-      },
-    });
-  } catch (error) {
-    console.error('Error calling simulate endpoint:', error);
-    // Send error details to debug channel
-    await sendOotpDebugMessage(
-      `Simulate endpoint error: ${JSON.stringify(error, null, 2)}`
-    );
-
-    // Update state to failed
-    await updateSimulationRunState({
-      status: 'failed',
-      reason: error.message,
-      lastScheduledRun: new Date(),
-      skippedRun: false,
-      createdAt: new Date(),
-    });
-
-    throw error;
-  }
 }
 
 // Function to check if we need to run a simulation
@@ -139,7 +68,14 @@ export async function checkAndRunSimulation() {
       : '48-hour interval has passed';
     await sendOotpMessage(`🔄 Starting scheduled simulation (${reason})...`);
     try {
-      await callSimulateEndpoint(false);
+      await callSimulateEndpoint(
+        {
+          backupLeagueFolder: true,
+          manualImportTeams: false,
+          commishCheckboxes: {} as CommishCheckboxConfig,
+        },
+        false
+      );
     } catch (error) {
       await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     }
@@ -161,7 +97,14 @@ export async function checkPausesRemoved() {
       );
       await sendOotpMessage('🔄 Resuming previously skipped simulation...');
       try {
-        await callSimulateEndpoint(true);
+        await callSimulateEndpoint(
+          {
+            backupLeagueFolder: true,
+            manualImportTeams: false,
+            commishCheckboxes: {} as CommishCheckboxConfig,
+          },
+          true
+        );
       } catch (error) {
         await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
       }

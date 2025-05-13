@@ -17,8 +17,8 @@ import {
   getSimulationState,
   getSimulationRunState,
 } from '../utils/simulation.js';
-import { sendOotpDebugMessage } from '../utils/slack.js';
 import dayjs from 'dayjs';
+import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 
 // Define the checkbox config interface
 interface CommishCheckboxConfig {
@@ -41,67 +41,20 @@ interface CommishCheckboxConfig {
   auto_play_days_value?: number;
 }
 
-// Function to call the simulate endpoint
-async function callSimulateEndpoint(
-  options = {
-    backupLeagueFolder: true,
-    manualImportTeams: false,
-    commishCheckboxes: {} as CommishCheckboxConfig,
-  }
-) {
-  try {
-    const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
-    const response = await axios.post(
-      simulateEndpoint,
-      {
-        backup_league_folder: options.backupLeagueFolder,
-        manual_import_teams: options.manualImportTeams,
-        commish_checkboxes: options.commishCheckboxes,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    console.log('Simulate endpoint response:', response.data);
-
-    // Send response to debug channel
-    await sendOotpDebugMessage(
-      `Simulate endpoint response: ${JSON.stringify(response.data, null, 2)}`
-    );
-
-    // Add system pauses for both files
-    await addSimulationPause('system_league_file');
-    await addSimulationPause('system_archive_file');
-    console.log('Simulation automatically paused until both files are updated');
-
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error('Error calling simulate endpoint:', error);
-    // Send error details to debug channel
-    await sendOotpDebugMessage(
-      `Simulate endpoint error: ${JSON.stringify(error, null, 2)}`
-    );
-    return { success: false, error };
-  }
-}
-
 // Add slash command to control simulation
 app.command('/supercluster', async ({ ack, body, client }) => {
   await ack();
-  const userId = body.user_id;
   const text = body.text.trim().toLowerCase();
 
-  console.log(`[Supercluster] Command received from user ${userId}: ${text}`);
+  console.log(`[Supercluster] Command received: ${text}`);
 
-  if (!isAuthorizedUser(userId)) {
+  if (!isAuthorizedUser(body.user_id)) {
     console.log(
-      `[Supercluster] Unauthorized access attempt from user ${userId}`
+      `[Supercluster] Unauthorized access attempt from user ${body.user_id}`
     );
     await client.chat.postEphemeral({
       channel: body.channel_id,
-      user: userId,
+      user: body.user_id,
       text: "You don't have permission to control the simulation.",
     });
     return;
@@ -122,56 +75,54 @@ app.command('/supercluster', async ({ ack, body, client }) => {
     case 'simulate':
       await callSimulateEndpoint(options);
       break;
-    case 'simulate_manual':
-      options.manualImportTeams = true;
-      await callSimulateEndpoint(options);
-      break;
     case 'pause':
-      console.log(`[Supercluster] User ${userId} pausing simulation`);
-      await addSimulationPause(userId);
+      console.log(`[Supercluster] User ${body.user_id} pausing simulation`);
+      await addSimulationPause(body.user_id);
       await client.chat.postMessage({
         channel: body.channel_id,
-        text: `<@${userId}> Simulation paused. It will remain paused until you resume it.`,
+        text: `<@${body.user_id}> Simulation paused. It will remain paused until you resume it.`,
       });
       break;
 
     case 'resume':
       if (subAction === 'all') {
         console.log(
-          `[Supercluster] User ${userId} resuming all simulation pauses`
+          `[Supercluster] User ${body.user_id} resuming all simulation pauses`
         );
         const count = await resumeAllSimulationPauses();
         await client.chat.postMessage({
           channel: body.channel_id,
-          text: `<@${userId}> Resumed all simulation pauses (${count} total).`,
+          text: `<@${body.user_id}> Resumed all simulation pauses (${count} total).`,
         });
       } else {
         console.log(
-          `[Supercluster] User ${userId} attempting to resume their pause`
+          `[Supercluster] User ${body.user_id} attempting to resume their pause`
         );
-        const resumed = await resumeSimulationPause(userId);
+        const resumed = await resumeSimulationPause(body.user_id);
         if (resumed) {
           console.log(
-            `[Supercluster] Successfully resumed pause for user ${userId}`
+            `[Supercluster] Successfully resumed pause for user ${body.user_id}`
           );
           await client.chat.postMessage({
             channel: body.channel_id,
-            text: `<@${userId}> Your simulation pause has been removed.`,
+            text: `<@${body.user_id}> Your simulation pause has been removed.`,
           });
         } else {
           console.log(
-            `[Supercluster] No active pause found for user ${userId}`
+            `[Supercluster] No active pause found for user ${body.user_id}`
           );
           await client.chat.postMessage({
             channel: body.channel_id,
-            text: `<@${userId}> You don't have an active simulation pause.`,
+            text: `<@${body.user_id}> You don't have an active simulation pause.`,
           });
         }
       }
       break;
 
     case 'status': {
-      console.log(`[Supercluster] User ${userId} checking simulation status`);
+      console.log(
+        `[Supercluster] User ${body.user_id} checking simulation status`
+      );
       const state = await getSimulationState();
       const botStatus = await getBotMessage();
       const runState = await getSimulationRunState();
@@ -256,16 +207,16 @@ app.command('/supercluster', async ({ ack, body, client }) => {
 
       await client.chat.postMessage({
         channel: body.channel_id,
-        text: `<@${userId}> ${message}${nextSimMessage}\n\n${botStatus}`,
+        text: `<@${body.user_id}> ${message}${nextSimMessage}\n\n${botStatus}`,
       });
       break;
     }
 
     case 'help':
-      console.log(`[Supercluster] User ${userId} requested help`);
+      console.log(`[Supercluster] User ${body.user_id} requested help`);
       await client.chat.postEphemeral({
         channel: body.channel_id,
-        user: userId,
+        user: body.user_id,
         text: `*Supercluster Simulation Control*
 
 *Commands:*
@@ -310,11 +261,11 @@ app.command('/supercluster', async ({ ack, body, client }) => {
 
     default:
       console.log(
-        `[Supercluster] Unknown command from user ${userId}: ${action}`
+        `[Supercluster] Unknown command from user ${body.user_id}: ${action}`
       );
       await client.chat.postEphemeral({
         channel: body.channel_id,
-        user: userId,
+        user: body.user_id,
         text: 'Unknown command. Use `/supercluster help` to see available commands.',
       });
   }
@@ -516,6 +467,72 @@ app.event('app_mention', async ({ event, say }) => {
   console.log(text);
   await say({ text, thread_ts: event.thread_ts || event.ts });
   return;
+});
+
+// Update the /simulate command handler to use the imported function
+app.command('/simulate', async ({ ack, body, client }) => {
+  await ack();
+  const channelId = body.channel_id;
+
+  try {
+    // Check if simulation is already paused
+    const state = await getSimulationState();
+    if (state.length > 0) {
+      await client.chat.postMessage({
+        channel: channelId,
+        text: '❌ Simulation is already paused. Please resume it first.',
+      });
+      return;
+    }
+
+    // Check if there's already a simulation in progress
+    const runState = await getSimulationRunState();
+    if (runState && runState.status === 'scheduled') {
+      await client.chat.postMessage({
+        channel: channelId,
+        text: '❌ A simulation is already in progress.',
+      });
+      return;
+    }
+
+    // Parse the command text to get options
+    const args = body.text.split(' ');
+    const options = {
+      backupLeagueFolder: !args.includes('--no-backup'),
+      manualImportTeams: args.includes('--manual-import'),
+      commishCheckboxes: {} as CommishCheckboxConfig,
+    };
+
+    // Add any additional commish checkbox options
+    if (args.includes('--days')) {
+      const daysIndex = args.indexOf('--days');
+      if (daysIndex < args.length - 1) {
+        const days = parseInt(args[daysIndex + 1], 10);
+        if (!isNaN(days)) {
+          options.commishCheckboxes.auto_play_days = true;
+          options.commishCheckboxes.auto_play_days_value = days;
+        }
+      }
+    }
+
+    await client.chat.postMessage({
+      channel: channelId,
+      text: '🔄 Starting simulation...',
+    });
+
+    await callSimulateEndpoint(options, false);
+
+    await client.chat.postMessage({
+      channel: channelId,
+      text: '✅ Simulation started successfully!',
+    });
+  } catch (error) {
+    console.error('Error in /simulate command:', error);
+    await client.chat.postMessage({
+      channel: channelId,
+      text: `❌ Error starting simulation: ${error.message}`,
+    });
+  }
 });
 
 (async () => {
