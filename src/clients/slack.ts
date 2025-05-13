@@ -12,6 +12,32 @@ export const app = new App({
   // port: process.env.PORT || 3000
 });
 
+// Add error handling
+app.error(async (error) => {
+  console.error('Slack app error:', error);
+});
+
+// Add basic event handling
+app.event('message', async ({ event }) => {
+  try {
+    // Handle message events
+    console.log('Received message event:', event);
+  } catch (error) {
+    console.error('Error handling message event:', error);
+  }
+});
+
+// Start the app
+(async () => {
+  try {
+    await app.start();
+    console.log('⚡️ Bolt app is running!');
+  } catch (error) {
+    console.error('Error starting Slack app:', error);
+    process.exit(1);
+  }
+})();
+
 export const channelMap = {
   cabin: 'C6BB7U95Z',
   ootpHighlights: 'C04J9TWRNJ3',
