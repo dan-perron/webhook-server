@@ -49,7 +49,7 @@ export async function sendSlackMessage(
  * @param options Additional options for the message (e.g., thread_ts)
  */
 export async function sendOotpMessage(text: string): Promise<void> {
-  const webhook = new IncomingWebhook(config.get('slack.webhookUrl'));
+  const webhook = new IncomingWebhook(config.get('slack.webhookUrls.ootp'));
   await webhook.send({ text });
 }
 
@@ -59,7 +59,7 @@ export async function sendOotpMessage(text: string): Promise<void> {
  * @param options Additional options for the message (e.g., thread_ts)
  */
 export async function sendOotpDebugMessage(text: string): Promise<void> {
-  const webhook = new IncomingWebhook(config.get('slack.debugWebhookUrl'));
+  const webhook = new IncomingWebhook(config.get('slack.webhookUrls.test'));
   await webhook.send({ text });
 }
 
