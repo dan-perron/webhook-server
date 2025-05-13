@@ -507,8 +507,3 @@ app.event('app_mention', async ({ event, say }) => {
   await say({ text, thread_ts: event.thread_ts || event.ts });
   return;
 });
-
-(async () => {
-  await app.start();
-  console.log('⚡️ Bolt app started');
-})();

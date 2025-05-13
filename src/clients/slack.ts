@@ -17,16 +17,6 @@ app.error(async (error) => {
   console.error('Slack app error:', error);
 });
 
-// Add basic event handling
-app.event('message', async ({ event }) => {
-  try {
-    // Handle message events
-    console.log('Received message event:', event);
-  } catch (error) {
-    console.error('Error handling message event:', error);
-  }
-});
-
 // Start the app
 (async () => {
   try {
