@@ -31,6 +31,7 @@ interface CommishCheckboxConfig {
 interface SimulateOptions {
   backupLeagueFolder: boolean;
   manualImportTeams: boolean;
+  dryRun: boolean;
   commishCheckboxes: CommishCheckboxConfig;
 }
 
@@ -38,6 +39,7 @@ export async function callSimulateEndpoint(
   options: SimulateOptions = {
     backupLeagueFolder: true,
     manualImportTeams: false,
+    dryRun: false,
     commishCheckboxes: {} as CommishCheckboxConfig,
   },
   isResumedSimulation = false
@@ -48,19 +50,11 @@ export async function callSimulateEndpoint(
 
   try {
     const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
-    const response = await axios.post(
-      simulateEndpoint,
-      {
-        backup_league_folder: options.backupLeagueFolder,
-        manual_import_teams: options.manualImportTeams,
-        commish_checkboxes: options.commishCheckboxes,
+    const response = await axios.post(simulateEndpoint, options, {
+      headers: {
+        'Content-Type': 'application/json',
       },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    });
     console.log('Simulate endpoint response:', response.data);
 
     // Send response to debug channel
