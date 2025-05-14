@@ -111,7 +111,6 @@ app.command('/supercluster', async ({ ack, body }) => {
           if (daysIndex < args.length - 1) {
             const days = parseInt(args[daysIndex + 1], 10);
             if (!isNaN(days)) {
-              options.commishCheckboxes.auto_play_days = true;
               options.commishCheckboxes.auto_play_days_value = days;
             }
           }
