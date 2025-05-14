@@ -37,7 +37,7 @@ interface SimulateOptions {
 
 interface SimulateParams {
   options?: SimulateOptions;
-  triggerType: 'manual' | 'scheduler' | 'resumed';
+  triggerType: 'manual' | 'scheduler' | 'resumed' | 'players_ready';
 }
 
 function transformToSnakeCase(obj) {

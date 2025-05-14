@@ -50,9 +50,10 @@ export async function checkAndRunSimulation() {
     const reason = allTeamsSubmitted
       ? 'all teams have submitted their turns'
       : '48-hour interval has passed';
+    const triggerType = allTeamsSubmitted ? 'players_ready' : 'scheduler';
     await sendOotpMessage(`🔄 Starting scheduled simulation (${reason})...`);
     try {
-      await callSimulateEndpoint({ triggerType: 'scheduler' });
+      await callSimulateEndpoint({ triggerType });
     } catch (error) {
       await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     }
