@@ -167,15 +167,18 @@ export async function resumeAllSimulationPauses(): Promise<number> {
 export async function getSimulationRunState(): Promise<SimulationState> {
   const result = await database
     .collection('simulation_state')
-    .findOne({ completedAt: { $exists: false } }, { sort: { createdAt: -1 } });
-  return (
-    (result as unknown as SimulationState) || {
+    .findOne({}, { sort: { createdAt: -1 } });
+
+  if (!result || result.completedAt) {
+    return {
       lastScheduledRun: null,
       skippedRun: false,
       status: 'scheduled',
       createdAt: new Date(),
-    }
-  );
+    };
+  }
+
+  return result as unknown as SimulationState;
 }
 
 export async function updateSimulationRunState(
