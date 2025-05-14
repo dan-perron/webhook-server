@@ -43,6 +43,7 @@
     "format:write": "prettier --write .",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
+    "fix": "yarn lint:fix && yarn format:write",
     "build": "tsc -p .",
     "prestart": "yarn build",
     "start": "node built/bin/www.js",
@@ -51,7 +52,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint:check && yarn format:check"
+      "pre-commit": "yarn build && yarn lint:check && yarn format:check"
     }
   }
 }
