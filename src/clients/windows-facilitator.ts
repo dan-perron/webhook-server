@@ -40,6 +40,23 @@ interface SimulateParams {
   isResumedSimulation?: boolean;
 }
 
+function transformToSnakeCase(obj) {
+  if (Array.isArray(obj)) {
+    return obj.map(transformToSnakeCase);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    return Object.keys(obj).reduce((acc, key) => {
+      const snakeKey = key.replace(
+        /[A-Z]/g,
+        (letter) => `_${letter.toLowerCase()}`
+      );
+      acc[snakeKey] = transformToSnakeCase(obj[key]);
+      return acc;
+    }, {});
+  }
+  return obj;
+}
+
 export async function callSimulateEndpoint({
   options = {
     backupLeagueFolder: true,
@@ -55,11 +72,15 @@ export async function callSimulateEndpoint({
 
   try {
     const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
-    const response = await axios.post(simulateEndpoint, options, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await axios.post(
+      simulateEndpoint,
+      transformToSnakeCase(options),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
     console.log('Simulate endpoint response:', response.data);
 
     // Send response to debug channel
