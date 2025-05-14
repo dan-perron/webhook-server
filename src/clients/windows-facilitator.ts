@@ -114,21 +114,34 @@ export async function callSimulateEndpoint({
     return { success: true, data: response.data };
   } catch (error) {
     console.error('Error calling simulate endpoint:', error);
+
+    // Extract detailed error message from Axios response
+    const errorMessage =
+      error.response?.data?.message || error.response?.data || error.message;
+
     // Send error details to debug channel
     await sendOotpDebugMessage(
-      `Simulate endpoint error: ${JSON.stringify(error, null, 2)}`
+      `Simulate endpoint error: ${JSON.stringify(
+        {
+          message: errorMessage,
+          status: error.response?.status,
+          data: error.response?.data,
+        },
+        null,
+        2
+      )}`
     );
 
     // Update state to failed
     await updateSimulationRunState({
       status: 'failed',
-      reason: error.message,
+      reason: errorMessage,
       lastScheduledRun: new Date(),
       skippedRun: false,
       createdAt: new Date(),
     });
 
-    throw error;
+    throw new Error(errorMessage);
   }
 }
 
