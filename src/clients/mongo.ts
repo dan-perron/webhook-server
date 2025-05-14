@@ -214,3 +214,10 @@ export async function getSimulationHistory(
     .limit(limit)
     .toArray()) as unknown as SimulationState[];
 }
+
+export async function getLastCompletedSimulation(): Promise<SimulationState | null> {
+  const result = await database
+    .collection('simulation_state')
+    .findOne({ status: 'completed' }, { sort: { completedAt: -1 } });
+  return result as unknown as SimulationState | null;
+}

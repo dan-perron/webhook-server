@@ -7,6 +7,7 @@ import { sendOotpMessage } from '../utils/slack.js';
 import { haveAllTeamsSubmitted } from './ootpFileManager.js';
 import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 import cron from 'node-cron';
+import * as mongo from '../clients/mongo.js';
 
 // Function to check if we need to run a simulation
 export async function checkAndRunSimulation() {
@@ -31,8 +32,12 @@ export async function checkAndRunSimulation() {
     return;
   }
 
-  const lastRun = runState.lastScheduledRun;
+  // Get the last completed simulation run
+  const lastCompletedRun = await mongo.getLastCompletedSimulation();
   const now = new Date();
+
+  // If no completed runs found, use current time as reference
+  const lastRun = lastCompletedRun?.completedAt || now;
 
   // Check if 48 hours have passed since the last run
   const hoursSinceLastRun =
