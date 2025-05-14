@@ -67,10 +67,14 @@ export async function callSimulateEndpoint({
       `Simulate endpoint response: ${JSON.stringify(response.data, null, 2)}`
     );
 
-    // Add system pauses for both files
-    await addSimulationPause('system_league_file');
-    await addSimulationPause('system_archive_file');
-    console.log('Simulation automatically paused until both files are updated');
+    // Add system pauses for both files only if not in dry-run mode
+    if (!options.dryRun) {
+      await addSimulationPause('system_league_file');
+      await addSimulationPause('system_archive_file');
+      console.log(
+        'Simulation automatically paused until both files are updated'
+      );
+    }
 
     // Update run state
     await updateSimulationRunState({
