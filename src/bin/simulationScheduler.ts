@@ -19,7 +19,6 @@ export async function checkAndRunSimulation() {
       status: 'skipped',
       reason: 'Simulation is paused',
       triggeredBy: 'scheduler',
-      createdAt: new Date(),
     });
     return;
   }
@@ -48,14 +47,10 @@ export async function checkAndRunSimulation() {
       : '48-hour interval has passed';
     await sendOotpMessage(`🔄 Starting scheduled simulation (${reason})...`);
     try {
-      await callSimulateEndpoint({ isResumedSimulation: false });
+      await callSimulateEndpoint({ triggerType: 'scheduler' });
     } catch (error) {
       await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     }
-  } else {
-    console.log(
-      `Not enough time has passed since last run (${hoursSinceLastRun.toFixed(2)} hours) and not all teams have submitted`
-    );
   }
 }
 
@@ -70,7 +65,7 @@ export async function checkPausesRemoved() {
       );
       await sendOotpMessage('🔄 Resuming previously skipped simulation...');
       try {
-        await callSimulateEndpoint({ isResumedSimulation: true });
+        await callSimulateEndpoint({ triggerType: 'resumed' });
       } catch (error) {
         await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
       }
@@ -80,10 +75,6 @@ export async function checkPausesRemoved() {
 
 // Check every minute if it's time to run a simulation
 cron.schedule('* * * * *', () => {
-  console.log(
-    'Checking if simulation should run at:',
-    new Date().toISOString()
-  );
   checkAndRunSimulation();
 });
 

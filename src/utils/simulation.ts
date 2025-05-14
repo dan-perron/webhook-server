@@ -27,11 +27,17 @@ export interface CommishCheckboxConfig {
  */
 export interface SimulationRunState {
   _id?: ObjectId;
-  lastScheduledRun: Date | null;
-  skippedRun: boolean;
-  createdAt: Date;
+  lastScheduledRun?: Date | null;
+  skippedRun?: boolean;
+  createdAt?: Date;
   completedAt?: Date;
-  status: 'scheduled' | 'skipped' | 'completed' | 'failed' | 'dry_run';
+  status?:
+    | 'scheduled'
+    | 'skipped'
+    | 'completed'
+    | 'failed'
+    | 'dry_run'
+    | 'started';
   reason?: string;
   triggeredBy?: string;
   options?: {

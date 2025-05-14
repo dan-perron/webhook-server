@@ -98,7 +98,13 @@ interface SimulationState {
   skippedRun: boolean;
   createdAt: Date;
   completedAt?: Date;
-  status: 'scheduled' | 'skipped' | 'completed' | 'failed' | 'dry_run';
+  status:
+    | 'scheduled'
+    | 'skipped'
+    | 'completed'
+    | 'failed'
+    | 'dry_run'
+    | 'started';
   reason?: string;
   triggeredBy?: string;
   options?: {
@@ -170,12 +176,7 @@ export async function getSimulationRunState(): Promise<SimulationState> {
     .findOne({}, { sort: { createdAt: -1 } });
 
   if (!result || result.completedAt) {
-    return {
-      lastScheduledRun: null,
-      skippedRun: false,
-      status: 'scheduled',
-      createdAt: new Date(),
-    };
+    return null;
   }
 
   return result as unknown as SimulationState;

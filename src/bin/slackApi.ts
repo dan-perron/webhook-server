@@ -121,7 +121,7 @@ app.command('/supercluster', async ({ ack, body }) => {
           `🔄 Starting simulation... ${args.join(', ')}`
         );
 
-        await callSimulateEndpoint({ options, isResumedSimulation: false });
+        await callSimulateEndpoint({ options, triggerType: 'manual' });
 
         await sendMessage(
           body.channel_id,

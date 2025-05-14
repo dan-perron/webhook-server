@@ -158,14 +158,10 @@ async function expandArchive(prevStat) {
       pause.userId.startsWith('system_')
     );
     if (systemPauses.length === 0) {
-      const runState = await mongo.getSimulationRunState();
-      if (runState && runState.status === 'scheduled') {
-        await mongo.updateSimulationRunState({
-          ...runState,
-          status: 'completed',
-          completedAt: new Date(),
-        });
-      }
+      await mongo.updateSimulationRunState({
+        status: 'completed',
+        completedAt: new Date(),
+      });
     }
   } catch (e) {
     console.log('error while executing ' + e.toString());

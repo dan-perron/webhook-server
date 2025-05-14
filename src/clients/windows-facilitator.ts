@@ -37,7 +37,7 @@ interface SimulateOptions {
 
 interface SimulateParams {
   options?: SimulateOptions;
-  isResumedSimulation?: boolean;
+  triggerType: 'manual' | 'scheduler' | 'resumed';
 }
 
 function transformToSnakeCase(obj) {
@@ -64,8 +64,8 @@ export async function callSimulateEndpoint({
     dryRun: false,
     commishCheckboxes: {} as CommishCheckboxConfig,
   },
-  isResumedSimulation = false,
-}: SimulateParams = {}) {
+  triggerType,
+}: SimulateParams) {
   if (options.commishCheckboxes.auto_play_days_value === undefined) {
     options.commishCheckboxes.auto_play_days_value = 7;
   }
@@ -101,9 +101,8 @@ export async function callSimulateEndpoint({
     await updateSimulationRunState({
       lastScheduledRun: new Date(),
       skippedRun: false,
-      status: options.dryRun ? 'dry_run' : 'scheduled',
-      triggeredBy: isResumedSimulation ? 'resumed' : 'scheduled',
-      createdAt: new Date(),
+      status: options.dryRun ? 'dry_run' : 'started',
+      triggeredBy: triggerType,
       options: {
         backupLeagueFolder: options.backupLeagueFolder,
         manualImportTeams: options.manualImportTeams,
@@ -136,9 +135,7 @@ export async function callSimulateEndpoint({
     await updateSimulationRunState({
       status: 'failed',
       reason: errorMessage,
-      lastScheduledRun: new Date(),
-      skippedRun: false,
-      createdAt: new Date(),
+      completedAt: new Date(),
     });
 
     throw new Error(errorMessage);
