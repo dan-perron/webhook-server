@@ -116,8 +116,6 @@ app.command('/supercluster', async ({ ack, body }) => {
           }
         }
 
-        await sendMessage(body.channel_id, '🔄 Starting simulation...');
-
         await sendMessage(
           body.channel_id,
           `🔄 Starting simulation... ${args.join(', ')}`
