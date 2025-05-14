@@ -129,14 +129,9 @@ app.command('/supercluster', async ({ ack, body }) => {
           );
         }
 
-        const optionsMessage =
-          activeOptions.length > 0
-            ? `\nOptions: ${activeOptions.join(', ')}`
-            : '';
-
         await sendMessage(
           body.channel_id,
-          `🔄 Starting simulation...${optionsMessage}`
+          `🔄 Starting simulation... ${activeOptions.join(', ')}`
         );
 
         await callSimulateEndpoint(options, false);
