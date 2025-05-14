@@ -21,6 +21,7 @@ import {
   resumeAllSimulationPauses,
   getSimulationState,
   getSimulationRunState,
+  formatSimulationHistoryEntry,
 } from '../utils/simulation.js';
 import dayjs from 'dayjs';
 import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
@@ -247,23 +248,7 @@ app.command('/supercluster', async ({ ack, body }) => {
       if (history.length > 0) {
         message += 'Recent simulation history:\n';
         history.forEach((sim) => {
-          const timeAgo = dayjs().diff(dayjs(sim.createdAt), 'minute');
-          const status =
-            sim.status === 'failed'
-              ? '❌'
-              : sim.status === 'skipped'
-                ? '⏸️'
-                : sim.status === 'completed'
-                  ? '✅'
-                  : '🔄';
-          message += `${status} ${timeAgo}m ago: ${sim.status}`;
-          if (sim.reason) {
-            message += ` (${sim.reason})`;
-          }
-          if (sim.triggeredBy) {
-            message += ` by ${sim.triggeredBy}`;
-          }
-          message += '\n';
+          message += formatSimulationHistoryEntry(sim) + '\n';
         });
       }
 

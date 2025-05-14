@@ -3,10 +3,6 @@ import config from 'config';
 import { sendOotpDebugMessage } from '../utils/slack.js';
 import { addSimulationPause } from '../utils/simulation.js';
 import { updateSimulationRunState } from '../utils/simulation.js';
-import { getSimulationState } from '../utils/simulation.js';
-import { getSimulationRunState } from '../utils/simulation.js';
-import { getSimulationHistory } from '../clients/mongo.js';
-import dayjs from 'dayjs';
 
 interface CommishCheckboxConfig {
   [key: string]: boolean | number | undefined;
@@ -140,87 +136,4 @@ export async function callSimulateEndpoint({
 
     throw new Error(errorMessage);
   }
-}
-
-export async function getSimulationStatus() {
-  const state = await getSimulationState();
-  const runState = await getSimulationRunState();
-  const history = await getSimulationHistory(5);
-
-  let nextSimMessage = '';
-  if (runState.lastScheduledRun) {
-    const nextSimTime = new Date(
-      runState.lastScheduledRun.getTime() + 48 * 60 * 60 * 1000
-    );
-    const now = new Date();
-    const hoursUntilNext =
-      (nextSimTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-    if (hoursUntilNext > 0) {
-      const days = Math.floor(hoursUntilNext / 24);
-      const hours = Math.floor(hoursUntilNext % 24);
-      nextSimMessage = `\nNext simulation in: ${days}d ${hours}h`;
-    } else {
-      nextSimMessage = '\nNext simulation is due now';
-    }
-  }
-
-  let message = '';
-  if (state.length === 0) {
-    message = `Simulation is not paused.${nextSimMessage}\n\n`;
-  } else {
-    const systemPauses = state.filter((pause) =>
-      pause.userId.startsWith('system_')
-    );
-    const userPauses = state.filter(
-      (pause) => !pause.userId.startsWith('system_')
-    );
-
-    if (userPauses.length > 0) {
-      const pauseList = userPauses
-        .map((pause) => {
-          const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
-          return `• <@${pause.userId}> (${timeAgo} minutes ago)`;
-        })
-        .join('\n');
-      message = `Simulation is currently paused by:\n${pauseList}\n\n`;
-    } else {
-      message = "Simulation is currently running, we're waiting for:\n";
-      const systemPauseList = systemPauses
-        .map((pause) => {
-          const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
-          return `• ${pause.userId.replace('system_', '')} file (${timeAgo} minutes ago)`;
-        })
-        .join('\n');
-      message += `${systemPauseList}\n\n`;
-    }
-  }
-
-  // Add simulation history
-  if (history.length > 0) {
-    message += 'Recent simulation history:\n';
-    history.forEach((sim) => {
-      const timeAgo = dayjs().diff(dayjs(sim.createdAt), 'minute');
-      const status =
-        sim.status === 'failed'
-          ? '❌'
-          : sim.status === 'skipped'
-            ? '⏸️'
-            : sim.status === 'completed'
-              ? '✅'
-              : sim.status === 'dry_run'
-                ? '🧪'
-                : '🔄';
-      message += `${status} ${timeAgo}m ago: ${sim.status}`;
-      if (sim.reason) {
-        message += ` (${sim.reason})`;
-      }
-      if (sim.triggeredBy) {
-        message += ` by ${sim.triggeredBy}`;
-      }
-      message += '\n';
-    });
-  }
-
-  return message;
 }

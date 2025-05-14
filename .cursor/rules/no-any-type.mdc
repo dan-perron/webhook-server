@@ -1,0 +1,27 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# No Any Type Rule
+
+When working with TypeScript code, never use the `any` type. Instead:
+
+1. Use existing types/interfaces from the codebase
+2. Create new types if needed
+3. Use proper type assertions
+4. Ask for clarification if the type is unclear
+
+This rule applies to all TypeScript files in the project, including:
+- [src/utils/simulation.ts](mdc:src/utils/simulation.ts)
+- [src/clients/windows-facilitator.ts](mdc:src/clients/windows-facilitator.ts)
+- Any other TypeScript files in the project
+
+Example of proper typing:
+```typescript
+// Instead of:
+function processData(data: any) { ... }
+
+// Use:
+function processData(data: SimulationRunState) { ... }
+```

@@ -1,6 +1,7 @@
 import * as mongo from '../clients/mongo.js';
 import { checkPausesRemoved } from '../bin/simulationScheduler.js';
 import { ObjectId } from 'mongodb';
+import dayjs from 'dayjs';
 
 export interface CommishCheckboxConfig {
   [key: string]: boolean | number | undefined;
@@ -112,4 +113,47 @@ export async function updateSimulationRunState(
   state: SimulationRunState
 ): Promise<void> {
   return await mongo.updateSimulationRunState(state);
+}
+
+export function formatSimulationHistoryEntry(sim: SimulationRunState): string {
+  const timeAgo = dayjs().diff(dayjs(sim.createdAt), 'minute');
+  const days = Math.floor(timeAgo / (24 * 60));
+  const hours = Math.floor((timeAgo % (24 * 60)) / 60);
+  const minutes = timeAgo % 60;
+
+  let timeDisplay = '';
+  if (days > 0) {
+    timeDisplay += `${days}d `;
+  }
+  if (hours > 0 || days > 0) {
+    timeDisplay += `${hours}h `;
+  }
+  timeDisplay += `${minutes}m`;
+
+  let status: string;
+  switch (sim.status) {
+    case 'failed':
+      status = '❌';
+      break;
+    case 'skipped':
+      status = '⏸️';
+      break;
+    case 'completed':
+      status = '✅';
+      break;
+    case 'dry_run':
+      status = '🧪';
+      break;
+    default:
+      status = '🔄';
+  }
+
+  let message = `${status} ${timeDisplay} ago: ${sim.status}`;
+  if (sim.reason) {
+    message += ` (${sim.reason})`;
+  }
+  if (sim.triggeredBy) {
+    message += ` by ${sim.triggeredBy}`;
+  }
+  return message;
 }
