@@ -98,7 +98,7 @@ interface SimulationState {
   skippedRun: boolean;
   createdAt: Date;
   completedAt?: Date;
-  status: 'scheduled' | 'skipped' | 'completed' | 'failed';
+  status: 'scheduled' | 'skipped' | 'completed' | 'failed' | 'dry_run';
   reason?: string;
   triggeredBy?: string;
   options?: {

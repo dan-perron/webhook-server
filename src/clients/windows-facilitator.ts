@@ -29,21 +29,26 @@ interface CommishCheckboxConfig {
 }
 
 interface SimulateOptions {
-  backupLeagueFolder: boolean;
-  manualImportTeams: boolean;
-  dryRun: boolean;
-  commishCheckboxes: CommishCheckboxConfig;
+  backupLeagueFolder?: boolean;
+  manualImportTeams?: boolean;
+  dryRun?: boolean;
+  commishCheckboxes?: CommishCheckboxConfig;
 }
 
-export async function callSimulateEndpoint(
-  options: SimulateOptions = {
+interface SimulateParams {
+  options?: SimulateOptions;
+  isResumedSimulation?: boolean;
+}
+
+export async function callSimulateEndpoint({
+  options = {
     backupLeagueFolder: true,
     manualImportTeams: false,
     dryRun: false,
     commishCheckboxes: {} as CommishCheckboxConfig,
   },
-  isResumedSimulation = false
-) {
+  isResumedSimulation = false,
+}: SimulateParams = {}) {
   if (options.commishCheckboxes.auto_play_days_value === undefined) {
     options.commishCheckboxes.auto_play_days_value = 7;
   }
@@ -71,7 +76,7 @@ export async function callSimulateEndpoint(
     await updateSimulationRunState({
       lastScheduledRun: new Date(),
       skippedRun: false,
-      status: 'scheduled',
+      status: options.dryRun ? 'dry_run' : 'scheduled',
       triggeredBy: isResumedSimulation ? 'resumed' : 'scheduled',
       createdAt: new Date(),
       options: {
@@ -168,7 +173,9 @@ export async function getSimulationStatus() {
             ? '⏸️'
             : sim.status === 'completed'
               ? '✅'
-              : '🔄';
+              : sim.status === 'dry_run'
+                ? '🧪'
+                : '🔄';
       message += `${status} ${timeAgo}m ago: ${sim.status}`;
       if (sim.reason) {
         message += ` (${sim.reason})`;

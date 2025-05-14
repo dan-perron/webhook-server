@@ -31,13 +31,14 @@ export interface SimulationRunState {
   skippedRun: boolean;
   createdAt: Date;
   completedAt?: Date;
-  status: 'scheduled' | 'skipped' | 'completed' | 'failed';
+  status: 'scheduled' | 'skipped' | 'completed' | 'failed' | 'dry_run';
   reason?: string;
   triggeredBy?: string;
   options?: {
     backupLeagueFolder?: boolean;
     manualImportTeams?: boolean;
     commishCheckboxes?: CommishCheckboxConfig;
+    dryRun?: boolean;
   };
 }
 

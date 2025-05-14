@@ -8,26 +8,6 @@ import { haveAllTeamsSubmitted } from './ootpFileManager.js';
 import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 import cron from 'node-cron';
 
-interface CommishCheckboxConfig {
-  [key: string]: boolean | number | undefined;
-  backup_league_files: boolean;
-  retrieve_team_exports_from_server: boolean;
-  retrieve_team_exports_from_your_pc: boolean;
-  break_if_team_files_are_missing: boolean;
-  break_if_trades_are_pending: boolean;
-  demote_release_players_with_dfa_time_left_of_x_days_or_less: boolean;
-  auto_play_days: boolean;
-  create_and_upload_league_file: boolean;
-  create_and_upload_html_reports: boolean;
-  create_sql_dump_for_ms_access: boolean;
-  create_sql_dump_for_mysql: boolean;
-  export_data_to_csv_files: boolean;
-  upload_status_report_to_server: boolean;
-  create_and_send_result_emails: boolean;
-  dfa_days_value?: number;
-  auto_play_days_value?: number;
-}
-
 // Function to check if we need to run a simulation
 export async function checkAndRunSimulation() {
   const state = await getSimulationState();
@@ -68,14 +48,7 @@ export async function checkAndRunSimulation() {
       : '48-hour interval has passed';
     await sendOotpMessage(`🔄 Starting scheduled simulation (${reason})...`);
     try {
-      await callSimulateEndpoint(
-        {
-          backupLeagueFolder: true,
-          manualImportTeams: false,
-          commishCheckboxes: {} as CommishCheckboxConfig,
-        },
-        false
-      );
+      await callSimulateEndpoint({ isResumedSimulation: false });
     } catch (error) {
       await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     }
@@ -97,14 +70,7 @@ export async function checkPausesRemoved() {
       );
       await sendOotpMessage('🔄 Resuming previously skipped simulation...');
       try {
-        await callSimulateEndpoint(
-          {
-            backupLeagueFolder: true,
-            manualImportTeams: false,
-            commishCheckboxes: {} as CommishCheckboxConfig,
-          },
-          true
-        );
+        await callSimulateEndpoint({ isResumedSimulation: true });
       } catch (error) {
         await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
       }
