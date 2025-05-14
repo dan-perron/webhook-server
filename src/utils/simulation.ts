@@ -40,6 +40,10 @@ export interface SimulationRunState {
     | 'started';
   reason?: string;
   triggeredBy?: string;
+  remindersSent?: {
+    twentyFourHours?: boolean;
+    twelveHours?: boolean;
+  };
   options?: {
     backupLeagueFolder?: boolean;
     manualImportTeams?: boolean;

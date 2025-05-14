@@ -3,11 +3,46 @@ import {
   getSimulationRunState,
   updateSimulationRunState,
 } from '../utils/simulation.js';
+import type { SimulationRunState } from '../utils/simulation.js';
 import { sendOotpMessage } from '../utils/slack.js';
-import { haveAllTeamsSubmitted } from './ootpFileManager.js';
+import {
+  haveAllTeamsSubmitted,
+  getWaitingTeamsMessage,
+} from './ootpFileManager.js';
 import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 import cron from 'node-cron';
 import * as mongo from '../clients/mongo.js';
+
+// Function to check and send reminders
+async function checkAndSendReminders(
+  lastRun: Date,
+  now: Date,
+  runState: SimulationRunState
+) {
+  const hoursUntilNext =
+    48 - (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60);
+
+  // Get list of teams that haven't submitted
+  const waitingOnTeams = await getWaitingTeamsMessage();
+
+  // Send 24-hour reminder if not already sent
+  if (hoursUntilNext <= 24 && !runState.remindersSent?.twentyFourHours) {
+    await sendOotpMessage(
+      `⏰ Reminder: 24 hours until next simulation! ${waitingOnTeams}`
+    );
+    runState.remindersSent.twentyFourHours = true;
+    await updateSimulationRunState(runState);
+  }
+
+  // Send 12-hour reminder if not already sent
+  if (hoursUntilNext <= 12 && !runState.remindersSent?.twelveHours) {
+    await sendOotpMessage(
+      `⏰ Reminder: 12 hours until next simulation! Still waiting on: ${waitingOnTeams}`
+    );
+    runState.remindersSent.twelveHours = true;
+    await updateSimulationRunState(runState);
+  }
+}
 
 // Function to check if we need to run a simulation
 export async function checkAndRunSimulation() {
@@ -27,8 +62,8 @@ export async function checkAndRunSimulation() {
   const runState = await getSimulationRunState();
 
   // Check if there's already a simulation in progress
-  if (runState && runState.status === 'scheduled') {
-    console.log('Simulation already in progress, skipping scheduled run');
+  if (runState && runState.status === 'started') {
+    console.log('Simulation already in progress, skipping run');
     return;
   }
 
@@ -57,6 +92,9 @@ export async function checkAndRunSimulation() {
     } catch (error) {
       await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     }
+  } else {
+    // Check and send reminders if needed
+    await checkAndSendReminders(lastRun, now, runState || {});
   }
 }
 
