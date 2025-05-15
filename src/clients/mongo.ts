@@ -170,23 +170,23 @@ export async function resumeAllSimulationPauses(): Promise<number> {
   return result.modifiedCount;
 }
 
-export async function getSimulationRunState(): Promise<SimulationState> {
+export async function getSimulationRunState(): Promise<SimulationState | null> {
   const result = await database
     .collection('simulation_state')
     .findOne({}, { sort: { createdAt: -1 } });
 
-  if (!result || result.completedAt) {
-    return null;
+  if (result?.status === 'scheduled') {
+    return result as unknown as SimulationState;
   }
 
-  return result as unknown as SimulationState;
+  return null;
 }
 
 export async function updateSimulationRunState(
   state: Partial<SimulationState>
 ): Promise<void> {
   const currentState = await getSimulationRunState();
-  if (currentState._id) {
+  if (currentState?._id) {
     // Update existing record
     await database
       .collection('simulation_state')
@@ -197,9 +197,9 @@ export async function updateSimulationRunState(
   } else {
     // Create new record
     await database.collection('simulation_state').insertOne({
-      ...state,
       createdAt: new Date(),
       status: 'scheduled',
+      ...state,
     });
   }
 }
