@@ -98,14 +98,6 @@ export async function getSimulationState() {
 }
 
 /**
- * Gets the current simulation run state
- * @returns The current run state including last scheduled run and skipped run status
- */
-export async function getSimulationRunState(): Promise<SimulationRunState> {
-  return await mongo.getSimulationRunState();
-}
-
-/**
  * Updates the simulation run state
  * @param state The new run state to set
  */

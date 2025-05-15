@@ -20,9 +20,9 @@ import {
   resumeSimulationPause,
   resumeAllSimulationPauses,
   getSimulationState,
-  getSimulationRunState,
   formatSimulationHistoryEntry,
 } from '../utils/simulation.js';
+import { getScheduledSimulation } from '../clients/mongo.js';
 import dayjs from 'dayjs';
 import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 
@@ -92,7 +92,7 @@ app.command('/supercluster', async ({ ack, body }) => {
         }
 
         // Check if there's already a simulation in progress
-        const runState = await getSimulationRunState();
+        const runState = await getScheduledSimulation();
         if (runState && runState.status === 'scheduled') {
           await sendMessage(
             body.channel_id,
@@ -188,7 +188,7 @@ app.command('/supercluster', async ({ ack, body }) => {
       );
       const state = await getSimulationState();
       const botStatus = await getBotMessage();
-      const runState = await getSimulationRunState();
+      const runState = await getScheduledSimulation();
       const history = await mongo.getSimulationHistory(5);
 
       let nextSimMessage = '';

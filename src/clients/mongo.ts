@@ -170,7 +170,7 @@ export async function resumeAllSimulationPauses(): Promise<number> {
   return result.modifiedCount;
 }
 
-export async function getSimulationRunState(): Promise<SimulationState | null> {
+export async function getScheduledSimulation(): Promise<SimulationState | null> {
   const result = await database
     .collection('simulation_state')
     .findOne({}, { sort: { createdAt: -1 } });
@@ -185,7 +185,7 @@ export async function getSimulationRunState(): Promise<SimulationState | null> {
 export async function updateSimulationRunState(
   state: Partial<SimulationState>
 ): Promise<void> {
-  const currentState = await getSimulationRunState();
+  const currentState = await getScheduledSimulation();
   if (currentState?._id) {
     // Update existing record
     await database
