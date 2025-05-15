@@ -46,19 +46,6 @@ async function checkAndSendReminders(
 
 // Function to check if we need to run a simulation
 export async function checkAndRunSimulation() {
-  const state = await getSimulationState();
-  if (state.length > 0) {
-    console.log('Simulation is paused, skipping scheduled run');
-    await updateSimulationRunState({
-      lastScheduledRun: new Date(),
-      skippedRun: true,
-      status: 'skipped',
-      reason: 'Simulation is paused',
-      triggeredBy: 'scheduler',
-    });
-    return;
-  }
-
   const runState = await getSimulationRunState();
 
   // Check if there's already a simulation in progress
@@ -82,6 +69,25 @@ export async function checkAndRunSimulation() {
   const allTeamsSubmitted = await haveAllTeamsSubmitted();
 
   if (hoursSinceLastRun >= 48 || allTeamsSubmitted) {
+    const state = await getSimulationState();
+    if (state.length > 0) {
+      console.log('Simulation is paused, skipping scheduled run');
+      // Only update the run state if it hasn't already been updated
+      const currentRunState = await getSimulationRunState();
+      if (!currentRunState?.skippedRun) {
+        await sendOotpMessage(
+          '⏸️ Simulation is paused, skipping scheduled run'
+        );
+        await updateSimulationRunState({
+          lastScheduledRun: new Date(),
+          skippedRun: true,
+          status: 'skipped',
+          reason: 'Simulation is paused',
+          triggeredBy: 'scheduler',
+        });
+      }
+      return;
+    }
     const reason = allTeamsSubmitted
       ? 'all teams have submitted their turns'
       : '48-hour interval has passed';
