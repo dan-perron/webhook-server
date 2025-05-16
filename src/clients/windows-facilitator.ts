@@ -65,6 +65,19 @@ export async function callSimulateEndpoint({
     options.commishCheckboxes.auto_play_days_value = 7;
   }
 
+  // Update run state
+  await updateSimulationRunState({
+    scheduledFor: new Date(),
+    skippedRun: false,
+    status: 'started',
+    triggeredBy: triggerType,
+    options: {
+      backupLeagueFolder: options.backupLeagueFolder,
+      manualImportTeams: options.manualImportTeams,
+      commishCheckboxes: options.commishCheckboxes,
+    },
+  });
+
   try {
     const simulateEndpoint = `http://${config.get('simulation.hostname')}/simulate`;
     const response = await axios.post(
@@ -83,27 +96,18 @@ export async function callSimulateEndpoint({
       `Simulate endpoint response: ${JSON.stringify(response.data, null, 2)}`
     );
 
-    // Add system pauses for both files only if not in dry-run mode
-    if (!options.dryRun) {
+    if (options.dryRun) {
+      await updateSimulationRunState({
+        status: 'dry_run',
+      });
+    } else {
+      // Add system pauses for both files only if not in dry-run mode
       await addSimulationPause('system_league_file');
       await addSimulationPause('system_archive_file');
       console.log(
         'Simulation automatically paused until both files are updated'
       );
     }
-
-    // Update run state
-    await updateSimulationRunState({
-      scheduledFor: new Date(),
-      skippedRun: false,
-      status: options.dryRun ? 'dry_run' : 'started',
-      triggeredBy: triggerType,
-      options: {
-        backupLeagueFolder: options.backupLeagueFolder,
-        manualImportTeams: options.manualImportTeams,
-        commishCheckboxes: options.commishCheckboxes,
-      },
-    });
 
     return { success: true, data: response.data };
   } catch (error) {
