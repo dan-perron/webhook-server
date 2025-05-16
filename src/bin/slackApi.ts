@@ -1,4 +1,4 @@
-import type { GenericMessageEvent } from '@slack/bolt';
+import type { GenericMessageEvent, SlashCommand } from '@slack/bolt';
 import { subtype } from '@slack/bolt';
 import axios from 'axios';
 import config from 'config';
@@ -26,7 +26,10 @@ import {
   getSimulationState,
 } from '../clients/mongo.js';
 import dayjs from 'dayjs';
-import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
+import {
+  callSimulateEndpoint,
+  checkFacilitatorHealth,
+} from '../clients/windows-facilitator.js';
 
 // Define the checkbox config interface
 interface CommishCheckboxConfig {
@@ -47,6 +50,220 @@ interface CommishCheckboxConfig {
   create_and_send_result_emails: boolean;
   dfa_days_value?: number;
   auto_play_days_value?: number;
+}
+
+async function handleSimulateCommand(body: SlashCommand, args: string[]) {
+  try {
+    // Check if simulation is already paused
+    const state = await getSimulationState();
+    if (state.length > 0) {
+      await sendMessage(
+        body.channel_id,
+        '❌ Simulation is already paused. Please resume it first.'
+      );
+      return;
+    }
+
+    // Check if there's already a simulation in progress
+    const runState = await getActiveSimulation();
+    if (runState && runState.status === 'scheduled') {
+      await sendMessage(
+        body.channel_id,
+        '❌ A simulation is already in progress.'
+      );
+      return;
+    }
+
+    const options = {
+      backupLeagueFolder: !args.includes('--no-backup'),
+      manualImportTeams: args.includes('--manual-import'),
+      dryRun: args.includes('--dry-run'),
+      commishCheckboxes: {} as CommishCheckboxConfig,
+    };
+
+    // Add any additional commish checkbox options
+    if (args.includes('--days')) {
+      const daysIndex = args.indexOf('--days');
+      if (daysIndex < args.length - 1) {
+        const days = parseInt(args[daysIndex + 1], 10);
+        if (!isNaN(days)) {
+          options.commishCheckboxes.auto_play_days_value = days;
+        }
+      }
+    }
+
+    await sendMessage(
+      body.channel_id,
+      `🔄 Starting simulation... ${args.join(', ')}`
+    );
+
+    await callSimulateEndpoint({ options, triggerType: 'manual' });
+
+    await sendMessage(body.channel_id, '✅ Simulation started successfully!');
+  } catch (error) {
+    console.error('Error in simulation command:', error);
+    await sendMessage(
+      body.channel_id,
+      `❌ Error starting simulation: ${error.message}`
+    );
+  }
+}
+
+async function handlePauseCommand(body: SlashCommand) {
+  console.log(`[Supercluster] User ${body.user_id} pausing simulation`);
+  await addSimulationPause(body.user_id);
+  await sendMessage(
+    body.channel_id,
+    `<@${body.user_id}> Simulation paused. It will remain paused until you resume it.`
+  );
+}
+
+async function handleResumeCommand(body: SlashCommand, args: string[]) {
+  const subAction = args[0];
+  if (subAction === 'all') {
+    console.log(
+      `[Supercluster] User ${body.user_id} resuming all simulation pauses`
+    );
+    const count = await resumeAllSimulationPauses();
+    await sendMessage(
+      body.channel_id,
+      `<@${body.user_id}> Resumed all simulation pauses (${count} total).`
+    );
+  } else {
+    console.log(
+      `[Supercluster] User ${body.user_id} attempting to resume their pause`
+    );
+    const resumed = await resumeSimulationPause(body.user_id);
+    if (resumed) {
+      console.log(
+        `[Supercluster] Successfully resumed pause for user ${body.user_id}`
+      );
+      await sendMessage(
+        body.channel_id,
+        `<@${body.user_id}> Your simulation pause has been removed.`
+      );
+    } else {
+      console.log(
+        `[Supercluster] No active pause found for user ${body.user_id}`
+      );
+      await sendMessage(
+        body.channel_id,
+        `<@${body.user_id}> You don't have an active simulation pause.`
+      );
+    }
+  }
+}
+
+async function handleStatusCommand(body: SlashCommand) {
+  console.log(`[Supercluster] User ${body.user_id} checking simulation status`);
+  const state = await getSimulationState();
+  const botStatus = await getBotMessage();
+  const runState = await getActiveSimulation();
+  const history = await mongo.getSimulationHistory(5);
+  const facilitatorHealth = await checkFacilitatorHealth();
+
+  let message = '';
+  if (runState?.scheduledFor) {
+    const now = new Date();
+    const hoursUntilNext =
+      (runState.scheduledFor.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (hoursUntilNext > 0) {
+      const days = Math.floor(hoursUntilNext / 24);
+      const hours = Math.floor(hoursUntilNext % 24);
+      const minutes = Math.floor((hoursUntilNext * 60) % 60);
+      const seconds = Math.floor((hoursUntilNext * 3600) % 60);
+
+      if (days > 0) {
+        message = `Next simulation in: ${days}d ${hours}h\n\n`;
+      } else if (hours > 0) {
+        message = `Next simulation in: ${hours}h ${minutes}m\n\n`;
+      } else {
+        message = `Next simulation in: ${minutes}m ${seconds}s\n\n`;
+      }
+    } else {
+      message = 'Next simulation is due now\n\n';
+    }
+  }
+  message += `${botStatus}\n\n`;
+
+  // Add facilitator health status
+  message += `Facilitator Status: ${facilitatorHealth.healthy ? '✅' : '❌'} ${facilitatorHealth.message}\n\n`;
+
+  if (state.length === 0) {
+    console.log('[Supercluster] No active pauses found');
+    message += `Simulation is not paused.\n\n`;
+  } else {
+    const systemPauses = state.filter((pause) =>
+      pause.userId.startsWith('system_')
+    );
+    const userPauses = state.filter(
+      (pause) => !pause.userId.startsWith('system_')
+    );
+    console.log(
+      `[Supercluster] Found ${systemPauses.length} system pauses and ${userPauses.length} user pauses`
+    );
+
+    if (userPauses.length > 0) {
+      const pauseList = userPauses
+        .map((pause) => {
+          const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
+          return `• <@${pause.userId}> (${timeAgo} minutes ago)`;
+        })
+        .join('\n');
+      message += `Simulation is currently paused by:\n${pauseList}\n\n`;
+    } else {
+      message += "Simulation is currently running, we're waiting for:\n";
+      const systemPauseList = systemPauses
+        .map((pause) => {
+          const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
+          return `• ${pause.userId.replace('system_', '')} file (${timeAgo} minutes ago)`;
+        })
+        .join('\n');
+      message += `${systemPauseList}\n\n`;
+    }
+  }
+
+  // Add simulation history
+  if (history.length > 0) {
+    message += 'Recent simulation history:\n';
+    history.forEach((sim) => {
+      message += formatSimulationHistoryEntry(sim) + '\n';
+    });
+  }
+
+  await sendMessage(body.channel_id, `<@${body.user_id}>\n\n${message}`);
+}
+
+async function handleHelpCommand(body: SlashCommand) {
+  console.log(`[Supercluster] User ${body.user_id} requested help`);
+  await sendEphemeralMessage(
+    body.channel_id,
+    body.user_id,
+    `*Supercluster Simulation Control*
+
+*Commands:*
+• \`/supercluster pause\` - Pause the simulation
+• \`/supercluster resume\` - Resume your pause
+• \`/supercluster resume all\` - Resume all pauses
+• \`/supercluster status\` - Check current pause state
+• \`/supercluster simulate\` - Force a simulation to run (admin only)
+
+*Simulation Flags:*
+• \`--no-backup\` - Run without backup
+• \`--import-teams\` - Run with team imports
+• \`--dry-run\` - Run simulation in dry-run mode
+
+*Numeric Settings:*
+• \`--days N\` - Set auto-play days value (e.g. \`--days 3\`)
+
+*How it works:*
+• Multiple users can pause the simulation simultaneously
+• Each user can only resume their own pause
+• The simulation will not run while any pause is active
+• System pauses are automatically added after each simulation
+• System pauses are removed when files are updated`
+  );
 }
 
 // Add slash command to control simulation
@@ -73,231 +290,22 @@ app.command('/supercluster', async ({ ack, body }) => {
     `[Supercluster] Parsed command: action=${action}, args=${args.join(' ')}`
   );
 
-  const options = {
-    backupLeagueFolder: true,
-    manualImportTeams: false,
-    commishCheckboxes: {} as CommishCheckboxConfig,
-    dryRun: false,
-  };
-
   switch (action) {
-    case 'simulate': {
-      try {
-        // Check if simulation is already paused
-        const state = await getSimulationState();
-        if (state.length > 0) {
-          await sendMessage(
-            body.channel_id,
-            '❌ Simulation is already paused. Please resume it first.'
-          );
-          return;
-        }
-
-        // Check if there's already a simulation in progress
-        const runState = await getActiveSimulation();
-        if (runState && runState.status === 'scheduled') {
-          await sendMessage(
-            body.channel_id,
-            '❌ A simulation is already in progress.'
-          );
-          return;
-        }
-
-        // Parse command arguments
-        options.backupLeagueFolder = !args.includes('--no-backup');
-        options.manualImportTeams = args.includes('--manual-import');
-        options.dryRun = args.includes('--dry-run');
-
-        // Add any additional commish checkbox options
-        if (args.includes('--days')) {
-          const daysIndex = args.indexOf('--days');
-          if (daysIndex < args.length - 1) {
-            const days = parseInt(args[daysIndex + 1], 10);
-            if (!isNaN(days)) {
-              options.commishCheckboxes.auto_play_days_value = days;
-            }
-          }
-        }
-
-        await sendMessage(
-          body.channel_id,
-          `🔄 Starting simulation... ${args.join(', ')}`
-        );
-
-        await callSimulateEndpoint({ options, triggerType: 'manual' });
-
-        await sendMessage(
-          body.channel_id,
-          '✅ Simulation started successfully!'
-        );
-      } catch (error) {
-        console.error('Error in simulation command:', error);
-        await sendMessage(
-          body.channel_id,
-          `❌ Error starting simulation: ${error.message}`
-        );
-      }
+    case 'simulate':
+      await handleSimulateCommand(body, args);
       break;
-    }
     case 'pause':
-      console.log(`[Supercluster] User ${body.user_id} pausing simulation`);
-      await addSimulationPause(body.user_id);
-      await sendMessage(
-        body.channel_id,
-        `<@${body.user_id}> Simulation paused. It will remain paused until you resume it.`
-      );
+      await handlePauseCommand(body);
       break;
-
-    case 'resume': {
-      const subAction = args[0];
-      if (subAction === 'all') {
-        console.log(
-          `[Supercluster] User ${body.user_id} resuming all simulation pauses`
-        );
-        const count = await resumeAllSimulationPauses();
-        await sendMessage(
-          body.channel_id,
-          `<@${body.user_id}> Resumed all simulation pauses (${count} total).`
-        );
-      } else {
-        console.log(
-          `[Supercluster] User ${body.user_id} attempting to resume their pause`
-        );
-        const resumed = await resumeSimulationPause(body.user_id);
-        if (resumed) {
-          console.log(
-            `[Supercluster] Successfully resumed pause for user ${body.user_id}`
-          );
-          await sendMessage(
-            body.channel_id,
-            `<@${body.user_id}> Your simulation pause has been removed.`
-          );
-        } else {
-          console.log(
-            `[Supercluster] No active pause found for user ${body.user_id}`
-          );
-          await sendMessage(
-            body.channel_id,
-            `<@${body.user_id}> You don't have an active simulation pause.`
-          );
-        }
-      }
+    case 'resume':
+      await handleResumeCommand(body, args);
       break;
-    }
-    case 'status': {
-      console.log(
-        `[Supercluster] User ${body.user_id} checking simulation status`
-      );
-      const state = await getSimulationState();
-      const botStatus = await getBotMessage();
-      const runState = await getActiveSimulation();
-      const history = await mongo.getSimulationHistory(5);
-
-      let nextSimMessage = '';
-      if (runState?.scheduledFor) {
-        const now = new Date();
-        const hoursUntilNext =
-          (runState.scheduledFor.getTime() - now.getTime()) / (1000 * 60 * 60);
-
-        if (hoursUntilNext > 0) {
-          const days = Math.floor(hoursUntilNext / 24);
-          const hours = Math.floor(hoursUntilNext % 24);
-          const minutes = Math.floor((hoursUntilNext * 60) % 60);
-          const seconds = Math.floor((hoursUntilNext * 3600) % 60);
-
-          if (days > 0) {
-            nextSimMessage = `\nNext simulation in: ${days}d ${hours}h`;
-          } else if (hours > 0) {
-            nextSimMessage = `\nNext simulation in: ${hours}h ${minutes}m`;
-          } else {
-            nextSimMessage = `\nNext simulation in: ${minutes}m ${seconds}s`;
-          }
-        } else {
-          nextSimMessage = '\nNext simulation is due now';
-        }
-      }
-
-      let message = '';
-      if (state.length === 0) {
-        console.log('[Supercluster] No active pauses found');
-        message = `Simulation is not paused.${nextSimMessage}\n\n`;
-      } else {
-        const systemPauses = state.filter((pause) =>
-          pause.userId.startsWith('system_')
-        );
-        const userPauses = state.filter(
-          (pause) => !pause.userId.startsWith('system_')
-        );
-        console.log(
-          `[Supercluster] Found ${systemPauses.length} system pauses and ${userPauses.length} user pauses`
-        );
-
-        if (userPauses.length > 0) {
-          const pauseList = userPauses
-            .map((pause) => {
-              const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
-              return `• <@${pause.userId}> (${timeAgo} minutes ago)`;
-            })
-            .join('\n');
-          message = `Simulation is currently paused by:\n${pauseList}\n\n`;
-        } else {
-          message = "Simulation is currently running, we're waiting for:\n";
-          const systemPauseList = systemPauses
-            .map((pause) => {
-              const timeAgo = dayjs().diff(dayjs(pause.pausedAt), 'minute');
-              return `• ${pause.userId.replace('system_', '')} file (${timeAgo} minutes ago)`;
-            })
-            .join('\n');
-          message += `${systemPauseList}\n\n`;
-        }
-      }
-
-      // Add simulation history
-      if (history.length > 0) {
-        message += 'Recent simulation history:\n';
-        history.forEach((sim) => {
-          message += formatSimulationHistoryEntry(sim) + '\n';
-        });
-      }
-
-      await sendMessage(
-        body.channel_id,
-        `<@${body.user_id}> ${message}${nextSimMessage}\n\n${botStatus}`
-      );
+    case 'status':
+      await handleStatusCommand(body);
       break;
-    }
-
     case 'help':
-      console.log(`[Supercluster] User ${body.user_id} requested help`);
-      await sendEphemeralMessage(
-        body.channel_id,
-        body.user_id,
-        `*Supercluster Simulation Control*
-
-*Commands:*
-• \`/supercluster pause\` - Pause the simulation
-• \`/supercluster resume\` - Resume your pause
-• \`/supercluster resume all\` - Resume all pauses
-• \`/supercluster status\` - Check current pause state
-• \`/supercluster simulate\` - Force a simulation to run (admin only)
-
-*Simulation Flags:*
-• \`--no-backup\` - Run without backup
-• \`--import-teams\` - Run with team imports
-• \`--dry-run\` - Run simulation in dry-run mode
-
-*Numeric Settings:*
-• \`--days N\` - Set auto-play days value (e.g. \`--days 3\`)
-
-*How it works:*
-• Multiple users can pause the simulation simultaneously
-• Each user can only resume their own pause
-• The simulation will not run while any pause is active
-• System pauses are automatically added after each simulation
-• System pauses are removed when files are updated`
-      );
+      await handleHelpCommand(body);
       break;
-
     default:
       console.log(
         `[Supercluster] Unknown command from user ${body.user_id}: ${action}`

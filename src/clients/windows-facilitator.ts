@@ -136,3 +136,21 @@ export async function callSimulateEndpoint({
     throw new Error(errorMessage);
   }
 }
+
+export async function checkFacilitatorHealth() {
+  try {
+    const healthEndpoint = `http://${config.get('simulation.hostname')}/health`;
+    const response = await axios.get(healthEndpoint);
+    return {
+      healthy: response.data.status === 'ok',
+      message: response.data.message,
+    };
+  } catch (error) {
+    return {
+      healthy: false,
+      message:
+        error.response?.data?.message ||
+        'Failed to connect to windows-facilitator',
+    };
+  }
+}
