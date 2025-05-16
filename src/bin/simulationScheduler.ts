@@ -29,6 +29,9 @@ async function checkAndSendReminders(
     await sendOotpMessage(
       `⏰ Reminder: 24 hours until next simulation! ${waitingOnTeams}`
     );
+    if (!runState.remindersSent) {
+      runState.remindersSent = {};
+    }
     runState.remindersSent.twentyFourHours = true;
     await updateSimulationRunState(runState);
   }
@@ -38,6 +41,9 @@ async function checkAndSendReminders(
     await sendOotpMessage(
       `⏰ Reminder: 12 hours until next simulation! Still waiting on: ${waitingOnTeams}`
     );
+    if (!runState.remindersSent) {
+      runState.remindersSent = {};
+    }
     runState.remindersSent.twelveHours = true;
     await updateSimulationRunState(runState);
   }

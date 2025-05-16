@@ -130,6 +130,10 @@ interface SimulationState {
       auto_play_days_value?: number;
     };
   };
+  remindersSent?: {
+    twentyFourHours?: boolean;
+    twelveHours?: boolean;
+  };
 }
 
 export async function getSimulationState(): Promise<SimulationPause[]> {
