@@ -58,7 +58,7 @@ export async function checkAndRunSimulation() {
   // Check if all teams have submitted their turns
   const allTeamsSubmitted = await haveAllTeamsSubmitted();
 
-  if (runState?.scheduledFor > new Date() || allTeamsSubmitted) {
+  if (runState?.scheduledFor < new Date() || allTeamsSubmitted) {
     const state = await getSimulationState();
     if (state.length > 0) {
       console.log('Simulation is paused, skipping scheduled run');
