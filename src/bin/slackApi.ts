@@ -202,7 +202,16 @@ app.command('/supercluster', async ({ ack, body }) => {
         if (hoursUntilNext > 0) {
           const days = Math.floor(hoursUntilNext / 24);
           const hours = Math.floor(hoursUntilNext % 24);
-          nextSimMessage = `\nNext simulation in: ${days}d ${hours}h`;
+          const minutes = Math.floor((hoursUntilNext * 60) % 60);
+          const seconds = Math.floor((hoursUntilNext * 3600) % 60);
+
+          if (days > 0) {
+            nextSimMessage = `\nNext simulation in: ${days}d ${hours}h`;
+          } else if (hours > 0) {
+            nextSimMessage = `\nNext simulation in: ${hours}h ${minutes}m`;
+          } else {
+            nextSimMessage = `\nNext simulation in: ${minutes}m ${seconds}s`;
+          }
         } else {
           nextSimMessage = '\nNext simulation is due now';
         }
