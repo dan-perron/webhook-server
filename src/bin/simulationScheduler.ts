@@ -6,9 +6,8 @@ import {
 } from './ootpFileManager.js';
 import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 import cron from 'node-cron';
-import * as mongo from '../clients/mongo.js';
 import {
-  getScheduledSimulation,
+  getActiveSimulation,
   getSimulationState,
   updateSimulationRunState,
 } from '../clients/mongo.js';
@@ -46,34 +45,25 @@ async function checkAndSendReminders(
 
 // Function to check if we need to run a simulation
 export async function checkAndRunSimulation() {
-  const runState = await getScheduledSimulation();
+  const runState = await getActiveSimulation();
 
   // Check if there's already a simulation in progress
-  if (runState && runState.status === 'started') {
+  if (runState?.status === 'started') {
     console.log('Simulation already in progress, skipping run');
     return;
   }
 
-  // Get the last completed simulation run
-  const lastCompletedRun = await mongo.getLastCompletedSimulation();
   const now = new Date();
-
-  // If no completed runs found, use current time as reference
-  const lastRun = lastCompletedRun?.completedAt || now;
-
-  // Check if 48 hours have passed since the last run
-  const hoursSinceLastRun =
-    (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60);
 
   // Check if all teams have submitted their turns
   const allTeamsSubmitted = await haveAllTeamsSubmitted();
 
-  if (hoursSinceLastRun >= 48 || allTeamsSubmitted) {
+  if (runState?.scheduledFor > new Date() || allTeamsSubmitted) {
     const state = await getSimulationState();
     if (state.length > 0) {
       console.log('Simulation is paused, skipping scheduled run');
       // Only update the run state if it hasn't already been updated
-      const currentRunState = await getScheduledSimulation();
+      const currentRunState = await getActiveSimulation();
       if (!currentRunState?.skippedRun) {
         await sendOotpMessage(
           '⏸️ Simulation is paused, skipping scheduled run'
@@ -108,7 +98,7 @@ export async function checkAndRunSimulation() {
 export async function checkPausesRemoved() {
   const state = await getSimulationState();
   if (state.length === 0) {
-    const runState = await getScheduledSimulation();
+    const runState = await getActiveSimulation();
     if (runState.skippedRun) {
       console.log(
         'All pauses removed and there was a skipped run, executing now'

@@ -170,12 +170,15 @@ export async function resumeAllSimulationPauses(): Promise<number> {
   return result.modifiedCount;
 }
 
-export async function getScheduledSimulation(): Promise<SimulationState | null> {
+const TERMINAL_STATUSES = ['completed', 'failed', 'skipped', 'dry_run'];
+
+export async function getActiveSimulation(): Promise<SimulationState | null> {
   const result = await database
     .collection('simulation_state')
     .findOne({}, { sort: { createdAt: -1 } });
 
-  if (result?.status === 'scheduled') {
+  // Only return a scheduled simulation if it's not terminal.
+  if (!TERMINAL_STATUSES.includes(result?.status)) {
     return result as unknown as SimulationState;
   }
 
@@ -185,7 +188,7 @@ export async function getScheduledSimulation(): Promise<SimulationState | null> 
 export async function updateSimulationRunState(
   state: Partial<SimulationState>
 ): Promise<void> {
-  const currentState = await getScheduledSimulation();
+  const currentState = await getActiveSimulation();
   if (!currentState) {
     throw new Error('No scheduled simulation run state found');
   }
@@ -200,7 +203,7 @@ export async function updateSimulationRunState(
 export async function createScheduledSimulationRunState(
   state: Partial<SimulationState>
 ): Promise<void> {
-  const currentState = await getScheduledSimulation();
+  const currentState = await getActiveSimulation();
   if (currentState) {
     throw new Error('Scheduled simulation run state already exists');
   }
