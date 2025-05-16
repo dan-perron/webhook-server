@@ -94,9 +94,9 @@ export async function checkAndRunSimulation() {
     } catch (error) {
       await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     }
-  } else {
+  } else if (runState?.scheduledFor) {
     // Check and send reminders if needed
-    await checkAndSendReminders(runState?.scheduledFor, now, runState || {});
+    await checkAndSendReminders(runState.scheduledFor, now, runState);
   }
 }
 
