@@ -232,7 +232,7 @@ ${JSON.stringify(reminders, null, 2)}`;
     }
     return message;
   }
-  return `Waiting on ${getWaitingTeamsMessage()}`;
+  return `Waiting on ${await getWaitingTeamsMessage()}`;
 }
 
 export async function getBotMessage() {
