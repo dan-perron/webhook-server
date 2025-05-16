@@ -1,8 +1,7 @@
 import axios from 'axios';
 import config from 'config';
 import { sendOotpDebugMessage } from '../utils/slack.js';
-import { addSimulationPause } from '../utils/simulation.js';
-import { updateSimulationRunState } from '../utils/simulation.js';
+import { addSimulationPause, updateSimulationRunState } from './mongo.js';
 
 interface CommishCheckboxConfig {
   [key: string]: boolean | number | undefined;
@@ -95,7 +94,7 @@ export async function callSimulateEndpoint({
 
     // Update run state
     await updateSimulationRunState({
-      lastScheduledRun: new Date(),
+      scheduledFor: new Date(),
       skippedRun: false,
       status: options.dryRun ? 'dry_run' : 'started',
       triggeredBy: triggerType,

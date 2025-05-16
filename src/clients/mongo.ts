@@ -94,7 +94,7 @@ interface SimulationPause {
 
 interface SimulationState {
   _id?: ObjectId;
-  lastScheduledRun: Date | null;
+  scheduledFor: Date | null;
   skippedRun: boolean;
   createdAt: Date;
   completedAt?: Date;
@@ -186,22 +186,29 @@ export async function updateSimulationRunState(
   state: Partial<SimulationState>
 ): Promise<void> {
   const currentState = await getScheduledSimulation();
-  if (currentState?._id) {
-    // Update existing record
-    await database
-      .collection('simulation_state')
-      .updateOne(
-        { _id: currentState._id },
-        { $set: { ...state, updatedAt: new Date() } }
-      );
-  } else {
-    // Create new record
-    await database.collection('simulation_state').insertOne({
-      createdAt: new Date(),
-      status: 'scheduled',
-      ...state,
-    });
+  if (!currentState) {
+    throw new Error('No scheduled simulation run state found');
   }
+  await database
+    .collection('simulation_state')
+    .updateOne(
+      { _id: currentState._id },
+      { $set: { ...state, updatedAt: new Date() } }
+    );
+}
+
+export async function createScheduledSimulationRunState(
+  state: Partial<SimulationState>
+): Promise<void> {
+  const currentState = await getScheduledSimulation();
+  if (currentState) {
+    throw new Error('Scheduled simulation run state already exists');
+  }
+  await database.collection('simulation_state').insertOne({
+    createdAt: new Date(),
+    status: 'scheduled',
+    ...state,
+  });
 }
 
 export async function getSimulationHistory(

@@ -1,7 +1,3 @@
-import {
-  getSimulationState,
-  updateSimulationRunState,
-} from '../utils/simulation.js';
 import type { SimulationRunState } from '../utils/simulation.js';
 import { sendOotpMessage } from '../utils/slack.js';
 import {
@@ -11,7 +7,11 @@ import {
 import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 import cron from 'node-cron';
 import * as mongo from '../clients/mongo.js';
-import { getScheduledSimulation } from '../clients/mongo.js';
+import {
+  getScheduledSimulation,
+  getSimulationState,
+  updateSimulationRunState,
+} from '../clients/mongo.js';
 
 // Function to check and send reminders
 async function checkAndSendReminders(
@@ -79,7 +79,7 @@ export async function checkAndRunSimulation() {
           '⏸️ Simulation is paused, skipping scheduled run'
         );
         await updateSimulationRunState({
-          lastScheduledRun: new Date(),
+          scheduledFor: new Date(),
           skippedRun: true,
           status: 'skipped',
           reason: 'Simulation is paused',

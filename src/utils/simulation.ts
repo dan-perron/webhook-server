@@ -28,7 +28,7 @@ export interface CommishCheckboxConfig {
  */
 export interface SimulationRunState {
   _id?: ObjectId;
-  lastScheduledRun?: Date | null;
+  scheduledFor?: Date | null;
   skippedRun?: boolean;
   createdAt?: Date;
   completedAt?: Date;
@@ -78,33 +78,6 @@ export async function resumeAllSimulationPauses(): Promise<number> {
     await checkPausesRemoved();
   }
   return count;
-}
-
-/**
- * Adds a simulation pause
- * @param pauseId The ID of the pause to add (e.g. 'system_league_file', 'system_archive_file', or a user ID)
- */
-export async function addSimulationPause(pauseId: string): Promise<void> {
-  await mongo.addSimulationPause(pauseId);
-  console.log(`Added ${pauseId} pause`);
-}
-
-/**
- * Gets the current simulation state
- * @returns Array of active simulation pauses
- */
-export async function getSimulationState() {
-  return await mongo.getSimulationState();
-}
-
-/**
- * Updates the simulation run state
- * @param state The new run state to set
- */
-export async function updateSimulationRunState(
-  state: SimulationRunState
-): Promise<void> {
-  return await mongo.updateSimulationRunState(state);
 }
 
 export function formatSimulationHistoryEntry(sim: SimulationRunState): string {

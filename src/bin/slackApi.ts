@@ -16,13 +16,15 @@ import {
 import { isAuthorizedUser } from '../consts/slack.js';
 import { getBotMessage, getPowerRankings, teams } from './ootpFileManager.js';
 import {
-  addSimulationPause,
   resumeSimulationPause,
   resumeAllSimulationPauses,
-  getSimulationState,
   formatSimulationHistoryEntry,
 } from '../utils/simulation.js';
-import { getScheduledSimulation } from '../clients/mongo.js';
+import {
+  addSimulationPause,
+  getScheduledSimulation,
+  getSimulationState,
+} from '../clients/mongo.js';
 import dayjs from 'dayjs';
 import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 
@@ -192,9 +194,9 @@ app.command('/supercluster', async ({ ack, body }) => {
       const history = await mongo.getSimulationHistory(5);
 
       let nextSimMessage = '';
-      if (runState.lastScheduledRun) {
+      if (runState.scheduledFor) {
         const nextSimTime = new Date(
-          runState.lastScheduledRun.getTime() + 48 * 60 * 60 * 1000
+          runState.scheduledFor.getTime() + 48 * 60 * 60 * 1000
         );
         const now = new Date();
         const hoursUntilNext =

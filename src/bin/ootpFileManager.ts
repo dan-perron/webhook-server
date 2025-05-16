@@ -162,6 +162,9 @@ async function expandArchive(prevStat) {
         status: 'completed',
         completedAt: new Date(),
       });
+      await mongo.createScheduledSimulationRunState({
+        scheduledFor: new Date(new Date().getTime() + 48 * 60 * 60 * 1000),
+      });
     }
   } catch (e) {
     console.log('error while executing ' + e.toString());
