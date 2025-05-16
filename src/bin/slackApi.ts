@@ -188,7 +188,7 @@ async function handleStatusCommand(body: SlashCommand) {
   message += `${botStatus}\n\n`;
 
   // Add facilitator health status
-  message += `Facilitator Status: ${facilitatorHealth.healthy ? '✅' : '❌'} ${facilitatorHealth.message}\n\n`;
+  message += `PATRIOT Status: ${facilitatorHealth.healthy ? '✅' : '❌'} ${facilitatorHealth.message}\n\n`;
 
   if (state.length === 0) {
     console.log('[Supercluster] No active pauses found');
