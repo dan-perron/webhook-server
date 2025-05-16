@@ -81,10 +81,18 @@ export async function resumeAllSimulationPauses(): Promise<number> {
 }
 
 export function formatSimulationHistoryEntry(sim: SimulationRunState): string {
-  const timeAgo = dayjs().diff(dayjs(sim.createdAt), 'minute');
-  const days = Math.floor(timeAgo / (24 * 60));
-  const hours = Math.floor((timeAgo % (24 * 60)) / 60);
-  const minutes = timeAgo % 60;
+  const referenceTime =
+    sim.status === 'completed' ? sim.completedAt : sim.scheduledFor;
+  if (!referenceTime) {
+    return `${sim.status} (no time reference available)`;
+  }
+
+  const timeDiff = dayjs().diff(dayjs(referenceTime), 'minute');
+  const isFuture = timeDiff < 0;
+  const absTimeDiff = Math.abs(timeDiff);
+  const days = Math.floor(absTimeDiff / (24 * 60));
+  const hours = Math.floor((absTimeDiff % (24 * 60)) / 60);
+  const minutes = absTimeDiff % 60;
 
   let timeDisplay = '';
   if (days > 0) {
@@ -94,6 +102,12 @@ export function formatSimulationHistoryEntry(sim: SimulationRunState): string {
     timeDisplay += `${hours}h `;
   }
   timeDisplay += `${minutes}m`;
+
+  if (isFuture) {
+    timeDisplay = `in ${timeDisplay}`;
+  } else {
+    timeDisplay = `${timeDisplay} ago`;
+  }
 
   let status: string;
   switch (sim.status) {
@@ -113,7 +127,7 @@ export function formatSimulationHistoryEntry(sim: SimulationRunState): string {
       status = '🔄';
   }
 
-  let message = `${status} ${timeDisplay} ago: ${sim.status}`;
+  let message = `${status} ${timeDisplay}: ${sim.status}`;
   if (sim.reason) {
     message += ` (${sim.reason})`;
   }
