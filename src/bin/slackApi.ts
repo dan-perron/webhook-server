@@ -194,13 +194,10 @@ app.command('/supercluster', async ({ ack, body }) => {
       const history = await mongo.getSimulationHistory(5);
 
       let nextSimMessage = '';
-      if (runState.scheduledFor) {
-        const nextSimTime = new Date(
-          runState.scheduledFor.getTime() + 48 * 60 * 60 * 1000
-        );
+      if (runState?.scheduledFor) {
         const now = new Date();
         const hoursUntilNext =
-          (nextSimTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+          (runState.scheduledFor.getTime() - now.getTime()) / (1000 * 60 * 60);
 
         if (hoursUntilNext > 0) {
           const days = Math.floor(hoursUntilNext / 24);
