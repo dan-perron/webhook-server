@@ -90,6 +90,8 @@ interface SimulationPause {
   userId: string;
   pausedAt: Date;
   resumedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface SimulationState {
@@ -149,6 +151,8 @@ export async function addSimulationPause(userId: string): Promise<void> {
   const pause: SimulationPause = {
     userId,
     pausedAt: new Date(),
+    updatedAt: new Date(),
+    createdAt: new Date(),
   };
 
   await database.collection('simulation_pauses').insertOne(pause);
@@ -159,7 +163,7 @@ export async function resumeSimulationPause(userId: string): Promise<boolean> {
     .collection('simulation_pauses')
     .updateOne(
       { userId, resumedAt: { $exists: false } },
-      { $set: { resumedAt: new Date() } }
+      { $set: { resumedAt: new Date(), updatedAt: new Date() } }
     );
   return result.modifiedCount > 0;
 }
@@ -169,12 +173,12 @@ export async function resumeAllSimulationPauses(): Promise<number> {
     .collection('simulation_pauses')
     .updateMany(
       { resumedAt: { $exists: false } },
-      { $set: { resumedAt: new Date() } }
+      { $set: { resumedAt: new Date(), updatedAt: new Date() } }
     );
   return result.modifiedCount;
 }
 
-const TERMINAL_STATUSES = ['completed', 'failed', 'skipped', 'dry_run'];
+export const TERMINAL_STATUSES = ['completed', 'failed', 'skipped', 'dry_run'];
 
 export async function getActiveSimulation(): Promise<SimulationState | null> {
   const result = await database
@@ -212,9 +216,10 @@ export async function createScheduledSimulationRunState(
     throw new Error('Scheduled simulation run state already exists');
   }
   await database.collection('simulation_state').insertOne({
-    createdAt: new Date(),
-    status: 'scheduled',
     ...state,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    status: 'scheduled',
   });
 }
 

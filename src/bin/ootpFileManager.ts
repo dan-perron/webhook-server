@@ -212,10 +212,7 @@ export async function getWaitingTeamsMessage(prev = null): Promise<string> {
   if (!oldFiles || oldFiles.length === 0) {
     return '';
   }
-  return (
-    'Waiting on ' +
-    oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ')
-  );
+  return oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
 }
 
 async function getNextStepMessage(oldFiles) {
@@ -235,7 +232,7 @@ ${JSON.stringify(reminders, null, 2)}`;
     }
     return message;
   }
-  return getWaitingTeamsMessage();
+  return `Waiting on ${getWaitingTeamsMessage()}`;
 }
 
 export async function getBotMessage() {

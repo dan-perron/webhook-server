@@ -27,7 +27,7 @@ async function checkAndSendReminders(
   // Send 24-hour reminder if not already sent
   if (hoursUntilNext <= 24 && !runState.remindersSent?.twentyFourHours) {
     await sendOotpMessage(
-      `⏰ Reminder: 24 hours until next simulation! ${waitingOnTeams}`
+      `⏰ Reminder: 24 hours until next simulation! Waiting on: ${waitingOnTeams}`
     );
     if (!runState.remindersSent) {
       runState.remindersSent = {};

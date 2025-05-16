@@ -2,6 +2,7 @@ import * as mongo from '../clients/mongo.js';
 import { checkPausesRemoved } from '../bin/simulationScheduler.js';
 import { ObjectId } from 'mongodb';
 import dayjs from 'dayjs';
+import { TERMINAL_STATUSES } from '../clients/mongo.js';
 
 export interface CommishCheckboxConfig {
   [key: string]: boolean | number | undefined;
@@ -32,6 +33,7 @@ export interface SimulationRunState {
   skippedRun?: boolean;
   createdAt?: Date;
   completedAt?: Date;
+  updatedAt?: Date;
   status?:
     | 'scheduled'
     | 'skipped'
@@ -80,13 +82,7 @@ export async function resumeAllSimulationPauses(): Promise<number> {
   return count;
 }
 
-export function formatSimulationHistoryEntry(sim: SimulationRunState): string {
-  const referenceTime =
-    sim.status === 'completed' ? sim.completedAt : sim.scheduledFor;
-  if (!referenceTime) {
-    return `${sim.status} (no time reference available)`;
-  }
-
+function formatTimeDisplay(referenceTime: Date): string {
   const timeDiff = dayjs().diff(dayjs(referenceTime), 'minute');
   const isFuture = timeDiff < 0;
   const absTimeDiff = Math.abs(timeDiff);
@@ -103,11 +99,19 @@ export function formatSimulationHistoryEntry(sim: SimulationRunState): string {
   }
   timeDisplay += `${minutes}m`;
 
-  if (isFuture) {
-    timeDisplay = `in ${timeDisplay}`;
+  return isFuture ? `in ${timeDisplay}` : `${timeDisplay} ago`;
+}
+
+export function formatSimulationHistoryEntry(sim: SimulationRunState): string {
+  let referenceTime: Date | undefined;
+
+  if (TERMINAL_STATUSES.includes(sim.status)) {
+    referenceTime = sim.completedAt || sim.updatedAt || sim.createdAt;
   } else {
-    timeDisplay = `${timeDisplay} ago`;
+    referenceTime = sim.scheduledFor || sim.updatedAt;
   }
+
+  const timeDisplay = referenceTime ? formatTimeDisplay(referenceTime) : '???';
 
   let status: string;
   switch (sim.status) {
