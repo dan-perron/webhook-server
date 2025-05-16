@@ -14,12 +14,12 @@ import {
 
 // Function to check and send reminders
 async function checkAndSendReminders(
-  lastRun: Date,
+  scheduledFor: Date,
   now: Date,
   runState: SimulationRunState
 ) {
   const hoursUntilNext =
-    48 - (now.getTime() - lastRun.getTime()) / (1000 * 60 * 60);
+    (scheduledFor.getTime() - now.getTime()) / (1000 * 60 * 60);
 
   // Get list of teams that haven't submitted
   const waitingOnTeams = await getWaitingTeamsMessage();
@@ -90,7 +90,7 @@ export async function checkAndRunSimulation() {
     }
   } else {
     // Check and send reminders if needed
-    await checkAndSendReminders(lastRun, now, runState || {});
+    await checkAndSendReminders(runState?.scheduledFor, now, runState || {});
   }
 }
 
