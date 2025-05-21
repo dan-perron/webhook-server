@@ -52,7 +52,7 @@ for (const file in fileToSlackMap) {
     await sendOotpMessage(text);
 
     // Check if all teams have submitted and run simulation if they have
-    const allTeamsSubmitted = await haveAllTeamsSubmitted();
+    const allTeamsSubmitted = await haveAllTeamsSubmitted(oldFiles);
     if (allTeamsSubmitted) {
       await checkAndRunSimulation();
     }
@@ -184,7 +184,7 @@ watchFile(pathToReportsArchive, (curr) => {
   archiveFileTimer = setTimeout(() => expandArchive(curr), 60 * 1000);
 });
 
-async function checkFiles(prev = null) {
+async function checkFiles(prev = null): Promise<string[]> {
   const fileToStatPromises = {};
   for (const file in fileToSlackMap) {
     fileToStatPromises[file] = stat(pathToTeamUploads + file);
@@ -207,19 +207,16 @@ async function checkFiles(prev = null) {
   return oldFiles;
 }
 
-export async function getWaitingTeamsMessage(prev = null): Promise<string> {
-  const oldFiles = await checkFiles(prev);
-  if (!oldFiles || oldFiles.length === 0) {
+export async function getWaitingTeamsMessage(): Promise<string> {
+  const oldFiles = await checkFiles();
+  if (await haveAllTeamsSubmitted(oldFiles)) {
     return '';
   }
   return oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
 }
 
 async function getNextStepMessage(oldFiles) {
-  if (!oldFiles) {
-    return;
-  }
-  if (oldFiles.length === 0) {
+  if (await haveAllTeamsSubmitted(oldFiles)) {
     let message = `<@${perronSlack}> needs to sim.`;
     const reminders = await mongo.getRemindersAsText({
       type: channelMap.ootpHighlights,
@@ -235,7 +232,7 @@ ${JSON.stringify(reminders, null, 2)}`;
   return `Waiting on ${await getWaitingTeamsMessage()}`;
 }
 
-export async function getBotMessage() {
+export async function getBotMessage(): Promise<string> {
   const oldFiles = await checkFiles();
   return await getNextStepMessage(oldFiles);
 }
@@ -251,18 +248,11 @@ export async function getPowerRankings() {
   ).text();
 }
 
-export async function haveAllTeamsSubmitted(): Promise<boolean> {
-  try {
-    const fileToStatPromises = {};
-    for (const team of teams) {
-      fileToStatPromises[team] = stat(pathToTeamUploads + team + '.ootp');
-    }
-
-    // Wait for all stats to complete
-    await Promise.all(Object.values(fileToStatPromises));
-    return true;
-  } catch (error) {
-    // If any file is missing, return false
-    return false;
+export async function haveAllTeamsSubmitted(
+  oldFiles: string[]
+): Promise<boolean> {
+  if (!oldFiles) {
+    oldFiles = await checkFiles();
   }
+  return oldFiles.length === 0;
 }
