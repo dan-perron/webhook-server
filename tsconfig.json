@@ -10,6 +10,8 @@
     // "target": "esnext",
     // Recommended
     "verbatimModuleSyntax": true,
+    "sourceMap": true,
+    "inlineSourceMap": false,
 
     "paths": {
       "cheerio": ["./node_modules/cheerio/lib/index.d.ts"],

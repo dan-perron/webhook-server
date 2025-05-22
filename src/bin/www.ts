@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import 'source-map-support/register';
 import http from 'http';
 import { app } from '../app.js';
 
