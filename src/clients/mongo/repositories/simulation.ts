@@ -4,6 +4,7 @@ import type {
   SimulationState,
   SimulationStatus,
 } from '../types.js';
+import { SimulationStateMachine } from '../../utils/simulationStateMachine.js';
 
 export const TERMINAL_STATUSES: SimulationStatus[] = [
   'completed',
@@ -71,6 +72,12 @@ export async function updateSimulationRunState(
   if (!currentState) {
     throw new Error('No scheduled simulation run state found');
   }
+
+  // Validate state transition if status is being updated
+  if (state.status) {
+    SimulationStateMachine.validateTransition(currentState, state.status);
+  }
+
   await database
     .collection('simulation_state')
     .updateOne(
@@ -86,12 +93,16 @@ export async function createScheduledSimulationRunState(
   if (currentState) {
     throw new Error('Scheduled simulation run state already exists');
   }
-  await database.collection('simulation_state').insertOne({
+
+  // Ensure we're creating a new state with 'scheduled' status
+  const newState: Partial<SimulationState> = {
     ...state,
     createdAt: new Date(),
     updatedAt: new Date(),
     status: 'scheduled',
-  });
+  };
+
+  await database.collection('simulation_state').insertOne(newState);
 }
 
 export async function getSimulationHistory(

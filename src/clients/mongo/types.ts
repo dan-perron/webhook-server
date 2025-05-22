@@ -13,6 +13,7 @@ export interface SimulationState {
   scheduledFor: Date | null;
   skippedRun: boolean;
   createdAt: Date;
+  updatedAt: Date;
   completedAt?: Date;
   status: SimulationStatus;
   reason?: string;
