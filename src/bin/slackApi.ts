@@ -389,25 +389,27 @@ function formatOptions(options: SimulationOptions): string {
     lines.push(`• Dry run: ${options.dryRun ? 'Yes' : 'No'}`);
   }
 
-  // Check commish checkboxes
-  const defaultCheckboxes = defaultOptions.commishCheckboxes;
-  const checkboxes = options.commishCheckboxes;
+  if (options.commishCheckboxes) {
+    // Check commish checkboxes
+    const defaultCheckboxes = defaultOptions.commishCheckboxes;
+    const checkboxes = options.commishCheckboxes;
 
-  for (const [key, value] of Object.entries(checkboxes)) {
-    if (value !== defaultCheckboxes[key]) {
-      const settingName = key
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, (l) => l.toUpperCase());
-      lines.push(`• ${settingName}: ${value ? 'Yes' : 'No'}`);
+    for (const [key, value] of Object.entries(checkboxes)) {
+      if (value !== defaultCheckboxes[key]) {
+        const settingName = key
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (l) => l.toUpperCase());
+        lines.push(`• ${settingName}: ${value ? 'Yes' : 'No'}`);
+      }
     }
-  }
 
-  // Check numeric values
-  if (checkboxes.auto_play_days_value !== undefined) {
-    lines.push(`• Auto-play days: ${checkboxes.auto_play_days_value}`);
-  }
-  if (checkboxes.dfa_days_value !== undefined) {
-    lines.push(`• DFA days: ${checkboxes.dfa_days_value}`);
+    // Check numeric values
+    if (checkboxes.auto_play_days_value !== undefined) {
+      lines.push(`• Auto-play days: ${checkboxes.auto_play_days_value}`);
+    }
+    if (checkboxes.dfa_days_value !== undefined) {
+      lines.push(`• DFA days: ${checkboxes.dfa_days_value}`);
+    }
   }
 
   return lines.length > 0 ? lines.join('\n') : 'Using default settings';
