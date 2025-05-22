@@ -395,6 +395,7 @@ function formatOptions(options: SimulationOptions): string {
     const checkboxes = options.commishCheckboxes;
 
     for (const [key, value] of Object.entries(checkboxes)) {
+      if (key.endsWith('_value')) continue;
       if (value !== defaultCheckboxes[key]) {
         const settingName = key
           .replace(/_/g, ' ')
