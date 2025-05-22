@@ -4,7 +4,7 @@ import type {
   SimulationState,
   SimulationStatus,
 } from '../types.js';
-import { SimulationStateMachine } from '../../utils/simulationStateMachine.js';
+import { SimulationStateMachine } from '../../../utils/simulationStateMachine.js';
 
 export const TERMINAL_STATUSES: SimulationStatus[] = [
   'completed',

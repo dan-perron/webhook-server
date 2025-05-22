@@ -19,5 +19,5 @@ export async function getLatestTokens(): Promise<YahooFantasyTokens | null> {
     .sort({ date: -1 })
     .limit(1)
     .toArray();
-  return documents.pop() || null;
+  return (documents.pop() as unknown as YahooFantasyTokens) || null;
 }
