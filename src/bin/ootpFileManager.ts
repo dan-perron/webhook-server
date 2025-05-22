@@ -5,7 +5,17 @@ import * as cheerio from 'cheerio';
 import child_process from 'child_process';
 import { checkAndRunSimulation } from './simulationScheduler.js';
 import { resumeSimulationPause } from '../utils/simulation.js';
-import * as mongo from '../clients/mongo.js';
+import {
+  recordOOTPSim,
+  getLastOOTPSim,
+  updateOOTPSim,
+  OOTPSim,
+  getSimulationState,
+  updateSimulationRunState,
+  createScheduledSimulationRunState,
+  getRemindersAsText,
+  markRemindersDone,
+} from '../clients/mongo/index.js';
 import * as s3 from '../clients/s3.js';
 import { channelMap } from '../clients/slack.js';
 import { teamToSlackMap } from '../consts/slack.js';
@@ -40,7 +50,7 @@ for (const file in fileToSlackMap) {
     let text = `<@${fileToSlackMap[file]}> just submitted their team's upload.`;
 
     // Reset the user's pause if they have one
-    const resumed = await mongo.resumeSimulationPause(fileToSlackMap[file]);
+    const resumed = await resumeSimulationPause(fileToSlackMap[file]);
     if (resumed) {
       text += ' Their simulation pause has been automatically removed.';
     }
@@ -80,14 +90,14 @@ function humanFileSize(size: number): string {
 }
 
 watchFile(pathToLeagueFile, async () => {
-  const lastSim = await mongo.getLastOOTPSim();
-  let sim = new mongo.OOTPSim(new Date());
+  const lastSim = await getLastOOTPSim();
+  let sim = new OOTPSim(new Date());
   console.log(`league file changed new date ${sim.date}`);
   if (lastSim && sim.date.valueOf() - lastSim.date.valueOf() < 60 * 1000) {
     // Don't message if we've had a new file in the last 60 seconds.
     return;
   }
-  sim = await mongo.recordOOTPSim(sim);
+  sim = await recordOOTPSim(sim);
 
   // Remove the league file pause immediately
   await resumeSimulationPause('system_league_file');
@@ -95,19 +105,20 @@ watchFile(pathToLeagueFile, async () => {
   const playersString = Object.values(fileToSlackMap)
     .map((s) => `<@${s}>`)
     .join(', ');
-  await mongo.markRemindersDone({ type: channelMap.ootpHighlights });
+  await updateOOTPSim(sim);
+  await markRemindersDone({ type: channelMap.ootpHighlights });
   try {
     const leagueFileStat = await stat(pathToLeagueFile);
     await sendOotpMessage(
       `New ${humanFileSize(leagueFileStat.size)} league file uploaded <@${perronSlack}>`
     );
     sim.fileSize = leagueFileStat.size;
-    await mongo.updateOOTPSim(sim);
+    await updateOOTPSim(sim);
   } catch (e) {
     console.log('watchLeague - Error occurred in stat file');
     console.log(e);
     sim.error = e.toString();
-    await mongo.updateOOTPSim(sim);
+    await updateOOTPSim(sim);
     return;
   }
   console.log('watchLeague - Uploading league file to s3');
@@ -153,16 +164,16 @@ async function expandArchive(prevStat) {
     await sendOotpMessage('Reports are updated.');
 
     // Check if both system pauses are removed and mark simulation as completed
-    const state = await mongo.getSimulationState();
+    const state = await getSimulationState();
     const systemPauses = state.filter((pause) =>
       pause.userId.startsWith('system_')
     );
     if (systemPauses.length === 0) {
-      await mongo.updateSimulationRunState({
+      await updateSimulationRunState({
         status: 'completed',
         completedAt: new Date(),
       });
-      await mongo.createScheduledSimulationRunState({
+      await createScheduledSimulationRunState({
         scheduledFor: new Date(new Date().getTime() + 48 * 60 * 60 * 1000),
       });
     }
@@ -184,7 +195,7 @@ watchFile(pathToReportsArchive, (curr) => {
   archiveFileTimer = setTimeout(() => expandArchive(curr), 60 * 1000);
 });
 
-async function checkFiles(prev = null): Promise<string[]> {
+export async function checkFiles(prev = null): Promise<string[]> {
   const fileToStatPromises = {};
   for (const file in fileToSlackMap) {
     fileToStatPromises[file] = stat(pathToTeamUploads + file);
@@ -218,7 +229,7 @@ export async function getWaitingTeamsMessage(): Promise<string> {
 async function getNextStepMessage(oldFiles) {
   if (await haveAllTeamsSubmitted(oldFiles)) {
     let message = `<@${perronSlack}> needs to sim.`;
-    const reminders = await mongo.getRemindersAsText({
+    const reminders = await getRemindersAsText({
       type: channelMap.ootpHighlights,
     });
     if (reminders !== '') {

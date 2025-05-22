@@ -1,7 +1,7 @@
 import axios from 'axios';
 import config from 'config';
 import { sendOotpDebugMessage } from '../utils/slack.js';
-import { addSimulationPause, updateSimulationRunState } from './mongo.js';
+import { addSimulationPause, updateSimulationRunState } from './mongo/index.js';
 
 interface CommishCheckboxConfig {
   [key: string]: boolean | number | undefined;

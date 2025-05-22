@@ -2,13 +2,13 @@ import config from 'config';
 import { transform } from 'node-json-transform';
 import YahooFantasy from 'yahoo-fantasy';
 
-import * as mongo from './mongo.js';
+import { insertTokens, getLatestTokens } from './mongo/index.js';
 
 const leagueKey = config.get('yahoo.leagueKey');
 
 const tokenCallback = (tokens) => {
   console.log(JSON.stringify(tokens));
-  return mongo.insertTokens(tokens);
+  return insertTokens(tokens);
 };
 
 const yf = new YahooFantasy(
@@ -18,7 +18,7 @@ const yf = new YahooFantasy(
   'https://djperron.com/webhooks/yahoo/callback/' // optional
 );
 
-mongo.getLatestTokens().then((tokens) => {
+getLatestTokens().then((tokens) => {
   if (tokens) {
     yf.setUserToken(tokens.access_token);
     yf.setRefreshToken(tokens.refresh_token);

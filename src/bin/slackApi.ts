@@ -6,7 +6,13 @@ import type { AIClient } from '../clients/ai/AIClient.js';
 import { GoogleAI } from '../clients/ai/googleAI.js';
 import { OpenAI } from '../clients/ai/openai.js';
 import * as fantasy from '../clients/fantasy.js';
-import * as mongo from '../clients/mongo.js';
+import {
+  getRemindersAsText,
+  insertReminder,
+  getSimulationState,
+  getActiveSimulation,
+  getSimulationHistory,
+} from '../clients/mongo/index.js';
 import {
   app,
   channelMap,
@@ -20,11 +26,7 @@ import {
   resumeAllSimulationPauses,
   formatSimulationHistoryEntry,
 } from '../utils/simulation.js';
-import {
-  addSimulationPause,
-  getActiveSimulation,
-  getSimulationState,
-} from '../clients/mongo.js';
+import { addSimulationPause } from '../clients/mongo/index.js';
 import dayjs from 'dayjs';
 import {
   callSimulateEndpoint,
@@ -159,7 +161,7 @@ async function handleStatusCommand(body: SlashCommand) {
   const state = await getSimulationState();
   const botStatus = await getBotMessage();
   const runState = await getActiveSimulation();
-  const history = await mongo.getSimulationHistory(5);
+  const history = await getSimulationHistory(5);
   const facilitatorHealth = await checkFacilitatorHealth();
 
   let message = '';
@@ -320,7 +322,7 @@ app.command('/supercluster', async ({ ack, body }) => {
 
 // Export the pause state for the scheduler to use
 export async function isSimulationPaused() {
-  return await mongo.getSimulationState();
+  return await getSimulationState();
 }
 
 app.message(/.*who.?se? turn is it.*/i, async ({ message, say }) => {
@@ -399,12 +401,12 @@ async function sendOotpChat(messages, channel, say) {
       say(data.message);
       break;
     case 'add_reminder':
-      await mongo.insertReminder(channel, data.message);
+      await insertReminder(channel, data.message);
       say("I'll remember that");
       break;
     case 'list_reminders':
       say(
-        mongo.getRemindersAsText({
+        getRemindersAsText({
           type: channel,
         })
       );
@@ -502,14 +504,14 @@ app.event('app_mention', async ({ event, say }) => {
   ) {
     // TODO: How can we drop the await here / move it to the end of the function without
     // making the code ugly?
-    await mongo.insertReminder(event.channel, event);
+    await insertReminder(event.channel, event);
     await say({
       text: "I'll remember that.",
       thread_ts: event.thread_ts || event.ts,
     });
     return;
   }
-  const reminders = await mongo.getRemindersAsText({ type: event.channel });
+  const reminders = await getRemindersAsText({ type: event.channel });
   const text = await getText(event.channel, input, reminders);
   console.log(text);
   await say({ text, thread_ts: event.thread_ts || event.ts });

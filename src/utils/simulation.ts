@@ -1,8 +1,10 @@
-import * as mongo from '../clients/mongo.js';
-import { checkPausesRemoved } from '../bin/simulationScheduler.js';
 import { ObjectId } from 'mongodb';
+import {
+  TERMINAL_STATUSES,
+  resumeSimulationPause as mongoResumeSimulationPause,
+  resumeAllSimulationPauses as mongoResumeAllSimulationPauses,
+} from '../clients/mongo/index.js';
 import dayjs from 'dayjs';
-import { TERMINAL_STATUSES } from '../clients/mongo.js';
 
 export interface CommishCheckboxConfig {
   [key: string]: boolean | number | undefined;
@@ -61,10 +63,9 @@ export interface SimulationRunState {
  * @returns true if the pause was resumed, false if no active pause was found
  */
 export async function resumeSimulationPause(pauseId: string): Promise<boolean> {
-  const resumed = await mongo.resumeSimulationPause(pauseId);
+  const resumed = await mongoResumeSimulationPause(pauseId);
   if (resumed) {
     console.log(`${pauseId} pause removed`);
-    await checkPausesRemoved();
   }
   return resumed;
 }
@@ -74,10 +75,9 @@ export async function resumeSimulationPause(pauseId: string): Promise<boolean> {
  * @returns The number of pauses that were resumed
  */
 export async function resumeAllSimulationPauses(): Promise<number> {
-  const count = await mongo.resumeAllSimulationPauses();
+  const count = await mongoResumeAllSimulationPauses();
   if (count > 0) {
     console.log(`Resumed ${count} simulation pauses`);
-    await checkPausesRemoved();
   }
   return count;
 }

@@ -3,6 +3,7 @@ import { sendOotpMessage } from '../utils/slack.js';
 import {
   haveAllTeamsSubmitted,
   getWaitingTeamsMessage,
+  checkFiles,
 } from './ootpFileManager.js';
 import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 import cron from 'node-cron';
@@ -10,7 +11,7 @@ import {
   getActiveSimulation,
   getSimulationState,
   updateSimulationRunState,
-} from '../clients/mongo.js';
+} from '../clients/mongo/index.js';
 
 // Function to check and send reminders
 async function checkAndSendReminders(
@@ -62,7 +63,8 @@ export async function checkAndRunSimulation() {
   const now = new Date();
 
   // Check if all teams have submitted their turns
-  const allTeamsSubmitted = await haveAllTeamsSubmitted();
+  const oldFiles = await checkFiles();
+  const allTeamsSubmitted = await haveAllTeamsSubmitted(oldFiles);
 
   if (runState?.scheduledFor < new Date() || allTeamsSubmitted) {
     const state = await getSimulationState();
