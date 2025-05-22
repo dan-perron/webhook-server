@@ -12,6 +12,7 @@ import {
   getSimulationState,
   getActiveSimulation,
   getSimulationHistory,
+  updateSimulationRunState,
 } from '../clients/mongo/index.js';
 import {
   app,
@@ -32,6 +33,7 @@ import {
   callSimulateEndpoint,
   checkFacilitatorHealth,
 } from '../clients/windows-facilitator.js';
+import type { SimulationOptions } from '../clients/mongo/types.js';
 
 // Define the checkbox config interface
 interface CommishCheckboxConfig {
@@ -52,6 +54,99 @@ interface CommishCheckboxConfig {
   create_and_send_result_emails: boolean;
   dfa_days_value?: number;
   auto_play_days_value?: number;
+}
+
+function parseSimulationOptions(
+  args: string[],
+  existingOptions?: SimulationOptions
+): SimulationOptions {
+  const options: SimulationOptions = {
+    backupLeagueFolder: !args.includes('--no-backup'),
+    manualImportTeams: args.includes('--manual-import'),
+    dryRun: args.includes('--dry-run'),
+    commishCheckboxes: {
+      ...(existingOptions?.commishCheckboxes ?? {
+        backup_league_files: true,
+        retrieve_team_exports_from_server: true,
+        retrieve_team_exports_from_your_pc: false,
+        break_if_team_files_are_missing: true,
+        break_if_trades_are_pending: true,
+        demote_release_players_with_dfa_time_left_of_x_days_or_less: false,
+        auto_play_days: true,
+        create_and_upload_league_file: true,
+        create_and_upload_html_reports: true,
+        create_sql_dump_for_ms_access: false,
+        create_sql_dump_for_mysql: false,
+        export_data_to_csv_files: false,
+        upload_status_report_to_server: true,
+        create_and_send_result_emails: true,
+      }),
+    } as CommishCheckboxConfig,
+  };
+
+  // Parse numeric values
+  const numericArgs = ['--days', '--dfa-days'];
+  for (const arg of numericArgs) {
+    if (args.includes(arg)) {
+      const index = args.indexOf(arg);
+      if (index < args.length - 1) {
+        const value = parseInt(args[index + 1], 10);
+        if (!isNaN(value)) {
+          switch (arg) {
+            case '--days':
+              options.commishCheckboxes.auto_play_days_value = value;
+              break;
+            case '--dfa-days':
+              options.commishCheckboxes.dfa_days_value = value;
+              break;
+          }
+        }
+      }
+    }
+  }
+
+  // Parse boolean flags for commish checkboxes
+  const checkboxFlags = {
+    '--no-backup-files': 'backup_league_files',
+    '--no-server-export': 'retrieve_team_exports_from_server',
+    '--pc-export': 'retrieve_team_exports_from_your_pc',
+    '--no-break-missing': 'break_if_team_files_are_missing',
+    '--no-break-trades': 'break_if_trades_are_pending',
+    '--demote-dfa':
+      'demote_release_players_with_dfa_time_left_of_x_days_or_less',
+    '--no-auto-play': 'auto_play_days',
+    '--no-upload-league': 'create_and_upload_league_file',
+    '--no-upload-reports': 'create_and_upload_html_reports',
+    '--ms-access': 'create_sql_dump_for_ms_access',
+    '--mysql': 'create_sql_dump_for_mysql',
+    '--csv': 'export_data_to_csv_files',
+    '--no-upload-status': 'upload_status_report_to_server',
+    '--no-send-emails': 'create_and_send_result_emails',
+  };
+
+  for (const [flag, setting] of Object.entries(checkboxFlags)) {
+    if (args.includes(flag)) {
+      options.commishCheckboxes[setting] = flag.startsWith('--no-')
+        ? false
+        : true;
+    }
+  }
+
+  return options;
+}
+
+function mergeOptions(
+  savedOptions: SimulationOptions | undefined,
+  newOptions: SimulationOptions
+): SimulationOptions {
+  return {
+    ...savedOptions,
+    ...newOptions,
+    commishCheckboxes: {
+      ...(savedOptions?.commishCheckboxes ?? {}),
+      ...newOptions.commishCheckboxes,
+    },
+  };
 }
 
 async function handleSimulateCommand(body: SlashCommand, args: string[]) {
@@ -76,23 +171,9 @@ async function handleSimulateCommand(body: SlashCommand, args: string[]) {
       return;
     }
 
-    const options = {
-      backupLeagueFolder: !args.includes('--no-backup'),
-      manualImportTeams: args.includes('--manual-import'),
-      dryRun: args.includes('--dry-run'),
-      commishCheckboxes: {} as CommishCheckboxConfig,
-    };
-
-    // Add any additional commish checkbox options
-    if (args.includes('--days')) {
-      const daysIndex = args.indexOf('--days');
-      if (daysIndex < args.length - 1) {
-        const days = parseInt(args[daysIndex + 1], 10);
-        if (!isNaN(days)) {
-          options.commishCheckboxes.auto_play_days_value = days;
-        }
-      }
-    }
+    // Parse command line options and merge with any saved options
+    const commandOptions = parseSimulationOptions(args);
+    const options = mergeOptions(runState?.options, commandOptions);
 
     await sendMessage(
       body.channel_id,
@@ -268,12 +349,135 @@ async function handleHelpCommand(body: SlashCommand) {
   );
 }
 
+function formatOptions(options: SimulationOptions): string {
+  const defaultOptions: SimulationOptions = {
+    backupLeagueFolder: true,
+    manualImportTeams: false,
+    dryRun: false,
+    commishCheckboxes: {
+      backup_league_files: true,
+      retrieve_team_exports_from_server: true,
+      retrieve_team_exports_from_your_pc: false,
+      break_if_team_files_are_missing: true,
+      break_if_trades_are_pending: true,
+      demote_release_players_with_dfa_time_left_of_x_days_or_less: false,
+      auto_play_days: true,
+      create_and_upload_league_file: true,
+      create_and_upload_html_reports: true,
+      create_sql_dump_for_ms_access: false,
+      create_sql_dump_for_mysql: false,
+      export_data_to_csv_files: false,
+      upload_status_report_to_server: true,
+      create_and_send_result_emails: true,
+    },
+  };
+
+  const lines: string[] = [];
+
+  // Check basic options
+  if (options.backupLeagueFolder !== defaultOptions.backupLeagueFolder) {
+    lines.push(
+      `• Backup league folder: ${options.backupLeagueFolder ? 'Yes' : 'No'}`
+    );
+  }
+  if (options.manualImportTeams !== defaultOptions.manualImportTeams) {
+    lines.push(
+      `• Manual import teams: ${options.manualImportTeams ? 'Yes' : 'No'}`
+    );
+  }
+  if (options.dryRun !== defaultOptions.dryRun) {
+    lines.push(`• Dry run: ${options.dryRun ? 'Yes' : 'No'}`);
+  }
+
+  // Check commish checkboxes
+  const defaultCheckboxes = defaultOptions.commishCheckboxes;
+  const checkboxes = options.commishCheckboxes;
+
+  for (const [key, value] of Object.entries(checkboxes)) {
+    if (value !== defaultCheckboxes[key]) {
+      const settingName = key
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (l) => l.toUpperCase());
+      lines.push(`• ${settingName}: ${value ? 'Yes' : 'No'}`);
+    }
+  }
+
+  // Check numeric values
+  if (checkboxes.auto_play_days_value !== undefined) {
+    lines.push(`• Auto-play days: ${checkboxes.auto_play_days_value}`);
+  }
+  if (checkboxes.dfa_days_value !== undefined) {
+    lines.push(`• DFA days: ${checkboxes.dfa_days_value}`);
+  }
+
+  return lines.length > 0 ? lines.join('\n') : 'Using default settings';
+}
+
+async function handleScheduleConfigCommand(body: SlashCommand, args: string[]) {
+  try {
+    const runState = await getActiveSimulation();
+    if (!runState) {
+      await sendEphemeralMessage(
+        body.channel_id,
+        body.user_id,
+        '❌ No scheduled simulation found.'
+      );
+      return;
+    }
+
+    if (args.length === 0 || args.includes('--help')) {
+      const options = runState.options ?? {};
+      let message = `📅 Current Simulation Configuration:\n${formatOptions(options)}\n\n`;
+      if (args.includes('--help')) {
+        message +=
+          `To update settings, use the following flags:\n` +
+          `• \`--no-backup\` - Disable backup\n` +
+          `• \`--manual-import\` - Enable manual import\n` +
+          `• \`--dry-run\` - Enable dry run mode\n` +
+          `• \`--days N\` - Set auto-play days (e.g. \`--days 3\`)\n` +
+          `• \`--dfa-days N\` - Set DFA days threshold\n` +
+          `• \`--no-backup-files\` - Disable league file backup\n` +
+          `• \`--no-server-export\` - Disable server export\n` +
+          `• \`--pc-export\` - Enable PC export\n` +
+          `• \`--no-break-missing\` - Don't break on missing files\n` +
+          `• \`--no-break-trades\` - Don't break on pending trades\n` +
+          `• \`--demote-dfa\` - Enable DFA demotion\n` +
+          `• \`--no-auto-play\` - Disable auto-play\n` +
+          `• \`--no-upload-league\` - Don't upload league file\n` +
+          `• \`--no-upload-reports\` - Don't upload HTML reports\n` +
+          `• \`--ms-access\` - Create MS Access dump\n` +
+          `• \`--mysql\` - Create MySQL dump\n` +
+          `• \`--csv\` - Export to CSV files\n` +
+          `• \`--no-upload-status\` - Don't upload status report\n` +
+          `• \`--no-send-emails\` - Don't send result emails`;
+      }
+
+      await sendEphemeralMessage(body.channel_id, body.user_id, message);
+      return;
+    }
+
+    const commandOptions = parseSimulationOptions(args);
+    const newOptions = mergeOptions(runState.options, commandOptions);
+    await updateSimulationRunState({ options: newOptions });
+
+    const message = `✅ Simulation configuration updated:\n${formatOptions(newOptions)}`;
+    await sendEphemeralMessage(body.channel_id, body.user_id, message);
+  } catch (error) {
+    console.error('Error in schedule config command:', error);
+    await sendMessage(
+      body.channel_id,
+      `❌ Error updating simulation configuration: ${error.message}`
+    );
+  }
+}
+
 // Add slash command to control simulation
 app.command('/supercluster', async ({ ack, body }) => {
   await ack();
-  const text = body.text.trim().toLowerCase();
+  const args = body.text.split(' ').filter(Boolean);
+  const command = args[0];
 
-  console.log(`[Supercluster] Command received: ${text}`);
+  console.log(`[Supercluster] Command received: ${command}`);
 
   if (!isAuthorizedUser(body.user_id)) {
     console.log(
@@ -287,20 +491,19 @@ app.command('/supercluster', async ({ ack, body }) => {
     return;
   }
 
-  const [action, ...args] = text.split(' ');
   console.log(
-    `[Supercluster] Parsed command: action=${action}, args=${args.join(' ')}`
+    `[Supercluster] Parsed command: command=${command}, args=${args.join(' ')}`
   );
 
-  switch (action) {
+  switch (command) {
     case 'simulate':
-      await handleSimulateCommand(body, args);
+      await handleSimulateCommand(body, args.slice(1));
       break;
     case 'pause':
       await handlePauseCommand(body);
       break;
     case 'resume':
-      await handleResumeCommand(body, args);
+      await handleResumeCommand(body, args.slice(1));
       break;
     case 'status':
       await handleStatusCommand(body);
@@ -308,9 +511,12 @@ app.command('/supercluster', async ({ ack, body }) => {
     case 'help':
       await handleHelpCommand(body);
       break;
+    case 'schedule-config':
+      await handleScheduleConfigCommand(body, args.slice(1));
+      break;
     default:
       console.log(
-        `[Supercluster] Unknown command from user ${body.user_id}: ${action}`
+        `[Supercluster] Unknown command from user ${body.user_id}: ${command}`
       );
       await sendEphemeralMessage(
         body.channel_id,

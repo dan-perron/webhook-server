@@ -92,7 +92,7 @@ export async function checkAndRunSimulation() {
     const triggerType = allTeamsSubmitted ? 'players_ready' : 'scheduler';
     await sendOotpMessage(`🔄 Starting scheduled simulation (${reason})...`);
     try {
-      await callSimulateEndpoint({ triggerType });
+      await callSimulateEndpoint({ options: runState.options, triggerType });
     } catch (error) {
       await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     }
@@ -113,7 +113,10 @@ export async function checkPausesRemoved() {
       );
       await sendOotpMessage('🔄 Resuming previously skipped simulation...');
       try {
-        await callSimulateEndpoint({ triggerType: 'resumed' });
+        await callSimulateEndpoint({
+          options: runState.options,
+          triggerType: 'resumed',
+        });
       } catch (error) {
         await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
       }

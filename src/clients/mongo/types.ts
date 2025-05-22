@@ -37,6 +37,7 @@ export interface SimulationOptions {
   backupLeagueFolder?: boolean;
   manualImportTeams?: boolean;
   commishCheckboxes?: CommishCheckboxes;
+  dryRun?: boolean;
 }
 
 export interface CommishCheckboxes {
