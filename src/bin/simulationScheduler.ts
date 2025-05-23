@@ -34,7 +34,9 @@ async function checkAndSendReminders(
       runState.remindersSent = {};
     }
     runState.remindersSent.twentyFourHours = true;
-    await updateSimulationRunState(runState);
+    await updateSimulationRunState({
+      remindersSent: runState.remindersSent,
+    });
   }
 
   // Send 12-hour reminder if not already sent
@@ -46,7 +48,9 @@ async function checkAndSendReminders(
       runState.remindersSent = {};
     }
     runState.remindersSent.twelveHours = true;
-    await updateSimulationRunState(runState);
+    await updateSimulationRunState({
+      remindersSent: runState.remindersSent,
+    });
   }
 }
 

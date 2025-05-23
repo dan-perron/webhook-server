@@ -75,6 +75,7 @@ export async function callSimulateEndpoint({
       backupLeagueFolder: options.backupLeagueFolder,
       manualImportTeams: options.manualImportTeams,
       commishCheckboxes: options.commishCheckboxes,
+      dryRun: options.dryRun,
     },
   });
 
