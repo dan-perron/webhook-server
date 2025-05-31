@@ -9,7 +9,7 @@ import * as fantasy from '../clients/fantasy.js';
 import {
   getRemindersAsText,
   insertReminder,
-  getSimulationState,
+  getSimulationPauses,
   getActiveSimulation,
   getSimulationHistory,
   updateScheduledSimulation,
@@ -112,7 +112,7 @@ function mergeOptions(
 async function handleSimulateCommand(body: SlashCommand, args: string[]) {
   try {
     // Check if simulation is already paused
-    const state = await getSimulationState();
+    const state = await getSimulationPauses();
     if (state.length > 0) {
       await sendMessage(
         body.channel_id,
@@ -199,7 +199,7 @@ async function handleResumeCommand(body: SlashCommand, args: string[]) {
 
 async function handleStatusCommand(body: SlashCommand) {
   console.log(`[Supercluster] User ${body.user_id} checking simulation status`);
-  const state = await getSimulationState();
+  const state = await getSimulationPauses();
   const botStatus = await getBotMessage();
   const runState = await getScheduledSimulation();
   const activeState = await getActiveSimulation();
@@ -461,7 +461,7 @@ app.command('/supercluster', async ({ ack, body }) => {
 
 // Export the pause state for the scheduler to use
 export async function isSimulationPaused() {
-  return await getSimulationState();
+  return await getSimulationPauses();
 }
 
 app.message(/.*who.?se? turn is it.*/i, async ({ message, say }) => {

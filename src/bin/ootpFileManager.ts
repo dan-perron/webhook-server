@@ -10,7 +10,7 @@ import {
   getLastOOTPSim,
   updateOOTPSim,
   OOTPSim,
-  getSimulationState,
+  getSimulationPauses,
   setScheduledSimulation,
   getRemindersAsText,
   markRemindersDone,
@@ -168,7 +168,7 @@ async function expandArchive(prevStat) {
     await sendOotpMessage('Reports are updated.');
 
     // Check if both system pauses are removed and mark simulation as completed
-    const state = await getSimulationState();
+    const state = await getSimulationPauses();
     const systemPauses = state.filter((pause) =>
       pause.userId.startsWith('system_')
     );

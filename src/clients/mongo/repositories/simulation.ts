@@ -12,7 +12,7 @@ export const TERMINAL_STATUSES: SimulationStatus[] = [
   'dry_run',
 ];
 
-export async function getSimulationState(): Promise<SimulationPause[]> {
+export async function getSimulationPauses(): Promise<SimulationPause[]> {
   const result = await database
     .collection('simulation_pauses')
     .find({ resumedAt: { $exists: false } })

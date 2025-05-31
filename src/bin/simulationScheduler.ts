@@ -9,7 +9,7 @@ import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 import cron from 'node-cron';
 import {
   getActiveSimulation,
-  getSimulationState,
+  getSimulationPauses,
   updateScheduledSimulation,
 } from '../clients/mongo/index.js';
 
@@ -71,7 +71,7 @@ export async function checkAndRunSimulation() {
   const allTeamsSubmitted = await haveAllTeamsSubmitted(oldFiles);
 
   if (runState?.scheduledFor < new Date() || allTeamsSubmitted) {
-    const state = await getSimulationState();
+    const state = await getSimulationPauses();
     if (state.length > 0) {
       console.log('Simulation is paused, skipping scheduled run');
       // Only update the run state if it hasn't already been updated
@@ -108,7 +108,7 @@ export async function checkAndRunSimulation() {
 
 // Also check when pauses are removed
 export async function checkPausesRemoved() {
-  const state = await getSimulationState();
+  const state = await getSimulationPauses();
   if (state.length === 0) {
     const runState = await getActiveSimulation();
     if (runState.skippedRun) {
