@@ -290,6 +290,7 @@ async function handleHelpCommand(body: SlashCommand) {
 • \`/supercluster resume all\` - Resume all pauses
 • \`/supercluster status\` - Check current pause state
 • \`/supercluster simulate\` - Force a simulation to run (admin only)
+• \`/supercluster set\` - Set simulation configuration
 
 *Basic Settings:*
 • \`backup=true|false\` - Enable/disable backup
@@ -348,10 +349,10 @@ function formatOptions(options: SimulationOptions): string {
     }
 
     // Check numeric values
-    if (checkboxes.auto_play_days_value !== undefined) {
+    if (checkboxes.auto_play_days_value) {
       lines.push(`• Auto-play days: ${checkboxes.auto_play_days_value}`);
     }
-    if (checkboxes.dfa_days_value !== undefined) {
+    if (checkboxes.dfa_days_value) {
       lines.push(`• DFA days: ${checkboxes.dfa_days_value}`);
     }
   }
