@@ -108,23 +108,29 @@ export async function updateScheduledSimulation(
     );
 }
 
-export async function createScheduledSimulationRunState(
+export async function setScheduledSimulation(
   state: Partial<SimulationState>
 ): Promise<void> {
-  const currentState = await getActiveSimulation();
+  const currentState = await getScheduledSimulation();
   if (currentState) {
-    throw new Error('Scheduled simulation run state already exists');
+    database
+      .collection('simulation_state')
+      .updateOne(
+        { _id: currentState._id },
+        { $set: { ...state, updatedAt: new Date() } }
+      );
+    return;
+  } else {
+    // Ensure we're creating a new state with 'scheduled' status
+    const newState: Partial<SimulationState> = {
+      ...state,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      status: 'scheduled',
+    };
+
+    await database.collection('simulation_state').insertOne(newState);
   }
-
-  // Ensure we're creating a new state with 'scheduled' status
-  const newState: Partial<SimulationState> = {
-    ...state,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    status: 'scheduled',
-  };
-
-  await database.collection('simulation_state').insertOne(newState);
 }
 
 export async function getSimulationHistory(

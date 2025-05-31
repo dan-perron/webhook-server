@@ -11,7 +11,7 @@ import {
   updateOOTPSim,
   OOTPSim,
   getSimulationState,
-  createScheduledSimulationRunState,
+  setScheduledSimulation,
   getRemindersAsText,
   markRemindersDone,
   updateActiveSimulation,
@@ -102,7 +102,7 @@ watchFile(pathToLeagueFile, async () => {
   // Remove the league file pause immediately
   await resumeSimulationPause('system_league_file');
 
-  await createScheduledSimulationRunState({
+  await setScheduledSimulation({
     scheduledFor: new Date(new Date().getTime() + 48 * 60 * 60 * 1000),
   });
 
