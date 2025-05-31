@@ -8,7 +8,6 @@ import { SimulationStateMachine } from '../../../utils/simulationStateMachine.js
 
 export const TERMINAL_STATUSES: SimulationStatus[] = [
   'completed',
-  'failed',
   'skipped',
   'dry_run',
 ];
