@@ -53,10 +53,17 @@ export async function resumeAllSimulationPauses(): Promise<number> {
   return result.modifiedCount;
 }
 
+export async function getScheduledSimulation(): Promise<SimulationState | null> {
+  const result = await database
+    .collection('simulation_state')
+    .findOne({ status: 'scheduled' }, { sort: { createdAt: -1 } });
+  return result as SimulationState | null;
+}
+
 export async function getActiveSimulation(): Promise<SimulationState | null> {
   const result = await database
     .collection('simulation_state')
-    .findOne({}, { sort: { createdAt: -1 } });
+    .findOne({ status: { $ne: 'scheduled' } }, { sort: { createdAt: -1 } });
 
   if (!TERMINAL_STATUSES.includes(result?.status)) {
     return result as SimulationState;
@@ -65,10 +72,26 @@ export async function getActiveSimulation(): Promise<SimulationState | null> {
   return null;
 }
 
-export async function updateSimulationRunState(
+export async function updateActiveSimulation(
   state: Partial<SimulationState>
 ): Promise<void> {
   const currentState = await getActiveSimulation();
+  if (!currentState) {
+    throw new Error('No active simulation run state found');
+  }
+
+  await database
+    .collection('simulation_state')
+    .updateOne(
+      { _id: currentState._id },
+      { $set: { ...state, updatedAt: new Date() } }
+    );
+}
+
+export async function updateScheduledSimulation(
+  state: Partial<SimulationState>
+): Promise<void> {
+  const currentState = await getScheduledSimulation();
   if (!currentState) {
     throw new Error('No scheduled simulation run state found');
   }

@@ -12,7 +12,8 @@ import {
   getSimulationState,
   getActiveSimulation,
   getSimulationHistory,
-  updateSimulationRunState,
+  updateScheduledSimulation,
+  getScheduledSimulation,
 } from '../clients/mongo/index.js';
 import {
   app,
@@ -121,18 +122,18 @@ async function handleSimulateCommand(body: SlashCommand, args: string[]) {
     }
 
     // Check if there's already a simulation in progress
-    const runState = await getActiveSimulation();
-    if (runState && runState.status === 'scheduled') {
+    if (await getActiveSimulation()) {
       await sendMessage(
         body.channel_id,
         '❌ A simulation is already in progress.'
       );
       return;
     }
+    const scheduledState = await getScheduledSimulation();
 
     // Parse command line options and merge with any saved options
     const commandOptions = parseSimulationOptions(args);
-    const options = mergeOptions(runState?.options, commandOptions);
+    const options = mergeOptions(scheduledState?.options, commandOptions);
 
     await sendMessage(
       body.channel_id,
@@ -200,11 +201,15 @@ async function handleStatusCommand(body: SlashCommand) {
   console.log(`[Supercluster] User ${body.user_id} checking simulation status`);
   const state = await getSimulationState();
   const botStatus = await getBotMessage();
-  const runState = await getActiveSimulation();
+  const runState = await getScheduledSimulation();
+  const activeState = await getActiveSimulation();
   const history = await getSimulationHistory(5);
   const facilitatorHealth = await checkFacilitatorHealth();
 
   let message = '';
+  if (activeState) {
+    message += `Simulation is currently active. Status: ${activeState.status}. Updated at ${activeState.updatedAt.toLocaleString()}\n\n`;
+  }
   if (runState?.scheduledFor) {
     const now = new Date();
     const hoursUntilNext =
@@ -362,8 +367,8 @@ function formatOptions(options: SimulationOptions): string {
 
 async function handleSetConfigCommand(body: SlashCommand, args: string[]) {
   try {
-    const runState = await getActiveSimulation();
-    if (!runState) {
+    const scheduledState = await getScheduledSimulation();
+    if (!scheduledState) {
       await sendEphemeralMessage(
         body.channel_id,
         body.user_id,
@@ -373,7 +378,7 @@ async function handleSetConfigCommand(body: SlashCommand, args: string[]) {
     }
 
     if (args.length === 0 || args.includes('--help')) {
-      const options = runState.options ?? new SimulationOptions();
+      const options = scheduledState.options ?? new SimulationOptions();
       let message = `📅 Current Simulation Configuration:\n${formatOptions(options)}\n\n`;
       if (args.includes('--help')) {
         message +=
@@ -385,8 +390,8 @@ async function handleSetConfigCommand(body: SlashCommand, args: string[]) {
     }
 
     const commandOptions = parseSimulationOptions(args);
-    const newOptions = mergeOptions(runState.options, commandOptions);
-    await updateSimulationRunState({ options: newOptions });
+    const newOptions = mergeOptions(scheduledState.options, commandOptions);
+    await updateScheduledSimulation({ options: newOptions });
 
     const message = `✅ Simulation configuration updated:\n${formatOptions(newOptions)}`;
     await sendMessage(body.channel_id, message);

@@ -11,10 +11,10 @@ import {
   updateOOTPSim,
   OOTPSim,
   getSimulationState,
-  updateSimulationRunState,
   createScheduledSimulationRunState,
   getRemindersAsText,
   markRemindersDone,
+  updateActiveSimulation,
 } from '../clients/mongo/index.js';
 import * as s3 from '../clients/s3.js';
 import { channelMap } from '../clients/slack.js';
@@ -102,6 +102,10 @@ watchFile(pathToLeagueFile, async () => {
   // Remove the league file pause immediately
   await resumeSimulationPause('system_league_file');
 
+  await createScheduledSimulationRunState({
+    scheduledFor: new Date(new Date().getTime() + 48 * 60 * 60 * 1000),
+  });
+
   const playersString = Object.values(fileToSlackMap)
     .map((s) => `<@${s}>`)
     .join(', ');
@@ -169,12 +173,9 @@ async function expandArchive(prevStat) {
       pause.userId.startsWith('system_')
     );
     if (systemPauses.length === 0) {
-      await updateSimulationRunState({
+      await updateActiveSimulation({
         status: 'completed',
         completedAt: new Date(),
-      });
-      await createScheduledSimulationRunState({
-        scheduledFor: new Date(new Date().getTime() + 48 * 60 * 60 * 1000),
       });
     }
   } catch (e) {

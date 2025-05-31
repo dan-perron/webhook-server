@@ -10,7 +10,7 @@ import cron from 'node-cron';
 import {
   getActiveSimulation,
   getSimulationState,
-  updateSimulationRunState,
+  updateScheduledSimulation,
 } from '../clients/mongo/index.js';
 
 // Function to check and send reminders
@@ -34,7 +34,7 @@ async function checkAndSendReminders(
       runState.remindersSent = {};
     }
     runState.remindersSent.twentyFourHours = true;
-    await updateSimulationRunState({
+    await updateScheduledSimulation({
       remindersSent: runState.remindersSent,
     });
   }
@@ -48,7 +48,7 @@ async function checkAndSendReminders(
       runState.remindersSent = {};
     }
     runState.remindersSent.twelveHours = true;
-    await updateSimulationRunState({
+    await updateScheduledSimulation({
       remindersSent: runState.remindersSent,
     });
   }
@@ -59,7 +59,7 @@ export async function checkAndRunSimulation() {
   const runState = await getActiveSimulation();
 
   // Check if there's already a simulation in progress
-  if (runState?.status === 'started') {
+  if (runState?.status === 'started' || runState?.status === 'failed') {
     console.log('Simulation already in progress, skipping run');
     return;
   }
@@ -80,7 +80,7 @@ export async function checkAndRunSimulation() {
         await sendOotpMessage(
           '⏸️ Simulation is paused, skipping scheduled run'
         );
-        await updateSimulationRunState({
+        await updateScheduledSimulation({
           scheduledFor: new Date(),
           skippedRun: true,
           status: 'skipped',
