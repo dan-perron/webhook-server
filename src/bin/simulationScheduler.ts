@@ -67,7 +67,7 @@ export async function checkAndRunSimulation() {
   const now = new Date();
 
   // Check if all teams have submitted their turns
-  const oldFiles = await checkFiles();
+  const { oldFiles } = await checkFiles();
   const allTeamsSubmitted = await haveAllTeamsSubmitted(oldFiles);
 
   if (runState?.scheduledFor < new Date() || allTeamsSubmitted) {

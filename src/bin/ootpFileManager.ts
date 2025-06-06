@@ -46,7 +46,7 @@ const pathToTeamReports = '/ootp/game/reports/html/teams/';
 
 for (const file in fileToSlackMap) {
   watchFile(pathToTeamUploads + file, async (curr, prev) => {
-    const oldFiles = await checkFiles(prev);
+    const { oldFiles, leagueOlderThanPrev } = await checkFiles(prev);
     let text = `<@${fileToSlackMap[file]}> just submitted their team's upload.`;
 
     // Reset the user's pause if they have one
@@ -55,9 +55,11 @@ for (const file in fileToSlackMap) {
       text += ' Their simulation pause has been automatically removed.';
     }
 
-    const nextStepText = await getNextStepMessage(oldFiles);
-    if (nextStepText) {
-      text += ' ' + nextStepText;
+    if (!leagueOlderThanPrev) {
+      const nextStepText = await getNextStepMessage(oldFiles);
+      if (nextStepText) {
+        text += ' ' + nextStepText;
+      }
     }
     await sendOotpMessage(text);
 
@@ -196,15 +198,14 @@ watchFile(pathToReportsArchive, (curr) => {
   archiveFileTimer = setTimeout(() => expandArchive(curr), 60 * 1000);
 });
 
-export async function checkFiles(prev = null): Promise<string[]> {
+export async function checkFiles(
+  prev = null
+): Promise<{ oldFiles: string[]; leagueOlderThanPrev: boolean }> {
   const fileToStatPromises = {};
   for (const file in fileToSlackMap) {
     fileToStatPromises[file] = stat(pathToTeamUploads + file);
   }
   const leagueFileStat = await stat(pathToLeagueFile);
-  if (prev && leagueFileStat.mtimeMs < prev.mtimeMs) {
-    return;
-  }
   const oldFiles = [];
   for (const file in fileToStatPromises) {
     try {
@@ -216,18 +217,21 @@ export async function checkFiles(prev = null): Promise<string[]> {
       oldFiles.push(file);
     }
   }
-  return oldFiles;
+  return {
+    oldFiles,
+    leagueOlderThanPrev: prev && leagueFileStat.mtimeMs < prev.mtimeMs,
+  };
 }
 
 export async function getWaitingTeamsMessage(): Promise<string> {
-  const oldFiles = await checkFiles();
+  const { oldFiles } = await checkFiles();
   if (await haveAllTeamsSubmitted(oldFiles)) {
     return '';
   }
   return oldFiles.map((oldFile) => `<@${fileToSlackMap[oldFile]}>`).join(', ');
 }
 
-async function getNextStepMessage(oldFiles) {
+async function getNextStepMessage(oldFiles: string[]): Promise<string> {
   if (await haveAllTeamsSubmitted(oldFiles)) {
     let message = `<@${perronSlack}> needs to sim.`;
     const reminders = await getRemindersAsText({
@@ -245,7 +249,7 @@ ${JSON.stringify(reminders, null, 2)}`;
 }
 
 export async function getBotMessage(): Promise<string> {
-  const oldFiles = await checkFiles();
+  const { oldFiles } = await checkFiles();
   return await getNextStepMessage(oldFiles);
 }
 
@@ -263,8 +267,5 @@ export async function getPowerRankings() {
 export async function haveAllTeamsSubmitted(
   oldFiles: string[]
 ): Promise<boolean> {
-  if (!oldFiles) {
-    oldFiles = await checkFiles();
-  }
   return oldFiles.length === 0;
 }
