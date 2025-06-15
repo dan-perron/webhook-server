@@ -9,18 +9,15 @@ import { callSimulateEndpoint } from '../clients/windows-facilitator.js';
 import cron from 'node-cron';
 import {
   getActiveSimulation,
+  getScheduledSimulation,
   getSimulationPauses,
   updateScheduledSimulation,
 } from '../clients/mongo/index.js';
 
 // Function to check and send reminders
-async function checkAndSendReminders(
-  scheduledFor: Date,
-  now: Date,
-  runState: SimulationRunState
-) {
+async function checkAndSendReminders(runState: SimulationRunState) {
   const hoursUntilNext =
-    (scheduledFor.getTime() - now.getTime()) / (1000 * 60 * 60);
+    (runState.scheduledFor.getTime() - new Date().getTime()) / (1000 * 60 * 60);
 
   // Get list of teams that haven't submitted
   const waitingOnTeams = await getWaitingTeamsMessage();
@@ -56,38 +53,24 @@ async function checkAndSendReminders(
 
 // Function to check if we need to run a simulation
 export async function checkAndRunSimulation() {
-  const runState = await getActiveSimulation();
+  const activeState = await getActiveSimulation();
 
   // Check if there's already a simulation in progress
-  if (runState?.status === 'started' || runState?.status === 'failed') {
+  if (activeState?.status === 'started' || activeState?.status === 'failed') {
     console.log('Simulation already in progress, skipping run');
     return;
   }
 
-  const now = new Date();
+  const scheduledState = await getScheduledSimulation();
 
   // Check if all teams have submitted their turns
   const { oldFiles } = await checkFiles();
   const allTeamsSubmitted = await haveAllTeamsSubmitted(oldFiles);
 
-  if (runState?.scheduledFor < new Date() || allTeamsSubmitted) {
+  if (scheduledState?.scheduledFor < new Date() || allTeamsSubmitted) {
     const state = await getSimulationPauses();
     if (state.length > 0) {
       console.log('Simulation is paused, skipping scheduled run');
-      // Only update the run state if it hasn't already been updated
-      const currentRunState = await getActiveSimulation();
-      if (!currentRunState?.skippedRun) {
-        await sendOotpMessage(
-          '⏸️ Simulation is paused, skipping scheduled run'
-        );
-        await updateScheduledSimulation({
-          scheduledFor: new Date(),
-          skippedRun: true,
-          status: 'skipped',
-          reason: 'Simulation is paused',
-          triggeredBy: 'scheduler',
-        });
-      }
       return;
     }
     const reason = allTeamsSubmitted
@@ -96,13 +79,16 @@ export async function checkAndRunSimulation() {
     const triggerType = allTeamsSubmitted ? 'players_ready' : 'scheduler';
     await sendOotpMessage(`🔄 Starting scheduled simulation (${reason})...`);
     try {
-      await callSimulateEndpoint({ options: runState?.options, triggerType });
+      await callSimulateEndpoint({
+        options: scheduledState?.options,
+        triggerType,
+      });
     } catch (error) {
       await sendOotpMessage(`❌ Error during simulation: ${error.message}`);
     }
-  } else if (runState?.scheduledFor) {
+  } else if (scheduledState?.scheduledFor) {
     // Check and send reminders if needed
-    await checkAndSendReminders(runState.scheduledFor, now, runState);
+    await checkAndSendReminders(scheduledState);
   }
 }
 
