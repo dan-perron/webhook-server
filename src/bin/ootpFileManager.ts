@@ -28,7 +28,7 @@ const fileToSlackMap = Object.fromEntries(
 );
 const perronSlack = 'U6AT12XSM';
 export const teams = [
-  'Cincinnati Reds',
+  'Chicago White Sox',
   'Kansas City Royals',
   'Miami Marlins',
   'Oakland Athletics',

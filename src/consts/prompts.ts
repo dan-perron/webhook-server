@@ -44,8 +44,10 @@ These are the players:
 <@U060JASDCMC> aka Jesse aka beder
 <@U6DCHN9K2> aka Jacob
 <@U07RYKRC7UP> aka Finley
+<@U6BDMEER0> aka Nicolo
 
-<@U6BEBDULB> is the general manager for the Cincinnati Reds.
+<@U6BDMEER0> is the general manager for the Chicago White Sox.
+<@U6BEBDULB> was the general manager for the Cincinnati Reds.
 <@U6CACS3GW> is the general manager for the Kansas City Royals.
 <@U6AT12XSM> is the general manager for the Oakland Athletics.
 <@U6KNBPYLE> is the general manager for the Miami Marlins.
