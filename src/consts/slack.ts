@@ -1,7 +1,6 @@
 // Team to Slack user ID mappings
 export const teamToSlackMap = {
   team_5: 'U6BDMEER0',
-  team_9: 'U6DCHN9K2',
   team_11: 'U6KNBPYLE',
   team_13: 'U6CACS3GW',
   team_16: 'U07RYKRC7UP',
