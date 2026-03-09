@@ -2,9 +2,10 @@ import express from 'express';
 const router = express.Router();
 
 import * as fantasy from '../clients/fantasy.js';
+import { httpLogger } from '../utils/logging/index.js';
 
 router.get('/redirect', (req, res) => {
-  console.log('Redirect request.');
+  httpLogger.debug('Yahoo redirect request');
   fantasy.auth(res);
 });
 

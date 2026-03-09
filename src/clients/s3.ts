@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 import config from 'config';
 import * as fs from 'fs';
+import { s3Logger } from '../utils/logging/index.js';
 
 // Factory function to create a fresh S3 client
 function createS3Client() {
@@ -12,7 +13,6 @@ function createS3Client() {
       secretAccessKey: config.get('aws.secretAccessKey'),
     },
     maxAttempts: 3, // SDK-level retries
-    requestTimeout: 30000, // 30 second timeout
   });
 }
 
@@ -44,7 +44,9 @@ export async function putFile(path, key?) {
         error.message.includes('timeout') ||
         error.message.includes('ECONNRESET'))
     ) {
-      console.log('S3 connection error detected, recreating client...');
+      s3Logger.warn('S3 connection error detected, recreating client', {
+        error: error.message,
+      });
       s3Client = createS3Client();
     }
 

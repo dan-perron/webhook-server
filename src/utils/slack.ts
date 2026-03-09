@@ -1,5 +1,6 @@
 import { WebClient } from '@slack/web-api';
 import { channelMap, sendMessage } from '../clients/slack.js';
+import { slackLogger } from './logging/index.js';
 
 interface SlackMessage {
   text: string;
@@ -69,7 +70,9 @@ export async function postSummary(
     })) as SlackResponse;
 
     if (!result.ok) {
-      console.log('error', result);
+      slackLogger.error('Error retrieving Slack messages', {
+        error: result.error,
+      });
       break;
     }
 

@@ -13,6 +13,7 @@ import {
   specialistPrompt,
   sportsPrompt,
 } from '../../consts/prompts.js';
+import { aiLogger } from '../../utils/logging/index.js';
 
 export class GoogleAI implements AIClient {
   genAI = new GoogleGenerativeAI(config.get('googleai.key'));
@@ -62,7 +63,7 @@ export class GoogleAI implements AIClient {
       { role: 'user', parts: `I am ${input.at(-1).name}` },
       { role: 'model', parts: 'okay' }
     );
-    console.log(JSON.stringify(messages, null, 2));
+    aiLogger.debug('Google AI chat request', { messages });
     const lastMessage = messages.pop();
     const chat = await this.model.startChat({
       history: messages,
@@ -71,7 +72,7 @@ export class GoogleAI implements AIClient {
     });
     const result = await chat.sendMessage(lastMessage.parts);
     const response = await result.response;
-    console.log(JSON.stringify(response, null, 2));
+    aiLogger.debug('Google AI chat response', { response });
     return response.text();
   }
 

@@ -1,11 +1,12 @@
 import express from 'express';
 import { app } from '../clients/slack.js';
+import { slackLogger } from '../utils/logging/index.js';
 
 const router = express.Router();
 
 // Handle all Slack events and interactions
 router.post('/', async (req, res) => {
-  console.log(`Received ${JSON.stringify(req.body, null, 2)} from slack.`);
+  slackLogger.debug('Received event from Slack', { body: req.body });
 
   // Handle URL verification for Slack app setup
   if (req.body.type === 'url_verification') {
@@ -25,7 +26,9 @@ router.post('/', async (req, res) => {
         },
       });
     } catch (error) {
-      console.error('Error processing slash command:', error);
+      slackLogger.error('Error processing slash command', {
+        error: error.message,
+      });
       res.status(500).send('Error processing command');
     }
     return;

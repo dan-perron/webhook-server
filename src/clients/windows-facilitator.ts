@@ -6,6 +6,7 @@ import {
   updateActiveSimulation,
   updateScheduledSimulation,
 } from './mongo/index.js';
+import { simulationLogger } from '../utils/logging/index.js';
 
 interface CommishCheckboxConfig {
   [key: string]: boolean | number | undefined;
@@ -94,7 +95,9 @@ export async function callSimulateEndpoint({
         },
       }
     );
-    console.log('Simulate endpoint response:', response.data);
+    simulationLogger.info('Simulate endpoint response', {
+      data: response.data,
+    });
 
     // Send response to debug channel
     await sendOotpDebugMessage(
@@ -109,7 +112,7 @@ export async function callSimulateEndpoint({
       // Add system pauses for both files only if not in dry-run mode
       await addSimulationPause('system_league_file');
       await addSimulationPause('system_archive_file');
-      console.log(
+      simulationLogger.info(
         'Simulation automatically paused until both files are updated'
       );
     }

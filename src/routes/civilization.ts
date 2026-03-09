@@ -2,6 +2,7 @@ import express from 'express';
 import hash from 'object-hash';
 import { channelMap } from '../clients/slack.js';
 import { sendSlackMessage } from '../utils/slack.js';
+import { httpLogger } from '../utils/logging/index.js';
 
 const router = express.Router();
 
@@ -38,7 +39,11 @@ const civWebhookHandler = async ({ value1, value2, value3 }) => {
   receivedWebhooks[argumentHash] = { value1, value2, value3 };
   const playerName = getSlackUser(value2) || value2;
   const message = `${playerName} new turn! Game ${value1}. Turn number ${value3}.`;
-  console.log(message);
+  httpLogger.info('Civilization webhook received', {
+    game: value1,
+    player: value2,
+    turn: value3,
+  });
   await sendSlackMessage(channelMap.cabin, message);
 };
 

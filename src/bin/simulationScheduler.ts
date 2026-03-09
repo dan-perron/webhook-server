@@ -13,6 +13,7 @@ import {
   getSimulationPauses,
   updateScheduledSimulation,
 } from '../clients/mongo/index.js';
+import { simulationLogger } from '../utils/logging/index.js';
 
 // Function to check and send reminders
 async function checkAndSendReminders(runState: SimulationRunState) {
@@ -57,7 +58,9 @@ export async function checkAndRunSimulation() {
 
   // Check if there's already a simulation in progress
   if (activeState?.status === 'started' || activeState?.status === 'failed') {
-    console.log('Simulation already in progress, skipping run');
+    simulationLogger.debug('Simulation already in progress, skipping run', {
+      status: activeState.status,
+    });
     return;
   }
 
@@ -70,7 +73,9 @@ export async function checkAndRunSimulation() {
   if (scheduledState?.scheduledFor < new Date() || allTeamsSubmitted) {
     const state = await getSimulationPauses();
     if (state.length > 0) {
-      console.log('Simulation is paused, skipping scheduled run');
+      simulationLogger.debug('Simulation is paused, skipping scheduled run', {
+        pauseCount: state.length,
+      });
       return;
     }
     const reason = allTeamsSubmitted
@@ -98,7 +103,7 @@ export async function checkPausesRemoved() {
   if (state.length === 0) {
     const runState = await getActiveSimulation();
     if (runState.skippedRun) {
-      console.log(
+      simulationLogger.info(
         'All pauses removed and there was a skipped run, executing now'
       );
       await sendOotpMessage('🔄 Resuming previously skipped simulation...');
@@ -119,4 +124,4 @@ cron.schedule('* * * * *', () => {
   checkAndRunSimulation();
 });
 
-console.log('Simulation scheduler initialized');
+simulationLogger.info('Simulation scheduler initialized');

@@ -1,5 +1,6 @@
 import createError from 'http-errors';
 import express from 'express';
+import morgan from 'morgan';
 
 import civilizationRouter from './routes/civilization.js';
 import slackRouter from './routes/slack.js';
@@ -9,10 +10,21 @@ import yahooRouter from './routes/yahoo.js';
 import './bin/ootpFileManager.js';
 import './bin/slackApi.js';
 import './bin/simulationScheduler.js';
+import { httpLogger } from './utils/logging/index.js';
 
 export const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Custom Morgan stream that writes to Winston
+const morganStream = {
+  write: (message: string) => {
+    httpLogger.info(message.trim());
+  },
+};
+
+// Add Morgan HTTP logging
+app.use(morgan('combined', { stream: morganStream }));
 
 app.use('/civilization', civilizationRouter);
 app.use('/slack', slackRouter);
@@ -37,6 +49,8 @@ app.use(function (err, req, res, next) {
   next();
 });
 process.on('unhandledRejection', (error: Error) => {
-  // Will print "unhandledRejection err is not defined"
-  console.log('unhandledRejection', error.message);
+  httpLogger.error('Unhandled rejection', {
+    error: error.message,
+    stack: error.stack,
+  });
 });

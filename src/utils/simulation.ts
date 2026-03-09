@@ -5,6 +5,7 @@ import {
   resumeAllSimulationPauses as mongoResumeAllSimulationPauses,
 } from '../clients/mongo/index.js';
 import dayjs from 'dayjs';
+import { simulationLogger } from './logging/index.js';
 
 export interface CommishCheckboxConfig {
   [key: string]: boolean | number | undefined;
@@ -65,7 +66,7 @@ export interface SimulationRunState {
 export async function resumeSimulationPause(pauseId: string): Promise<boolean> {
   const resumed = await mongoResumeSimulationPause(pauseId);
   if (resumed) {
-    console.log(`${pauseId} pause removed`);
+    simulationLogger.info('Pause removed', { pauseId });
   }
   return resumed;
 }
@@ -77,7 +78,7 @@ export async function resumeSimulationPause(pauseId: string): Promise<boolean> {
 export async function resumeAllSimulationPauses(): Promise<number> {
   const count = await mongoResumeAllSimulationPauses();
   if (count > 0) {
-    console.log(`Resumed ${count} simulation pauses`);
+    simulationLogger.info('Resumed all simulation pauses', { count });
   }
   return count;
 }

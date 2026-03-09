@@ -20,6 +20,7 @@ import * as s3 from '../clients/s3.js';
 import { channelMap } from '../clients/slack.js';
 import { teamToSlackMap } from '../consts/slack.js';
 import { sendOotpMessage } from '../utils/slack.js';
+import { ootpLogger } from '../utils/logging/index.js';
 
 const exec = util.promisify(child_process.exec);
 
@@ -93,7 +94,7 @@ function humanFileSize(size: number): string {
 watchFile(pathToLeagueFile, async () => {
   const lastSim = await getLastOOTPSim();
   let sim = new OOTPSim(new Date());
-  console.log(`league file changed new date ${sim.date}`);
+  ootpLogger.info('League file changed', { date: sim.date.toISOString() });
   if (lastSim && sim.date.valueOf() - lastSim.date.valueOf() < 60 * 1000) {
     // Don't message if we've had a new file in the last 60 seconds.
     return;
@@ -120,13 +121,12 @@ watchFile(pathToLeagueFile, async () => {
     sim.fileSize = leagueFileStat.size;
     await updateOOTPSim(sim);
   } catch (e) {
-    console.log('watchLeague - Error occurred in stat file');
-    console.log(e);
+    ootpLogger.error('Error occurred in stat file', { error: e.toString() });
     sim.error = e.toString();
     await updateOOTPSim(sim);
     return;
   }
-  console.log('watchLeague - Uploading league file to s3');
+  ootpLogger.info('Uploading league file to S3', { file: pathToLeagueFile });
   let retry = 0;
   const maxRetries = 3;
   while (retry < maxRetries) {
@@ -136,15 +136,17 @@ watchFile(pathToLeagueFile, async () => {
       return;
     } catch (e) {
       retry++;
-      console.log(
-        `watchLeague - Error occurred in sending to s3 (attempt ${retry}/${maxRetries})`
-      );
-      console.log(e);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      ootpLogger.warn('S3 upload failed, retrying', {
+        retry,
+        maxRetries,
+        error: errorMessage,
+      });
 
       if (retry < maxRetries) {
         // Exponential backoff: 2s, 4s, 8s
         const delay = Math.pow(2, retry) * 1000;
-        console.log(`watchLeague - Retrying in ${delay}ms...`);
+        ootpLogger.debug('Retrying S3 upload', { delayMs: delay });
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
         // All retries exhausted, notify in Slack
@@ -171,7 +173,7 @@ async function expandArchive(prevStat) {
     return;
   }
   if (newStat.mtimeMs !== prevStat.mtimeMs) {
-    console.log('file changed, not executing');
+    ootpLogger.debug('Archive file changed, not executing yet');
     archiveFileTimer = setTimeout(() => expandArchive(newStat), 60 * 1000);
     return;
   }
@@ -180,7 +182,7 @@ async function expandArchive(prevStat) {
     // Remove the archive file pause immediately
     await resumeSimulationPause('system_archive_file');
 
-    console.log('expanding archive');
+    ootpLogger.info('Expanding archive file');
     await exec(
       'nice tar -xf /ootp/game/reports/reports.tar.gz -C /ootp/game/reports/ news/html --strip-components=1 -m --no-overwrite-dir && rm /ootp/game/reports/reports.tar.gz'
     );
@@ -198,7 +200,9 @@ async function expandArchive(prevStat) {
       });
     }
   } catch (e) {
-    console.log('error while executing ' + e.toString());
+    ootpLogger.error('Error while executing archive expansion', {
+      error: e.toString(),
+    });
   }
   executing = false;
 }
@@ -209,7 +213,7 @@ watchFile(pathToReportsArchive, (curr) => {
     return;
   }
   if (archiveFileTimer) {
-    console.log('watch fired, cancelling timer');
+    ootpLogger.debug('Archive file watch fired, cancelling timer');
     clearTimeout(archiveFileTimer);
   }
   archiveFileTimer = setTimeout(() => expandArchive(curr), 60 * 1000);

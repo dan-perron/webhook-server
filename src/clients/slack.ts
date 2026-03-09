@@ -1,5 +1,6 @@
 import bolt from '@slack/bolt';
 import config from 'config';
+import { slackLogger } from '../utils/logging/index.js';
 const App = bolt.App;
 
 export const app = new App({
@@ -14,16 +15,19 @@ export const app = new App({
 
 // Add error handling
 app.error(async (error) => {
-  console.error('Slack app error:', error);
+  slackLogger.error('Slack app error', {
+    error: error.message,
+    stack: error.stack,
+  });
 });
 
 // Start the app
 (async () => {
   try {
     await app.start();
-    console.log('⚡️ Bolt app is running!');
+    slackLogger.info('Bolt app is running');
   } catch (error) {
-    console.error('Error starting Slack app:', error);
+    slackLogger.error('Error starting Slack app', { error: error.message });
     process.exit(1);
   }
 })();
@@ -62,7 +66,10 @@ export async function sendMessage(
       ...options,
     });
   } catch (error) {
-    console.error(`Error sending message to channel ${channel}:`, error);
+    slackLogger.error('Error sending message', {
+      channel,
+      error: error.message,
+    });
   }
 }
 
@@ -87,9 +94,10 @@ export async function sendEphemeralMessage(
       ...options,
     });
   } catch (error) {
-    console.error(
-      `Error sending ephemeral message to channel ${channel} for user ${user}:`,
-      error
-    );
+    slackLogger.error('Error sending ephemeral message', {
+      channel,
+      user,
+      error: error.message,
+    });
   }
 }

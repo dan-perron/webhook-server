@@ -10,6 +10,7 @@ import {
   sportsPrompt,
 } from '../../consts/prompts.js';
 import type { AIClient } from './AIClient.js';
+import { aiLogger } from '../../utils/logging/index.js';
 
 const configuration = new Configuration({
   organization: 'org-U5TjmhDs7z61xmWCmBOXtFiU',
@@ -121,7 +122,7 @@ There are no reminders.`;
     if (['IMAGE', 'TEXT'].includes(outputType)) {
       return outputType;
     }
-    console.log(`output type determination failed, got: '${outputType}'`);
+    aiLogger.warn('Output type determination failed', { outputType });
     return 'TEXT';
   }
 
@@ -132,7 +133,7 @@ There are no reminders.`;
     }
     const messages = [{ role: 'system', content: systemPrompt }];
     messages.push(...input);
-    console.log(JSON.stringify(messages, null, 2));
+    aiLogger.debug('OpenAI chat request', { messages });
     if (!model) {
       model = this.getConfigWithConf('model', conf);
     }
@@ -141,7 +142,9 @@ There are no reminders.`;
       messages,
       ...(this.confHasValue(conf, 'openai') ? conf.openai : {}),
     });
-    console.log(JSON.stringify(completion.data.choices, null, 2));
+    aiLogger.debug('OpenAI chat response', {
+      choices: completion.data.choices,
+    });
     return completion.data.choices[0].message.content;
   }
 
@@ -179,14 +182,14 @@ There are no reminders.`;
   }
 
   async complete({ prompt, conf }) {
-    console.log(JSON.stringify(prompt, null, 2));
+    aiLogger.debug('OpenAI completion request', { prompt });
     const response = await openai.createCompletion({
       model: 'gpt-3.5-turbo-instruct',
       prompt,
       max_tokens: 1500,
       ...(this.confHasValue(conf, 'openai') ? conf.openai : {}),
     });
-    console.log(JSON.stringify(response.data, null, 2));
+    aiLogger.debug('OpenAI completion response', { data: response.data });
     return response.data.choices[0].text;
   }
 }

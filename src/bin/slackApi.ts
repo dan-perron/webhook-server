@@ -35,6 +35,7 @@ import {
   checkFacilitatorHealth,
 } from '../clients/windows-facilitator.js';
 import { SimulationOptions } from '../clients/mongo/types.js';
+import { slackLogger, aiLogger } from '../utils/logging/index.js';
 
 const checkboxHelp =
   `• \`backupLeagueFolder=true|false\` - Enable/disable backup\n` +
@@ -144,7 +145,10 @@ async function handleSimulateCommand(body: SlashCommand, args: string[]) {
 
     await sendMessage(body.channel_id, '✅ Simulation started successfully!');
   } catch (error) {
-    console.error('Error in simulation command:', error);
+    slackLogger.error('Error in simulation command', {
+      error: error.message,
+      userId: body.user_id,
+    });
     await sendMessage(
       body.channel_id,
       `❌ Error starting simulation: ${error.message}`
@@ -153,7 +157,7 @@ async function handleSimulateCommand(body: SlashCommand, args: string[]) {
 }
 
 async function handlePauseCommand(body: SlashCommand) {
-  console.log(`[Supercluster] User ${body.user_id} pausing simulation`);
+  slackLogger.info('User pausing simulation', { userId: body.user_id });
   await addSimulationPause(body.user_id);
   await sendMessage(
     body.channel_id,
@@ -164,31 +168,31 @@ async function handlePauseCommand(body: SlashCommand) {
 async function handleResumeCommand(body: SlashCommand, args: string[]) {
   const subAction = args[0];
   if (subAction === 'all') {
-    console.log(
-      `[Supercluster] User ${body.user_id} resuming all simulation pauses`
-    );
+    slackLogger.info('User resuming all simulation pauses', {
+      userId: body.user_id,
+    });
     const count = await resumeAllSimulationPauses();
     await sendMessage(
       body.channel_id,
       `<@${body.user_id}> Resumed all simulation pauses (${count} total).`
     );
   } else {
-    console.log(
-      `[Supercluster] User ${body.user_id} attempting to resume their pause`
-    );
+    slackLogger.info('User attempting to resume their pause', {
+      userId: body.user_id,
+    });
     const resumed = await resumeSimulationPause(body.user_id);
     if (resumed) {
-      console.log(
-        `[Supercluster] Successfully resumed pause for user ${body.user_id}`
-      );
+      slackLogger.info('Successfully resumed pause for user', {
+        userId: body.user_id,
+      });
       await sendMessage(
         body.channel_id,
         `<@${body.user_id}> Your simulation pause has been removed.`
       );
     } else {
-      console.log(
-        `[Supercluster] No active pause found for user ${body.user_id}`
-      );
+      slackLogger.info('No active pause found for user', {
+        userId: body.user_id,
+      });
       await sendMessage(
         body.channel_id,
         `<@${body.user_id}> You don't have an active simulation pause.`
@@ -198,7 +202,7 @@ async function handleResumeCommand(body: SlashCommand, args: string[]) {
 }
 
 async function handleStatusCommand(body: SlashCommand) {
-  console.log(`[Supercluster] User ${body.user_id} checking simulation status`);
+  slackLogger.info('User checking simulation status', { userId: body.user_id });
   const state = await getSimulationPauses();
   const botStatus = await getBotMessage();
   const runState = await getScheduledSimulation();
@@ -238,7 +242,7 @@ async function handleStatusCommand(body: SlashCommand) {
   message += `PATRIOT Status: ${facilitatorHealth.healthy ? '✅' : '❌'} ${facilitatorHealth.message}\n\n`;
 
   if (state.length === 0) {
-    console.log('[Supercluster] No active pauses found');
+    slackLogger.debug('No active pauses found');
     message += `Simulation is not paused.\n\n`;
   } else {
     const systemPauses = state.filter((pause) =>
@@ -247,9 +251,10 @@ async function handleStatusCommand(body: SlashCommand) {
     const userPauses = state.filter(
       (pause) => !pause.userId.startsWith('system_')
     );
-    console.log(
-      `[Supercluster] Found ${systemPauses.length} system pauses and ${userPauses.length} user pauses`
-    );
+    slackLogger.debug('Active pauses found', {
+      systemPauses: systemPauses.length,
+      userPauses: userPauses.length,
+    });
 
     if (userPauses.length > 0) {
       const pauseList = userPauses
@@ -283,7 +288,7 @@ async function handleStatusCommand(body: SlashCommand) {
 }
 
 async function handleHelpCommand(body: SlashCommand) {
-  console.log(`[Supercluster] User ${body.user_id} requested help`);
+  slackLogger.info('User requested help', { userId: body.user_id });
   await sendEphemeralMessage(
     body.channel_id,
     body.user_id,
@@ -396,7 +401,10 @@ async function handleSetConfigCommand(body: SlashCommand, args: string[]) {
     const message = `✅ Simulation configuration updated:\n${formatOptions(newOptions)}`;
     await sendMessage(body.channel_id, message);
   } catch (error) {
-    console.error('Error in schedule config command:', error);
+    slackLogger.error('Error in schedule config command', {
+      error: error.message,
+      userId: body.user_id,
+    });
     await sendMessage(
       body.channel_id,
       `❌ Error updating simulation configuration: ${error.message}`
@@ -410,12 +418,13 @@ app.command('/supercluster', async ({ ack, body }) => {
   const args = body.text.split(' ').filter(Boolean);
   const command = args[0];
 
-  console.log(`[Supercluster] Command received: ${command}`);
+  slackLogger.info('Command received', { command, userId: body.user_id });
 
   if (!isAuthorizedUser(body.user_id)) {
-    console.log(
-      `[Supercluster] Unauthorized access attempt from user ${body.user_id}`
-    );
+    slackLogger.warn('Unauthorized access attempt', {
+      userId: body.user_id,
+      command,
+    });
     await sendEphemeralMessage(
       body.channel_id,
       body.user_id,
@@ -424,9 +433,11 @@ app.command('/supercluster', async ({ ack, body }) => {
     return;
   }
 
-  console.log(
-    `[Supercluster] Parsed command: command=${command}, args=${args.join(' ')}`
-  );
+  slackLogger.debug('Parsed command', {
+    command,
+    args: args.join(' '),
+    userId: body.user_id,
+  });
 
   switch (command) {
     case 'simulate':
@@ -448,9 +459,7 @@ app.command('/supercluster', async ({ ack, body }) => {
       await handleSetConfigCommand(body, args.slice(1));
       break;
     default:
-      console.log(
-        `[Supercluster] Unknown command from user ${body.user_id}: ${command}`
-      );
+      slackLogger.warn('Unknown command', { userId: body.user_id, command });
       await sendEphemeralMessage(
         body.channel_id,
         body.user_id,
@@ -465,8 +474,7 @@ export async function isSimulationPaused() {
 }
 
 app.message(/.*who.?se? turn is it.*/i, async ({ message, say }) => {
-  // say() sends a message to the channel where the event was triggered
-  console.log('⚡️ Msg recd! channel ' + message.channel);
+  slackLogger.debug('Message received', { channel: message.channel });
   if ((message as GenericMessageEvent).text.includes('<@UVBBEEC4A>')) {
     return;
   }
@@ -554,7 +562,7 @@ async function sendOotpChat(messages, channel, say) {
       // Intentional no response.
       break;
     default:
-      console.error('unknown action:', data.kind);
+      slackLogger.error('Unknown action', { action: data.kind });
       break;
   }
 }
@@ -592,11 +600,13 @@ app.message(subtype('file_share'), async ({ event, message, say, client }) => {
 });
 
 app.event('app_mention', async ({ event, say }) => {
-  console.log(
-    `⚡️ Mention recd! channel "${event.channel}" user "${event.user}" message "${event.text}"`
-  );
+  slackLogger.debug('App mention received', {
+    channel: event.channel,
+    user: event.user,
+    text: event.text,
+  });
   if (event.user === SUPER_CLUSTER_USER_STRING) {
-    console.log('⚡️ Discarding message from bot ' + event.text);
+    slackLogger.debug('Discarding message from bot', { text: event.text });
     return;
   }
   if (event.text === `<@${SUPER_CLUSTER_USER_STRING}> shuffle teams`) {
@@ -652,7 +662,10 @@ app.event('app_mention', async ({ event, say }) => {
   }
   const reminders = await getRemindersAsText({ type: event.channel });
   const text = await getText(event.channel, input, reminders);
-  console.log(text);
+  aiLogger.debug('AI response generated', {
+    channel: event.channel,
+    responseLength: text.length,
+  });
   await say({ text, thread_ts: event.thread_ts || event.ts });
   return;
 });
