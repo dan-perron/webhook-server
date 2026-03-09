@@ -128,16 +128,34 @@ watchFile(pathToLeagueFile, async () => {
   }
   console.log('watchLeague - Uploading league file to s3');
   let retry = 0;
-  while (retry < 2) {
+  const maxRetries = 3;
+  while (retry < maxRetries) {
     try {
       await s3.putFile(pathToLeagueFile);
       await sendOotpMessage(`League file uploaded to S3 ${playersString}`);
       return;
     } catch (e) {
-      console.log('watchLeague - Error occurred in sending to s3');
+      retry++;
+      console.log(
+        `watchLeague - Error occurred in sending to s3 (attempt ${retry}/${maxRetries})`
+      );
       console.log(e);
+
+      if (retry < maxRetries) {
+        // Exponential backoff: 2s, 4s, 8s
+        const delay = Math.pow(2, retry) * 1000;
+        console.log(`watchLeague - Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        // All retries exhausted, notify in Slack
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        await sendOotpMessage(
+          `❌ Failed to upload league file to S3 after ${maxRetries} attempts: ${errorMessage}\n<@${perronSlack}> manual intervention required.`
+        );
+        sim.error = `S3 upload failed: ${errorMessage}`;
+        await updateOOTPSim(sim);
+      }
     }
-    retry++;
   }
 });
 
