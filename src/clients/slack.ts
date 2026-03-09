@@ -2,12 +2,26 @@ import bolt from '@slack/bolt';
 import config from 'config';
 import { slackLogger } from '../utils/logging/index.js';
 const App = bolt.App;
+const { LogLevel } = bolt;
+
+// Custom logger that routes Bolt SDK logs through Winston
+const boltLogger = {
+  debug: (...msgs) => slackLogger.debug(`[Bolt SDK] ${msgs.join(' ')}`),
+  info: (...msgs) => slackLogger.info(`[Bolt SDK] ${msgs.join(' ')}`),
+  warn: (...msgs) => slackLogger.warn(`[Bolt SDK] ${msgs.join(' ')}`),
+  error: (...msgs) => slackLogger.error(`[Bolt SDK] ${msgs.join(' ')}`),
+  setLevel: () => {},
+  getLevel: () => LogLevel.INFO,
+  setName: () => {},
+};
 
 export const app = new App({
   token: config.get('slack.token'),
   signingSecret: config.get('slack.signingSecret'),
   socketMode: true,
   appToken: config.get('slack.appToken'),
+  logger: boltLogger,
+  logLevel: LogLevel.INFO,
   // Socket Mode doesn't listen on a port, but in case you want your app to respond to OAuth,
   // you still need to listen on some port!
   // port: process.env.PORT || 3000
