@@ -9,6 +9,7 @@ import indexRouter from './routes/index.js';
 import yahooRouter from './routes/yahoo.js';
 import './bin/ootpFileManager.js';
 import './bin/slackApi.js';
+import './bin/blueskyUnfurl.js';
 import './bin/simulationScheduler.js';
 import { httpLogger } from './utils/logging/index.js';
 

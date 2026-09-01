@@ -8,6 +8,18 @@ const config = {
     region: 'us-east-2',
     bucket: '',
   },
+  bluesky: {
+    service: 'https://bsky.social',
+    // Set both in config/local.cjs. Use an app password from Bluesky
+    // Settings > App Passwords, never the account password. Leaving these
+    // null disables the listener.
+    identifier: null,
+    appPassword: null,
+    // How long to let Slack's own unfurler try before we step in.
+    unfurlGraceMs: 6000,
+    // Render as a threaded reply instead of a message in the channel.
+    replyInThread: false,
+  },
   googleai: {
     key: null,
     model: 'gemini-2.0-flash',
