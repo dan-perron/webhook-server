@@ -7,6 +7,7 @@ import type {
 import { permalinkFor } from './url.js';
 
 const SECTION_TEXT_LIMIT = 3000;
+const BLUESKY_BLUE = '#1185FE';
 const ALT_TEXT_LIMIT = 2000;
 
 /** Slack mrkdwn only requires these three to be escaped. */
@@ -108,7 +109,7 @@ function mediaBlocks(media?: BlueskyEmbed): KnownBlock[] {
   if (!media) return [];
   const blocks: KnownBlock[] = [];
 
-  for (const image of media.images ?? []) {
+  for (const image of media.images ?? media.items ?? []) {
     const url = image.fullsize ?? image.thumb;
     if (!url) continue;
     blocks.push({
@@ -160,7 +161,7 @@ function quoteBlocks(quoted?: BlueskyEmbed['record']): KnownBlock[] {
     .map((line) => `> ${line}`)
     .join('\n');
 
-  return [
+  const blocks: KnownBlock[] = [
     {
       type: 'section',
       text: {
@@ -169,6 +170,15 @@ function quoteBlocks(quoted?: BlueskyEmbed['record']): KnownBlock[] {
       },
     },
   ];
+
+  // A quoted post carries its own embeds. Render their media so quoting a
+  // photo or video doesn't collapse to bare text. splitEmbed returns no media
+  // for a nested quote, which is what stops this recursing.
+  for (const embed of quoted.embeds ?? []) {
+    blocks.push(...mediaBlocks(splitEmbed(embed).media));
+  }
+
+  return blocks;
 }
 
 export function buildPostBlocks(post: BlueskyPost): KnownBlock[] {
@@ -217,6 +227,24 @@ export function buildPostBlocks(post: BlueskyPost): KnownBlock[] {
   });
 
   return blocks;
+}
+
+export interface PostAttachment {
+  color: string;
+  blocks: KnownBlock[];
+  fallback: string;
+}
+
+/**
+ * Wrap the blocks in an attachment so Slack draws its coloured left bar. That
+ * bar is what makes this read as a link preview rather than as a bot post.
+ */
+export function buildPostAttachment(post: BlueskyPost): PostAttachment {
+  return {
+    color: BLUESKY_BLUE,
+    blocks: buildPostBlocks(post),
+    fallback: buildFallbackText(post),
+  };
 }
 
 /** Plain-text fallback for notifications and clients that ignore blocks. */

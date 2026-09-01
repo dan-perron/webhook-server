@@ -4,7 +4,7 @@ import { isConfigured, getPostByRef } from '../clients/bluesky.js';
 import { extractPostRefs } from '../utils/bluesky/url.js';
 import { refsNeedingRender } from '../utils/bluesky/unfurl.js';
 import type { BlueskyPostRef } from '../utils/bluesky/url.js';
-import { buildPostBlocks, buildFallbackText } from '../utils/bluesky/render.js';
+import { buildPostAttachment } from '../utils/bluesky/render.js';
 import { createLogger } from '../utils/logging/index.js';
 
 const blueskyLogger = createLogger('bluesky-unfurl');
@@ -104,14 +104,15 @@ app.message(async ({ message, client }) => {
         continue;
       }
 
+      const attachment = buildPostAttachment(post);
       await client.chat.postMessage({
         channel: event.channel,
         // Stay in the thread when the link was posted in one.
         thread_ts: replyInThread
           ? event.thread_ts ?? event.ts
           : event.thread_ts,
-        text: buildFallbackText(post),
-        blocks: buildPostBlocks(post),
+        text: attachment.fallback,
+        attachments: [attachment],
         unfurl_links: false,
         unfurl_media: false,
       });

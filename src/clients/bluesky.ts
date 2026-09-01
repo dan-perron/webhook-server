@@ -47,6 +47,8 @@ export interface BlueskyEmbedImage {
 export interface BlueskyEmbed {
   $type?: string;
   images?: BlueskyEmbedImage[];
+  /** app.bsky.embed.gallery#view carries the same shape under `items`. */
+  items?: BlueskyEmbedImage[];
   external?: {
     uri: string;
     title?: string;
