@@ -2,6 +2,7 @@ import config from 'config';
 import { app } from '../clients/slack.js';
 import { isConfigured, getPostByRef } from '../clients/bluesky.js';
 import { extractPostRefs } from '../utils/bluesky/url.js';
+import { refsNeedingRender } from '../utils/bluesky/unfurl.js';
 import type { BlueskyPostRef } from '../utils/bluesky/url.js';
 import { buildPostBlocks, buildFallbackText } from '../utils/bluesky/render.js';
 import { createLogger } from '../utils/logging/index.js';
@@ -63,13 +64,7 @@ async function unhandledRefs(
       });
 
   const posted = (result.messages ?? []).find((m) => m.ts === message.ts);
-  const unfurled = new Set(
-    (posted?.attachments ?? [])
-      .map((a) => a.original_url ?? a.from_url ?? a.app_unfurl_url)
-      .filter(Boolean)
-  );
-
-  return refs.filter((ref) => !unfurled.has(ref.url));
+  return refsNeedingRender(posted?.attachments ?? [], refs);
 }
 
 app.message(async ({ message, client }) => {
