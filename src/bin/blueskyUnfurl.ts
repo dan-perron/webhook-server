@@ -81,14 +81,19 @@ async function unhandledRefs(
 /**
  * Upload a post's videos to Slack so they play in a native player. Runs after
  * the render rather than before it, so a slow or failed download never delays
- * or blocks the post itself.
+ * or blocks the post itself — a 32MB video takes over 20 seconds to upload.
+ *
+ * Returns true only when every video landed, which is the caller's cue to drop
+ * the placeholder stills from the render.
  */
 async function attachVideos(
   client,
   channel: string,
   thread: string | undefined,
   post: Parameters<typeof collectVideos>[0]
-): Promise<void> {
+): Promise<boolean> {
+  let allAttached = true;
+
   for (const video of collectVideos(post)) {
     const permalink = `https://bsky.app/profile/${video.handle}/post/${video.uri
       .split('/')
@@ -104,6 +109,7 @@ async function attachVideos(
           text: `Couldn't attach the video — <${permalink}|view on Bluesky>`,
           unfurl_links: false,
         });
+        allAttached = false;
         continue;
       }
 
@@ -125,8 +131,11 @@ async function attachVideos(
         handle: video.handle,
         error: (error as Error).message,
       });
+      allAttached = false;
     }
   }
+
+  return allAttached;
 }
 
 app.message(async ({ message, client }) => {
@@ -181,9 +190,14 @@ app.message(async ({ message, client }) => {
           unfurl_media: false,
         });
 
-      const attachment = buildPostAttachment(post, videoMode);
+      // Re-hosting takes tens of seconds for a large video, so the first
+      // render carries the still. It's swapped for nothing once the playable
+      // file is up, leaving the video as the only copy of that frame.
+      const initialMode = videoMode === 'rehost' ? 'thumbnail' : videoMode;
+      const attachment = buildPostAttachment(post, initialMode);
+      let posted;
       try {
-        await send(attachment);
+        posted = await send(attachment);
       } catch (error) {
         // A video block Slack won't accept fails the entire message, not just
         // itself, so retry once without it rather than losing the render.
@@ -198,7 +212,7 @@ app.message(async ({ message, client }) => {
             'Check links:read / links:write and the App Unfurl Domains.',
           { error: (error as Error).message }
         );
-        await send(buildPostAttachment(post, 'thumbnail'));
+        posted = await send(buildPostAttachment(post, 'thumbnail'));
       }
 
       blueskyLogger.info('Rendered Bluesky post', {
@@ -207,7 +221,25 @@ app.message(async ({ message, client }) => {
       });
 
       if (videoMode === 'rehost') {
-        await attachVideos(client, event.channel, thread, post);
+        const attached = await attachVideos(
+          client,
+          event.channel,
+          thread,
+          post
+        );
+        // Only drop the stills if every video actually landed; otherwise the
+        // thumbnail is the sole trace of a video we failed to attach.
+        if (attached && posted?.ts) {
+          const swapped = buildPostAttachment(post, 'rehost');
+          if (swapped.blocks.length !== attachment.blocks.length) {
+            await client.chat.update({
+              channel: event.channel,
+              ts: posted.ts as string,
+              text: swapped.fallback,
+              attachments: [swapped],
+            });
+          }
+        }
       }
     } catch (error) {
       blueskyLogger.error('Failed to render Bluesky post', {
