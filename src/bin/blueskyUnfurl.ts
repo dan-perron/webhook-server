@@ -1,21 +1,27 @@
 import config from 'config';
 import { app } from '../clients/slack.js';
-import { isConfigured, getPostByRef } from '../clients/bluesky.js';
+import { isConfigured, getPostByRef, fetchBlob } from '../clients/bluesky.js';
 import { extractPostRefs } from '../utils/bluesky/url.js';
 import { refsNeedingRender } from '../utils/bluesky/unfurl.js';
 import type { BlueskyPostRef } from '../utils/bluesky/url.js';
-import { buildPostAttachment, hasVideoBlock } from '../utils/bluesky/render.js';
+import {
+  buildPostAttachment,
+  hasVideoBlock,
+  collectVideos,
+} from '../utils/bluesky/render.js';
+import type { VideoMode } from '../utils/bluesky/render.js';
 import { createLogger } from '../utils/logging/index.js';
 
 const blueskyLogger = createLogger('bluesky-unfurl');
 
 const graceMs = config.get<number>('bluesky.unfurlGraceMs');
 const replyInThread = config.get<boolean>('bluesky.replyInThread');
-const playableVideo = config.get<boolean>('bluesky.playableVideo');
+const configuredVideoMode = config.get<VideoMode>('bluesky.videoMode');
+const maxVideoBytes = config.get<number>('bluesky.maxVideoBytes');
 
-// Flipped off for the rest of the process once Slack rejects a video block, so
-// one misconfigured install doesn't cost every later post a wasted round trip.
-let videoBlocksUsable = playableVideo;
+// Downgraded for the rest of the process once Slack rejects a mode, so one
+// misconfigured install doesn't cost every later post a wasted round trip.
+let videoMode: VideoMode = configuredVideoMode;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -72,6 +78,57 @@ async function unhandledRefs(
   return refsNeedingRender(posted?.attachments ?? [], refs);
 }
 
+/**
+ * Upload a post's videos to Slack so they play in a native player. Runs after
+ * the render rather than before it, so a slow or failed download never delays
+ * or blocks the post itself.
+ */
+async function attachVideos(
+  client,
+  channel: string,
+  thread: string | undefined,
+  post: Parameters<typeof collectVideos>[0]
+): Promise<void> {
+  for (const video of collectVideos(post)) {
+    const permalink = `https://bsky.app/profile/${video.handle}/post/${video.uri
+      .split('/')
+      .pop()}`;
+    try {
+      const blob = await fetchBlob(video.did, video.cid, maxVideoBytes);
+      if (!blob) {
+        // Missing or oversized. Say so, because for a restricted author the
+        // permalink is a sign-in wall and this is the only route to the video.
+        await client.chat.postMessage({
+          channel,
+          thread_ts: thread,
+          text: `Couldn't attach the video — <${permalink}|view on Bluesky>`,
+          unfurl_links: false,
+        });
+        continue;
+      }
+
+      await client.files.uploadV2({
+        channel_id: channel,
+        thread_ts: thread,
+        file: blob.data,
+        filename: `bluesky-${video.cid.slice(0, 12)}.mp4`,
+        title: video.alt || `Video from @${video.handle}`,
+        initial_comment: undefined,
+      });
+
+      blueskyLogger.info('Attached Bluesky video', {
+        handle: video.handle,
+        bytes: blob.data.byteLength,
+      });
+    } catch (error) {
+      blueskyLogger.error('Failed to attach Bluesky video', {
+        handle: video.handle,
+        error: (error as Error).message,
+      });
+    }
+  }
+}
+
 app.message(async ({ message, client }) => {
   if (!isConfigured()) return;
 
@@ -124,7 +181,7 @@ app.message(async ({ message, client }) => {
           unfurl_media: false,
         });
 
-      const attachment = buildPostAttachment(post, videoBlocksUsable);
+      const attachment = buildPostAttachment(post, videoMode);
       try {
         await send(attachment);
       } catch (error) {
@@ -135,19 +192,23 @@ app.message(async ({ message, client }) => {
         );
         if (!rejected || !hasVideoBlock(attachment)) throw error;
 
-        videoBlocksUsable = false;
+        videoMode = 'thumbnail';
         blueskyLogger.warn(
           'Slack rejected the video block; falling back to thumbnails. ' +
             'Check links:read / links:write and the App Unfurl Domains.',
           { error: (error as Error).message }
         );
-        await send(buildPostAttachment(post, false));
+        await send(buildPostAttachment(post, 'thumbnail'));
       }
 
       blueskyLogger.info('Rendered Bluesky post', {
         url: ref.url,
         channel: event.channel,
       });
+
+      if (videoMode === 'rehost') {
+        await attachVideos(client, event.channel, thread, post);
+      }
     } catch (error) {
       blueskyLogger.error('Failed to render Bluesky post', {
         url: ref.url,

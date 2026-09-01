@@ -46,6 +46,8 @@ export interface BlueskyEmbedImage {
 
 export interface BlueskyEmbed {
   $type?: string;
+  /** Blob CID, present on video views — the handle for fetching the original. */
+  cid?: string;
   images?: BlueskyEmbedImage[];
   /** app.bsky.embed.gallery#view carries the same shape under `items`. */
   items?: BlueskyEmbedImage[];
@@ -252,4 +254,94 @@ export async function getPostByRef(
   const did = await resolveActorDid(actor);
   const posts = await getPosts([toAtUri(did, rkey)]);
   return posts[0] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Blob fetching
+//
+// Bluesky serves video to clients as HLS, which Slack cannot play. The original
+// upload is still on the author's PDS as a plain file, reachable by blob CID.
+// ---------------------------------------------------------------------------
+
+const pdsCache = new Map<string, string>();
+
+/** Find the PDS that hosts a DID's repo, via its DID document. */
+export async function resolvePds(did: string): Promise<string> {
+  const cached = pdsCache.get(did);
+  if (cached) return cached;
+
+  let doc: { service?: Array<{ type: string; serviceEndpoint: string }> };
+  if (did.startsWith('did:web:')) {
+    const host = decodeURIComponent(did.slice('did:web:'.length));
+    doc = await (await fetch(`https://${host}/.well-known/did.json`)).json();
+  } else {
+    doc = await (await fetch(`https://plc.directory/${did}`)).json();
+  }
+
+  const endpoint = doc.service?.find(
+    (svc) => svc.type === 'AtprotoPersonalDataServer'
+  )?.serviceEndpoint;
+  if (!endpoint) throw new Error(`No PDS in DID document for ${did}`);
+
+  pdsCache.set(did, endpoint);
+  return endpoint;
+}
+
+export interface FetchedBlob {
+  data: Buffer;
+  contentType: string;
+}
+
+/**
+ * Download an original blob. Returns null when it is missing or larger than
+ * maxBytes — re-hosting someone's video is a convenience, never worth blocking
+ * the render or filling the workspace over.
+ */
+export async function fetchBlob(
+  did: string,
+  cid: string,
+  maxBytes: number
+): Promise<FetchedBlob | null> {
+  const pds = await resolvePds(did);
+  const url = `${pds}/xrpc/com.atproto.sync.getBlob?did=${encodeURIComponent(
+    did
+  )}&cid=${encodeURIComponent(cid)}`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    blueskyLogger.warn('Blob fetch failed', {
+      did,
+      cid,
+      status: response.status,
+    });
+    return null;
+  }
+
+  const declared = Number(response.headers.get('content-length') ?? 0);
+  if (declared > maxBytes) {
+    blueskyLogger.info('Blob too large, skipping', {
+      did,
+      cid,
+      bytes: declared,
+      maxBytes,
+    });
+    return null;
+  }
+
+  const data = Buffer.from(await response.arrayBuffer());
+  if (data.byteLength > maxBytes) {
+    blueskyLogger.info('Blob too large, skipping', {
+      did,
+      cid,
+      bytes: data.byteLength,
+      maxBytes,
+    });
+    return null;
+  }
+
+  return {
+    data,
+    contentType:
+      response.headers.get('content-type') ?? 'application/octet-stream',
+  };
 }

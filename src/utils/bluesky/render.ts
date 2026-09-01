@@ -118,10 +118,12 @@ function embedUrl(owner: MediaOwner): string {
   return `https://embed.bsky.app/embed/${owner.did}/app.bsky.feed.post/${rkey}`;
 }
 
+export type VideoMode = 'thumbnail' | 'embed' | 'rehost';
+
 function mediaBlocks(
   media: BlueskyEmbed | undefined,
   owner: MediaOwner,
-  playableVideo: boolean
+  videoMode: VideoMode
 ): KnownBlock[] {
   if (!media) return [];
   const blocks: KnownBlock[] = [];
@@ -154,7 +156,11 @@ function mediaBlocks(
     // video block instead embeds Bluesky's own player in an iframe. It needs
     // links:read / links:write on the app, so it stays behind a flag: an
     // unrecognised video block fails the whole postMessage, not just itself.
-    if (playableVideo) {
+    // 'rehost' emits nothing here: the video is uploaded to Slack as a file
+    // straight after the render, and its own preview carries the still.
+    if (videoMode === 'rehost') {
+      // no block
+    } else if (videoMode === 'embed') {
       blocks.push({
         type: 'video',
         title: {
@@ -182,7 +188,7 @@ function mediaBlocks(
 
 function quoteBlocks(
   quoted: BlueskyEmbed['record'] | undefined,
-  playableVideo: boolean
+  videoMode: VideoMode
 ): KnownBlock[] {
   if (!quoted?.author || !quoted.value) return [];
 
@@ -220,7 +226,7 @@ function quoteBlocks(
     uri: quoted.uri ?? '',
   };
   for (const embed of quoted.embeds ?? []) {
-    blocks.push(...mediaBlocks(splitEmbed(embed).media, owner, playableVideo));
+    blocks.push(...mediaBlocks(splitEmbed(embed).media, owner, videoMode));
   }
 
   return blocks;
@@ -228,7 +234,7 @@ function quoteBlocks(
 
 export function buildPostBlocks(
   post: BlueskyPost,
-  playableVideo = false
+  videoMode: VideoMode = 'thumbnail'
 ): KnownBlock[] {
   const { media, quoted } = splitEmbed(post.embed);
   const owner: MediaOwner = {
@@ -264,8 +270,8 @@ export function buildPostBlocks(
     });
   }
 
-  blocks.push(...mediaBlocks(media, owner, playableVideo));
-  blocks.push(...quoteBlocks(quoted, playableVideo));
+  blocks.push(...mediaBlocks(media, owner, videoMode));
+  blocks.push(...quoteBlocks(quoted, videoMode));
 
   const footer = [
     countsLine(post),
@@ -295,11 +301,11 @@ export interface PostAttachment {
  */
 export function buildPostAttachment(
   post: BlueskyPost,
-  playableVideo = false
+  videoMode: VideoMode = 'thumbnail'
 ): PostAttachment {
   return {
     color: BLUESKY_BLUE,
-    blocks: buildPostBlocks(post, playableVideo),
+    blocks: buildPostBlocks(post, videoMode),
     fallback: buildFallbackText(post),
   };
 }
@@ -314,4 +320,51 @@ export function buildFallbackText(post: BlueskyPost): string {
   const name = post.author.displayName ?? post.author.handle;
   const text = (post.record.text ?? '').replace(/\s+/g, ' ').trim();
   return truncate(`${name} (@${post.author.handle}): ${text}`, 300);
+}
+
+export interface VideoRef {
+  did: string;
+  cid: string;
+  alt?: string;
+  handle: string;
+  uri: string;
+}
+
+/** Every video in a post, including inside a quote, with its owning author. */
+export function collectVideos(post: BlueskyPost): VideoRef[] {
+  const refs: VideoRef[] = [];
+
+  const add = (media: BlueskyEmbed | undefined, owner: MediaOwner) => {
+    if (media?.playlist && media.cid) {
+      refs.push({
+        did: owner.did,
+        cid: media.cid,
+        alt: media.alt,
+        handle: owner.handle,
+        uri: owner.uri,
+      });
+    }
+  };
+
+  const { media, quoted } = splitEmbed(post.embed);
+  add(media, {
+    did: post.author.did,
+    handle: post.author.handle,
+    displayName: post.author.displayName,
+    uri: post.uri,
+  });
+
+  if (quoted?.author) {
+    const owner: MediaOwner = {
+      did: quoted.author.did,
+      handle: quoted.author.handle,
+      displayName: quoted.author.displayName,
+      uri: quoted.uri ?? '',
+    };
+    for (const embed of quoted.embeds ?? []) {
+      add(splitEmbed(embed).media, owner);
+    }
+  }
+
+  return refs;
 }

@@ -19,12 +19,20 @@ const config = {
     unfurlGraceMs: 6000,
     // Render as a threaded reply instead of a message in the channel.
     replyInThread: false,
-    // Embed Bluesky's player so videos play in Slack instead of showing a
-    // still. Requires links:read / links:write on the Slack app and
-    // embed.bsky.app registered as an App Unfurl Domain; without those Slack
-    // rejects the whole message, so this defaults off. The listener falls back
-    // to the thumbnail on rejection and logs it.
-    playableVideo: false,
+    // How video is presented:
+    //   'thumbnail' — a still image (no extra scopes)
+    //   'embed'     — Bluesky's player in a Slack video block. Plays inline
+    //                 but re-renders the whole post inside the frame. Needs
+    //                 links:read + links:write and embed.bsky.app registered
+    //                 as an App Unfurl Domain.
+    //   'rehost'    — download the original upload from the author's PDS and
+    //                 attach it to Slack, giving a bare native player. Needs
+    //                 files:write, and costs workspace file storage.
+    // Slack rejects the whole message if a mode's requirements are unmet, so
+    // the listener falls back to 'thumbnail' and logs when that happens.
+    videoMode: 'thumbnail',
+    // Skip re-hosting anything larger than this.
+    maxVideoBytes: 100 * 1024 * 1024,
   },
   googleai: {
     key: null,
