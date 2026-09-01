@@ -105,7 +105,24 @@ function splitEmbed(embed?: BlueskyEmbed): {
   return { media: embed };
 }
 
-function mediaBlocks(media?: BlueskyEmbed): KnownBlock[] {
+/** Identity of the post a piece of media belongs to. */
+interface MediaOwner {
+  did: string;
+  handle: string;
+  displayName?: string;
+  uri: string;
+}
+
+function embedUrl(owner: MediaOwner): string {
+  const rkey = owner.uri.split('/').pop() ?? '';
+  return `https://embed.bsky.app/embed/${owner.did}/app.bsky.feed.post/${rkey}`;
+}
+
+function mediaBlocks(
+  media: BlueskyEmbed | undefined,
+  owner: MediaOwner,
+  playableVideo: boolean
+): KnownBlock[] {
   if (!media) return [];
   const blocks: KnownBlock[] = [];
 
@@ -132,19 +149,41 @@ function mediaBlocks(media?: BlueskyEmbed): KnownBlock[] {
     });
   }
 
-  // Video has no still frame Slack can embed reliably; link the thumbnail.
   if (media.playlist && media.thumbnail) {
-    blocks.push({
-      type: 'image',
-      image_url: media.thumbnail,
-      alt_text: truncate(media.alt || 'Video thumbnail', ALT_TEXT_LIMIT),
-    });
+    // Bluesky serves video as HLS, which Slack can't play from a URL. The
+    // video block instead embeds Bluesky's own player in an iframe. It needs
+    // links:read / links:write on the app, so it stays behind a flag: an
+    // unrecognised video block fails the whole postMessage, not just itself.
+    if (playableVideo) {
+      blocks.push({
+        type: 'video',
+        title: {
+          type: 'plain_text',
+          text: truncate(owner.displayName ?? `@${owner.handle}`, 200),
+        },
+        title_url: permalinkFor(owner.handle, owner.uri),
+        video_url: embedUrl(owner),
+        thumbnail_url: media.thumbnail,
+        alt_text: truncate(media.alt || 'Bluesky video', ALT_TEXT_LIMIT),
+        author_name: truncate(owner.handle, 50),
+        provider_name: 'Bluesky',
+      } as KnownBlock);
+    } else {
+      blocks.push({
+        type: 'image',
+        image_url: media.thumbnail,
+        alt_text: truncate(media.alt || 'Video thumbnail', ALT_TEXT_LIMIT),
+      });
+    }
   }
 
   return blocks;
 }
 
-function quoteBlocks(quoted?: BlueskyEmbed['record']): KnownBlock[] {
+function quoteBlocks(
+  quoted: BlueskyEmbed['record'] | undefined,
+  playableVideo: boolean
+): KnownBlock[] {
   if (!quoted?.author || !quoted.value) return [];
 
   const handle = quoted.author.handle;
@@ -174,15 +213,30 @@ function quoteBlocks(quoted?: BlueskyEmbed['record']): KnownBlock[] {
   // A quoted post carries its own embeds. Render their media so quoting a
   // photo or video doesn't collapse to bare text. splitEmbed returns no media
   // for a nested quote, which is what stops this recursing.
+  const owner: MediaOwner = {
+    did: quoted.author.did,
+    handle: quoted.author.handle,
+    displayName: quoted.author.displayName,
+    uri: quoted.uri ?? '',
+  };
   for (const embed of quoted.embeds ?? []) {
-    blocks.push(...mediaBlocks(splitEmbed(embed).media));
+    blocks.push(...mediaBlocks(splitEmbed(embed).media, owner, playableVideo));
   }
 
   return blocks;
 }
 
-export function buildPostBlocks(post: BlueskyPost): KnownBlock[] {
+export function buildPostBlocks(
+  post: BlueskyPost,
+  playableVideo = false
+): KnownBlock[] {
   const { media, quoted } = splitEmbed(post.embed);
+  const owner: MediaOwner = {
+    did: post.author.did,
+    handle: post.author.handle,
+    displayName: post.author.displayName,
+    uri: post.uri,
+  };
   const blocks: KnownBlock[] = [];
 
   const header: KnownBlock = {
@@ -210,8 +264,8 @@ export function buildPostBlocks(post: BlueskyPost): KnownBlock[] {
     });
   }
 
-  blocks.push(...mediaBlocks(media));
-  blocks.push(...quoteBlocks(quoted));
+  blocks.push(...mediaBlocks(media, owner, playableVideo));
+  blocks.push(...quoteBlocks(quoted, playableVideo));
 
   const footer = [
     countsLine(post),
@@ -239,12 +293,20 @@ export interface PostAttachment {
  * Wrap the blocks in an attachment so Slack draws its coloured left bar. That
  * bar is what makes this read as a link preview rather than as a bot post.
  */
-export function buildPostAttachment(post: BlueskyPost): PostAttachment {
+export function buildPostAttachment(
+  post: BlueskyPost,
+  playableVideo = false
+): PostAttachment {
   return {
     color: BLUESKY_BLUE,
-    blocks: buildPostBlocks(post),
+    blocks: buildPostBlocks(post, playableVideo),
     fallback: buildFallbackText(post),
   };
+}
+
+/** True when the rendering contains a video block Slack may reject. */
+export function hasVideoBlock(attachment: PostAttachment): boolean {
+  return attachment.blocks.some((b) => b.type === 'video');
 }
 
 /** Plain-text fallback for notifications and clients that ignore blocks. */

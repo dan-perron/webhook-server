@@ -19,6 +19,12 @@ const config = {
     unfurlGraceMs: 6000,
     // Render as a threaded reply instead of a message in the channel.
     replyInThread: false,
+    // Embed Bluesky's player so videos play in Slack instead of showing a
+    // still. Requires links:read / links:write on the Slack app and
+    // embed.bsky.app registered as an App Unfurl Domain; without those Slack
+    // rejects the whole message, so this defaults off. The listener falls back
+    // to the thumbnail on rejection and logs it.
+    playableVideo: false,
   },
   googleai: {
     key: null,

@@ -4,13 +4,18 @@ import { isConfigured, getPostByRef } from '../clients/bluesky.js';
 import { extractPostRefs } from '../utils/bluesky/url.js';
 import { refsNeedingRender } from '../utils/bluesky/unfurl.js';
 import type { BlueskyPostRef } from '../utils/bluesky/url.js';
-import { buildPostAttachment } from '../utils/bluesky/render.js';
+import { buildPostAttachment, hasVideoBlock } from '../utils/bluesky/render.js';
 import { createLogger } from '../utils/logging/index.js';
 
 const blueskyLogger = createLogger('bluesky-unfurl');
 
 const graceMs = config.get<number>('bluesky.unfurlGraceMs');
 const replyInThread = config.get<boolean>('bluesky.replyInThread');
+const playableVideo = config.get<boolean>('bluesky.playableVideo');
+
+// Flipped off for the rest of the process once Slack rejects a video block, so
+// one misconfigured install doesn't cost every later post a wasted round trip.
+let videoBlocksUsable = playableVideo;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -104,18 +109,40 @@ app.message(async ({ message, client }) => {
         continue;
       }
 
-      const attachment = buildPostAttachment(post);
-      await client.chat.postMessage({
-        channel: event.channel,
-        // Stay in the thread when the link was posted in one.
-        thread_ts: replyInThread
-          ? event.thread_ts ?? event.ts
-          : event.thread_ts,
-        text: attachment.fallback,
-        attachments: [attachment],
-        unfurl_links: false,
-        unfurl_media: false,
-      });
+      const thread = replyInThread
+        ? event.thread_ts ?? event.ts
+        : event.thread_ts;
+
+      const send = (attachment: ReturnType<typeof buildPostAttachment>) =>
+        client.chat.postMessage({
+          channel: event.channel,
+          // Stay in the thread when the link was posted in one.
+          thread_ts: thread,
+          text: attachment.fallback,
+          attachments: [attachment],
+          unfurl_links: false,
+          unfurl_media: false,
+        });
+
+      const attachment = buildPostAttachment(post, videoBlocksUsable);
+      try {
+        await send(attachment);
+      } catch (error) {
+        // A video block Slack won't accept fails the entire message, not just
+        // itself, so retry once without it rather than losing the render.
+        const rejected = /invalid_(blocks|attachments)/.test(
+          (error as Error).message
+        );
+        if (!rejected || !hasVideoBlock(attachment)) throw error;
+
+        videoBlocksUsable = false;
+        blueskyLogger.warn(
+          'Slack rejected the video block; falling back to thumbnails. ' +
+            'Check links:read / links:write and the App Unfurl Domains.',
+          { error: (error as Error).message }
+        );
+        await send(buildPostAttachment(post, false));
+      }
 
       blueskyLogger.info('Rendered Bluesky post', {
         url: ref.url,
