@@ -179,12 +179,15 @@ app.message(async ({ message, client }) => {
         ? event.thread_ts ?? event.ts
         : event.thread_ts;
 
+      // No top-level `text`: Slack renders it as the message body, which would
+      // repeat the post text sitting right below it in the attachment. The
+      // attachment's own `fallback` still covers notifications and clients
+      // that can't render blocks.
       const send = (attachment: ReturnType<typeof buildPostAttachment>) =>
         client.chat.postMessage({
           channel: event.channel,
           // Stay in the thread when the link was posted in one.
           thread_ts: thread,
-          text: attachment.fallback,
           attachments: [attachment],
           unfurl_links: false,
           unfurl_media: false,
@@ -235,7 +238,6 @@ app.message(async ({ message, client }) => {
             await client.chat.update({
               channel: event.channel,
               ts: posted.ts as string,
-              text: swapped.fallback,
               attachments: [swapped],
             });
           }
