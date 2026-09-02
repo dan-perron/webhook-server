@@ -139,9 +139,14 @@ function mediaBlocks(
   }
 
   if (media.external) {
-    const { uri, title, description } = media.external;
+    const { uri, title, description, thumb } = media.external;
     const heading = title ? `<${uri}|${escape(title)}>` : `<${uri}|${uri}>`;
-    const body = description ? `\n${escape(description)}` : '';
+    // Bluesky repeats the title in the description for link cards it builds
+    // from alt text, so don't print the same line twice.
+    const body =
+      description && description.replace(/^ALT:\s*/i, '') !== title
+        ? `\n${escape(description)}`
+        : '';
     blocks.push({
       type: 'section',
       text: {
@@ -149,6 +154,15 @@ function mediaBlocks(
         text: truncate(`:link: ${heading}${body}`, SECTION_TEXT_LIMIT),
       },
     });
+    // The card's preview image. Link cards are often the whole point of the
+    // post — a GIF or a photo — so losing this loses the content.
+    if (thumb) {
+      blocks.push({
+        type: 'image',
+        image_url: thumb,
+        alt_text: truncate(title || 'Link preview', ALT_TEXT_LIMIT),
+      });
+    }
   }
 
   if (media.playlist && media.thumbnail) {
